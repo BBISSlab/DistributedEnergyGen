@@ -1,0 +1,13 @@
+setuptools
+openpyxl
+pathlib
+pyarrow
+numpy
+pandas
+scipy
+sklearn
+seaborn
+matplotlib
+pvlib
+nrel-pysam
+Bottleneck
