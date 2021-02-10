@@ -1,4 +1,4 @@
-# DistributedEnergyGen
+# Distributed Energy Generation Model
 
 README - Distributed Energy Generation Analysis
 
