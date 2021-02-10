@@ -1,0 +1,9 @@
+,,,,kW,,,,yr,2017$,2017$,$/kW,,"annual o&m, $/yr","annual o&m, $/kW-yr",$/kWh
+AC_id,technology,building,climate,capacity_kW,SEER,COP_full_load,COP_PLR,avg_life,equipment_cost,total_cost,equipment_cost,capital_cost,annual_om,annual_om,om_cost
+AC1,Central Air Conditioner,residential,North: Not Hot-Dry or Hot-Humid,10.55,15,4.4,,25,2650,4000,251,379,20,1.9,2.16E-04
+AC2,Central Air Conditioner,residential,South: Hot-Dry or Hot-Humid,10.55,15,4.4,,25,2650,4000,251,379,20,1.9,2.16E-04
+AC3,Rooftop Air Conditioner,commercial,all,44,11.69951995,3.4,3.5,21,6650,9400,151,214,310,7.05,8.04E-04
+CH1,Water-Cooled Centrifugal Chiller,commercial,all,117.2,26.6136,7.8,11.7,25,19108,20833,163,178,833.33,7,8.11E-04
+CH2,Water-Cooled Centrifugal Chiller,commercial,all,117.2,26.6136,7.8,11.7,25,19108,21687,163,185,1172.28,10,1.14E-03
+CH2,Air-Cooled Reciprocating Chiller,commercial,all,351.7,11.942,3.5,4.5,20,87500,100000,249,284,4500,13,1.46E-03
+CH3,Air-Cooled Reciprocating Chiller,commercial,all,703.4,11.942,3.5,4.5,20,150000,185000,213,263,4923.59,7,7.99E-04
