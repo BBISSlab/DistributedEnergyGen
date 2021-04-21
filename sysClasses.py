@@ -106,38 +106,38 @@ city_list = ['albuquerque', 'atlanta',  'baltimore',
              'houston', 'las_vegas', 'los_angeles', 'miami',
              'minneapolis', 'phoenix', 'san_francisco', 'seattle']
 # Typical Meteorological Year 3 CSV files (Climate)
-tmy3_city_dictionary = {'albuquerque': ['PhD_Code\Tmy3_files\TMY3Albuquerque.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723650TYA.CSV'],
-                        'atlanta': ['PhD_Code\Tmy3_files\TMY3Atlanta.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722190TYA.CSV'],
-                        'baltimore': ['PhD_Code\Tmy3_files\TMY3Baltimore.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724060TYA.CSV'],
-                        'chicago': ['PhD_Code\Tmy3_files\TMY3Chicago.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725300TYA.CSV'],
-                        'denver': ['PhD_Code\Tmy3_files\TMY3Denver.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725650TYA.CSV'],
-                        'duluth': ['PhD_Code\Tmy3_files\TMY3Duluth.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727450TYA.CSV'],
-                        'fairbanks': ['PhD_Code\Tmy3_files\TMY3Fairbanks.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/702610TYA.CSV'],
-                        'helena': ['PhD_Code\Tmy3_files\TMY3Helena.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727720TYA.CSV'],
-                        'houston': ['PhD_Code\Tmy3_files\TMY3Houston.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722430TYA.CSV'],
-                        'las_vegas': ['PhD_Code\Tmy3_files\TMY3LasVegas.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723860TYA.CSV'],
-                        'los_angeles': ['PhD_Code\Tmy3_files\TMY3LosAngeles.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722950TYA.CSV'],
-                        'miami': ['PhD_Code\Tmy3_files\TMY3Miami.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722020TYA.CSV'],
-                        'minneapolis': ['PhD_Code\Tmy3_files\TMY3Minneapolis.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/726580TYA.CSV'],
-                        'phoenix': ['PhD_Code\Tmy3_files\TMY3Phoenix.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722780TYA.CSV'],
-                        'san_francisco': ['PhD_Code\Tmy3_files\TMY3SanFrancisco.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724940TYA.CSV'],
-                        'seattle': ['PhD_Code\Tmy3_files\TMY3Seattle.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727930TYA.CSV']}
-processed_tmy3_dictionary = {'albuquerque': 'PhD_Code\Tmy3_files\TMY3Albuquerque_Processed.csv',
-                             'atlanta': 'PhD_Code\Tmy3_files\TMY3Atlanta_Processed.csv',
-                             'baltimore': 'PhD_Code\Tmy3_files\TMY3Baltimore_Processed.csv',
-                             'chicago': 'PhD_Code\Tmy3_files\TMY3Chicago_Processed.csv',
-                             'denver': 'PhD_Code\Tmy3_files\TMY3Denver_Processed.csv',
-                             'duluth': 'PhD_Code\Tmy3_files\TMY3Duluth_Processed.csv',
-                             'fairbanks': 'PhD_Code\Tmy3_files\TMY3Fairbanks_Processed.csv',
-                             'helena': 'PhD_Code\Tmy3_files\TMY3Helena_Processed.csv',
-                             'houston': 'PhD_Code\Tmy3_files\TMY3Houston_Processed.csv',
-                             'las_vegas': 'PhD_Code\Tmy3_files\TMY3LasVegas_Processed.csv',
-                             'los_angeles': 'PhD_Code\Tmy3_files\TMY3LosAngeles_Processed.csv',
-                             'miami': 'PhD_Code\Tmy3_files\TMY3Miami_Processed.csv',
-                             'minneapolis': 'PhD_Code\Tmy3_files\TMY3Minneapolis_Processed.csv',
-                             'phoenix': 'PhD_Code\Tmy3_files\TMY3Phoenix_Processed.csv',
-                             'san_francisco': 'PhD_Code\Tmy3_files\TMY3SanFrancisco_Processed.csv',
-                             'seattle': 'PhD_Code\Tmy3_files\TMY3Seattle_Processed.csv'}
+tmy3_city_dictionary = {'albuquerque': ['data\Tmy3_files\TMY3Albuquerque.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723650TYA.CSV'],
+                        'atlanta': ['data\Tmy3_files\TMY3Atlanta.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722190TYA.CSV'],
+                        'baltimore': ['data\Tmy3_files\TMY3Baltimore.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724060TYA.CSV'],
+                        'chicago': ['data\Tmy3_files\TMY3Chicago.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725300TYA.CSV'],
+                        'denver': ['data\Tmy3_files\TMY3Denver.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725650TYA.CSV'],
+                        'duluth': ['data\Tmy3_files\TMY3Duluth.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727450TYA.CSV'],
+                        'fairbanks': ['data\Tmy3_files\TMY3Fairbanks.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/702610TYA.CSV'],
+                        'helena': ['data\Tmy3_files\TMY3Helena.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727720TYA.CSV'],
+                        'houston': ['data\Tmy3_files\TMY3Houston.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722430TYA.CSV'],
+                        'las_vegas': ['data\Tmy3_files\TMY3LasVegas.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723860TYA.CSV'],
+                        'los_angeles': ['data\Tmy3_files\TMY3LosAngeles.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722950TYA.CSV'],
+                        'miami': ['data\Tmy3_files\TMY3Miami.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722020TYA.CSV'],
+                        'minneapolis': ['data\Tmy3_files\TMY3Minneapolis.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/726580TYA.CSV'],
+                        'phoenix': ['data\Tmy3_files\TMY3Phoenix.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722780TYA.CSV'],
+                        'san_francisco': ['data\Tmy3_files\TMY3SanFrancisco.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724940TYA.CSV'],
+                        'seattle': ['data\Tmy3_files\TMY3Seattle.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727930TYA.CSV']}
+processed_tmy3_dictionary = {'albuquerque': 'data\Tmy3_files\TMY3Albuquerque_Processed.csv',
+                             'atlanta': 'data\Tmy3_files\TMY3Atlanta_Processed.csv',
+                             'baltimore': 'data\Tmy3_files\TMY3Baltimore_Processed.csv',
+                             'chicago': 'data\Tmy3_files\TMY3Chicago_Processed.csv',
+                             'denver': 'data\Tmy3_files\TMY3Denver_Processed.csv',
+                             'duluth': 'data\Tmy3_files\TMY3Duluth_Processed.csv',
+                             'fairbanks': 'data\Tmy3_files\TMY3Fairbanks_Processed.csv',
+                             'helena': 'data\Tmy3_files\TMY3Helena_Processed.csv',
+                             'houston': 'data\Tmy3_files\TMY3Houston_Processed.csv',
+                             'las_vegas': 'data\Tmy3_files\TMY3LasVegas_Processed.csv',
+                             'los_angeles': 'data\Tmy3_files\TMY3LosAngeles_Processed.csv',
+                             'miami': 'data\Tmy3_files\TMY3Miami_Processed.csv',
+                             'minneapolis': 'data\Tmy3_files\TMY3Minneapolis_Processed.csv',
+                             'phoenix': 'data\Tmy3_files\TMY3Phoenix_Processed.csv',
+                             'san_francisco': 'data\Tmy3_files\TMY3SanFrancisco_Processed.csv',
+                             'seattle': 'data\Tmy3_files\TMY3Seattle_Processed.csv'}
 climate_zone_dictionary = {'albuquerque': '4B',
                            'atlanta': '3A',
                            'baltimore': '4A',
@@ -584,7 +584,7 @@ size_Furnace
 ################
 # PV Funcitons #
 ################
-
+# Functions for Photovoltaic systems are not currently used in this model
 
 def list_pv_modules():
     """
@@ -865,7 +865,7 @@ class City(Location):
             self.tmy_data = pd.read_csv(
                 processed_tmy3_dictionary[self.name], index_col='datetime')
             metadata = pd.read_csv(
-                'PhD_Code\Tmy3_files\TMY3Metadata.csv', index_col='city')
+                'data\Tmy3_files\TMY3Metadata.csv', index_col='city')
             latitude = float(metadata.loc[self.name]['latitude'])
             longitude = float(metadata.loc[self.name]['longitude'])
             timezone = float(metadata.loc[self.name]['TZ'])
@@ -2115,7 +2115,7 @@ class Grid:
             # If the Electricity Market Module is None, the prices will be obtained
             # from a dataframe with averaged prices
             self.projections = pd.read_csv(
-                'PhD_Code\Tech_specs\Avg_prices.csv', index_col='year')
+                'data\Tech_specs\Avg_prices.csv', index_col='year')
             self.co2 = impacts_df.iloc[index]['CO2_kg_MWh-1']
             self.nox = impacts_df.iloc[index]['NOx_kg_MWh-1']
             self.so2 = impacts_df.iloc[index]['SO2_kg_MWh-1']
@@ -2363,27 +2363,27 @@ def generate_objects(all_cities=True, selected_cities=[]):
     print('Cities generated for {}'.format(selected_cities))
 
     Grid_dictionary = _generate_Grid(
-        impacts_csv_file='PhD_Code\Tech_specs\Grid_emission_factors.csv', projections_csv_file='PhD_Code\Tech_specs\power_projections.csv')
+        impacts_csv_file='data\Tech_specs\Grid_emission_factors.csv', projections_csv_file='data\Tech_specs\power_projections.csv')
     print('Grid generated')
 
     PrimeMover_dictionary = _generate_PrimeMovers(
-        csv_file='PhD_Code\Tech_specs\PrimeMover_specs.csv', header=2)
+        csv_file='data\Tech_specs\PrimeMover_specs.csv', header=2)
     print('Prime Movers generated')
 
     BatteryStorage_dictionary = _generate_BatteryStorage(
-        csv_file='PhD_Code\Tech_specs\Battery_specs.csv')
+        csv_file='data\Tech_specs\Battery_specs.csv')
     print('Batteries generated')
 
     Furnace_dictionary = _generate_Furnace(
-        csv_file='PhD_Code\Tech_specs\Furnace_specs.csv')
+        csv_file='data\Tech_specs\Furnace_specs.csv')
     print('Furnaces generated')
 
     AC_dictionary = _generate_AirConditioner(
-        csv_file='PhD_Code\Tech_specs\AC_specs.csv')
+        csv_file='data\Tech_specs\AC_specs.csv')
     print('Air Conditioners generated')
 
     ABC_dictionary = _generate_AbsorptionChillers(
-        csv_file='PhD_Code\Tech_specs\ABC_specs.csv')
+        csv_file='data\Tech_specs\ABC_specs.csv')
     print('Absorption Chillers generated')
 
     system_dict = {'City_dict': City_dictionary,
