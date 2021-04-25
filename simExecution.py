@@ -1,0 +1,296 @@
+# My modules
+from sysClasses import *
+from models import *
+# 3rd Party Modules
+from pvlib.location import Location
+from pvlib.pvsystem import PVSystem
+import pvlib  # [1]
+import pandas as pd  # To install: pip install pandas
+import numpy as np  # To install: pip install numpy
+from pyarrow import feather  # Storage format
+#
+import scipy.optimize
+import scipy.stats
+import pathlib
+from openpyxl import load_workbook
+import math as m
+import time
+import datetime
+import inspect
+import os
+
+
+def execute_energy_demand_sim():
+    all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
+    '''
+    OBJECT GENERATOR
+    ----------------
+    '''
+    if all_cities == 1:
+        system_dict = generate_objects(all_cities=True)
+    else:
+        cities_to_simulate = []
+        n = int(input('Enter number of cities: '))
+        for i in range(0, n):
+            city_input = str(input(
+                'Type in the name of the {}th city: '.format(i+1)))
+            cities_to_simulate.append(city_input)
+        print('Simulating the following list: {}'.format(cities_to_simulate))
+        system_dict = generate_objects(
+            all_cities=False, selected_cities=cities_to_simulate)
+
+    City_dict = system_dict['City_dict']
+    Grid_dict = system_dict['Grid_dict']
+    PrimeMover_dict = system_dict['PrimeMover_dict']
+    BES_dict = system_dict['BatteryStorage_dict']
+    Furnace_dict = system_dict['Furnace_dict']
+    AC_dict = system_dict['AC_dict']
+    ABC_dict = system_dict['ABC_dict']
+
+    # Drop residential AC units and exhaust-fired ABCs
+    AC_drop = ['AC1', 'AC2', 'CH2', 'CH4']
+    ABC_drop = ['ABC_SS1', 'ABC_SS3', 'ABC_TS2', 'ABC_TS3', 'ABC_TS4']
+    for key in AC_drop:
+        AC_dict.pop(key)
+    for key in ABC_drop:
+        ABC_dict.pop(key)
+
+    # Code Starts
+    ts = time.gmtime()
+    print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
+
+    beta_ABC_range = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    city_number = 1
+    for city in City_dict:
+
+        City_ = City_dict[city]
+
+        building_number = 1
+        for building in building_type_list:
+
+            dataframes_ls = []
+
+            Building_ = Building(
+                name=building, building_type=building, City_=City_dict[city])
+            for beta in beta_ABC_range:
+                for ac in AC_dict:
+                    AC_ = AC_dict[ac]
+                    ac_number = 1
+                    for abc in ABC_dict:
+                        abc_number = 1
+                        ABC_ = ABC_dict[abc]
+
+                        print('City: {}, {} of 16 | Building: {}, {} of 16 | Beta_ABC = {} | AC {}: {} of 3 | ABC {}: {} of 4 | Time: {}'.format(
+                            city, city_number, building, building_number, beta, ac, ac_number, abc, abc_number, time.strftime("%Y-%m-%d %H:%M:%S", ts)), end='\r')
+
+                        df = energy_demand_sim(Building_=Building_,
+                                               City_=City_,
+                                               AC_=AC_,
+                                               beta_ABC=beta,
+                                               ABC_=ABC_)
+
+                        df.reset_index(inplace=True)
+
+                        dataframes_ls.append(df)
+
+                        # ABC Loop
+                        abc_number += 1
+                    # AC Loop
+                    ac_number += 1
+                # Beta loop
+            # Building Loop
+            building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
+            building_agg.to_feather(
+                'model_outputs\Energy_Demands\Hourly_'+city+'_'+building+'_energy_dem.feather')
+            building_number += 1
+        # City Loop
+        city_number += 1
+    print('\nCompleted Simulation')
+
+
+def execute_energy_supply_sim():
+    all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
+    '''
+    OBJECT GENERATOR
+    ----------------
+    '''
+    if all_cities == 1:
+        system_dict = generate_objects(all_cities=True)
+    else:
+        cities_to_simulate = []
+        n = int(input('Enter number of cities: '))
+        for i in range(0, n):
+            city_input = str(input(
+                'Type in the name of the {}th city: '.format(i+1)))
+            cities_to_simulate.append(city_input)
+        print('Simulating the following list: {}'.format(cities_to_simulate))
+        system_dict = generate_objects(
+            all_cities=False, selected_cities=cities_to_simulate)
+
+    City_dict = system_dict['City_dict']
+    Grid_dict = system_dict['Grid_dict']
+    PrimeMover_dict = system_dict['PrimeMover_dict']
+    BES_dict = system_dict['BatteryStorage_dict']
+    Furnace_dict = system_dict['Furnace_dict']
+    AC_dict = system_dict['AC_dict']
+    ABC_dict = system_dict['ABC_dict']
+
+    # Just look at two furnaces, one electric and one gas
+    Furnace_drop = ['F1', 'F2', 'F3', 'F6', 'B1', 'B2']
+    for key in Furnace_drop:
+        Furnace_dict.pop(key)
+
+    # Code Starts
+    ts = time.gmtime()
+    print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
+
+    alpha_CHP_range = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    city_number = 1
+    for city in City_dict:
+
+        City_ = City_dict[city]
+
+        building_number = 1
+        for building in building_type_list:
+            dataframes_ls = []
+
+            Building_ = Building(
+                name=building, building_type=building, City_=City_dict[city])
+
+            pm_number = 1
+            for pm in PrimeMover_dict:
+                PrimeMover_ = PrimeMover_dict[pm]
+                Furnace_number = 1
+
+                for furnace in Furnace_dict:
+                    Furnace_ = Furnace_dict[furnace]
+
+                    for alpha in alpha_CHP_range:
+
+                        print('City: {}, {} of 16 | Building: {}, {} of 16 | Alpha_CHP = {} | Furnace {}: {} of 5 | CHP {}: {} of 22 | Time: {}'.format(
+                            city, city_number, building, building_number, alpha, furnace, Furnace_number, pm, pm_number, time.strftime("%Y-%m-%d %H:%M:%S", ts)), end='\r')
+
+                        df = energy_supply(Building_=Building_,
+                                           City_=City_,
+                                           Furnace_=Furnace_,
+                                           PrimeMover_=PrimeMover_,
+                                           alpha_CHP=alpha)
+
+                        df.reset_index(inplace=True)
+
+                        dataframes_ls.append(df)
+
+                        # alpha Loop
+
+                    # Furnace Loop
+                    Furnace_number += 1
+                # PrimeMover loop
+                pm_number += 1
+            # Building Loop
+            building_number += 1
+            building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
+            building_agg.to_feather(
+                F'PhD_Code\Outputs\Energy_Supply\Annual_{city}_{building}_energy_sup.feather')
+        # City Loop
+        city_number += 1
+    print('\nCompleted Simulation')
+
+
+def execute_corrected_energy_supply_sim():
+    all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
+    '''
+    OBJECT GENERATOR
+    ----------------
+    '''
+    if all_cities == 1:
+        system_dict = generate_objects(all_cities=True)
+    else:
+        cities_to_simulate = []
+        n = int(input('Enter number of cities: '))
+        for i in range(0, n):
+            city_input = str(input(
+                'Type in the name of the {}th city: '.format(i+1)))
+            cities_to_simulate.append(city_input)
+        print('Simulating the following list: {}'.format(cities_to_simulate))
+        system_dict = generate_objects(
+            all_cities=False, selected_cities=cities_to_simulate)
+
+    City_dict = system_dict['City_dict']
+    Grid_dict = system_dict['Grid_dict']
+    PrimeMover_dict = system_dict['PrimeMover_dict']
+    BES_dict = system_dict['BatteryStorage_dict']
+    Furnace_dict = system_dict['Furnace_dict']
+    AC_dict = system_dict['AC_dict']
+    ABC_dict = system_dict['ABC_dict']
+
+    # Just look at two furnaces, one electric and one gas
+    Furnace_drop = ['F1', 'F2', 'F3', 'F6', 'B1', 'B2']
+    for key in Furnace_drop:
+        Furnace_dict.pop(key)
+
+    # Code Starts
+    ts = time.gmtime()
+    print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
+
+    alpha_CHP_range = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+    city_number = 1
+    for city in City_dict:
+
+        City_ = City_dict[city]
+
+        building_number = 1
+        for building in building_type_list:
+            dataframes_ls = []
+
+            Building_ = Building(
+                name=building, building_type=building, City_=City_dict[city])
+
+            pm_number = 1
+            for pm in PrimeMover_dict:
+                PrimeMover_ = PrimeMover_dict[pm]
+                Furnace_number = 1
+
+                for furnace in Furnace_dict:
+                    Furnace_ = Furnace_dict[furnace]
+
+                    for alpha in alpha_CHP_range:
+
+                        print('City: {}, {} of 16 | Building: {}, {} of 16 | Alpha_CHP = {} | Furnace {}: {} of 5 | CHP {}: {} of 22 | Time: {}'.format(
+                            city, city_number, building, building_number, alpha, furnace, Furnace_number, pm, pm_number, time.strftime("%Y-%m-%d %H:%M:%S", ts)), end='\r')
+
+                        df = correct_energy_supply(Building_=Building_,
+                                                   City_=City_,
+                                                   Furnace_=Furnace_,
+                                                   PrimeMover_=PrimeMover_,
+                                                   alpha_CHP=alpha)
+
+                        try:
+                            df.reset_index(inplace=True)
+                        except ValueError:
+                            pass
+
+                        dataframes_ls.append(df)
+
+                        # alpha Loop
+
+                    # Furnace Loop
+                    Furnace_number += 1
+                # PrimeMover loop
+                pm_number += 1
+            # Building Loop
+            building_number += 1
+            building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
+            building_agg.to_feather(
+                F'PhD_Code\Outputs\Energy_Supply\Annual_{city}_{building}_energy_sup_corrected.feather')
+        # City Loop
+        city_number += 1
+    print('\nCompleted Simulation')
+
+
+# execute_energy_demand_sim()
+# execute_energy_supply_sim()
+# execute_corrected_energy_supply_sim()
+# clean_and_compile_data()
