@@ -11,6 +11,10 @@ import pandas as pd
 
 from sysClasses import *
 
+# TO DO
+# Review the model
+# Verify that demand and supply are working well
+# Add distribution losses for the Absorption Chiller and the CHP
 
 def model(Building_, City_,
           Grid_=None, efficiency_Grid=0.533,
@@ -621,7 +625,7 @@ def energy_supply(Building_, City_,
                   memory={}):
 
     # Read the energy demand data
-    file_path = 'PhD_Code\Outputs\Energy_Demands'
+    file_path = 'model_outputs\energy_demands'
     file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem.feather'
     df = pd.read_feather(F'{file_path}\{file_name}')
 
@@ -788,12 +792,12 @@ def emissions_sim(Building_, City_,
 
     # Read the energy demand data
     if data is None:
-        file_path = 'PhD_Code\Outputs\Energy_Supply'
+        file_path = 'model_outputs\energy_supply'
         file_name = F'Annual_{City_.name}_{Building_.building_type}_energy_sup.feather'
         data = pd.read_feather(F'{file_path}\{file_name}')
 
     # Load Furnace and PrimeMover dataframes
-    furnace_df = pd.read_csv('PhD_Code\Tech_specs\Furnace_specs.csv', header=1)
+    furnace_df = pd.read_csv('data\Tech_specs\Furnace_specs.csv', header=1)
     furnace_df.rename(columns={'carbon_dioxide': 'Furnace_co2',
                                'nitrous_oxide': 'Furnace_n2o',
                                'PM': 'Furnace_pm',
@@ -805,7 +809,7 @@ def emissions_sim(Building_, City_,
                                'efficiency': 'Furnace_efficiency'}, inplace=True)
     furnace_df['natural_gas'] = np.where(furnace_df.electric is True, 0, 1)
 
-    pm_df = pd.read_csv('PhD_Code\Tech_specs\PrimeMover_specs.csv', header=1)
+    pm_df = pd.read_csv('data\Tech_specs\PrimeMover_specs.csv', header=1)
     pm_df.rename(columns={'carbon_monoxide': 'CHP_co',
                           'carbon_dioxide': 'CHP_co2',
                           'voc': 'CHP_voc',
@@ -867,7 +871,7 @@ def emissions_sim2(Building_, City_,
 
     # Read the energy demand data
     if data is None:
-        file_path = 'PhD_Code\Outputs\Energy_Supply'
+        file_path = 'model_outputs\energy_supply'
         file_name = F'Annual_{City_.name}_{Building_.building_type}_energy_sup.feather'
         data = pd.read_feather(F'{file_path}\{file_name}')
 
@@ -963,14 +967,14 @@ def correct_energy_supply(Building_, City_,
                           memory={}):
 
     # Read the energy demand data
-    file_path = 'PhD_Code\Outputs\Energy_Demands'
+    file_path = 'model_outputs\energy_demands'
     file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem.feather'
     df = pd.read_feather(F'{file_path}\{file_name}')
     df = df[(df.beta_ABC == 0) | (df.beta_ABC == 1)].copy()
 
     # Initialize Energy Supply Columns
     if alpha_CHP == 0:
-        df['PM_id'] = 'None'
+        df['PM_id'] = 'None
     else:
         df['PM_id'] = PrimeMover_.PM_id
     df['max_alpha_CHP'] = 1
@@ -1122,7 +1126,7 @@ def correct_energy_supply(Building_, City_,
     agg_df.reset_index(inplace=True)
 
     # Read the ones that were simulated already
-    file_path = 'PhD_Code\Outputs\Energy_Supply'
+    file_path = 'model_outputs\energy_supply'
     file_name = F'Annual_{City_.name}_{Building_.building_type}_energy_sup.feather'
     data = pd.read_feather(F'{file_path}\{file_name}')
 
@@ -1144,7 +1148,7 @@ def clean_and_compile_data():
             print(F'{city} {building}')#, end='\r')
 
             # Read Energy Supply File
-            filepath = 'PhD_Code\Outputs\Energy_Supply'
+            filepath = 'model_outputs\energy_supply'
             filename = F'Annual_{city}_{building}_energy_sup'
             corrected_filename = F'Annual_{city}_{building}_energy_sup_corrected'
             try: 

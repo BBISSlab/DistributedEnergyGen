@@ -20,6 +20,17 @@ import inspect
 import os
 
 
+'''
+TO DO:
+- Run simulations for energy demand
+    - All CHPs
+    - Alpha_CHP = [0, 0.25, 0.5, 1.0] 
+    - Beta_ABC = [0, 1]
+    - Boiler 'B2'
+- Run simulations for energy supply
+    - 
+'''
+
 def execute_energy_demand_sim():
     all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
     '''
@@ -192,7 +203,7 @@ def execute_energy_supply_sim():
             building_number += 1
             building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
             building_agg.to_feather(
-                F'PhD_Code\Outputs\Energy_Supply\Annual_{city}_{building}_energy_sup.feather')
+                F'model_outputs\energy_supply\Annual_{city}_{building}_energy_sup.feather')
         # City Loop
         city_number += 1
     print('\nCompleted Simulation')
@@ -284,7 +295,7 @@ def execute_corrected_energy_supply_sim():
             building_number += 1
             building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
             building_agg.to_feather(
-                F'PhD_Code\Outputs\Energy_Supply\Annual_{city}_{building}_energy_sup_corrected.feather')
+                F'model_outputs\energy_supply\Annual_{city}_{building}_energy_sup_corrected.feather')
         # City Loop
         city_number += 1
     print('\nCompleted Simulation')
