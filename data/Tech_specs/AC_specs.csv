@@ -5,5 +5,5 @@ AC2,Central Air Conditioner,residential,South: Hot-Dry or Hot-Humid,10.55,15,4.4
 AC3,Rooftop Air Conditioner,commercial,all,44,11.69951995,3.4,3.5,21,6650,9400,151,214,310,7.05,8.04E-04
 CH1,Water-Cooled Centrifugal Chiller,commercial,all,117.2,26.6136,7.8,11.7,25,19108,20833,163,178,833.33,7,8.11E-04
 CH2,Water-Cooled Centrifugal Chiller,commercial,all,117.2,26.6136,7.8,11.7,25,19108,21687,163,185,1172.28,10,1.14E-03
-CH2,Air-Cooled Reciprocating Chiller,commercial,all,351.7,11.942,3.5,4.5,20,87500,100000,249,284,4500,13,1.46E-03
-CH3,Air-Cooled Reciprocating Chiller,commercial,all,703.4,11.942,3.5,4.5,20,150000,185000,213,263,4923.59,7,7.99E-04
+CH3,Air-Cooled Reciprocating Chiller,commercial,all,351.7,11.942,3.5,4.5,20,87500,100000,249,284,4500,13,1.46E-03
+CH4,Air-Cooled Reciprocating Chiller,commercial,all,703.4,11.942,3.5,4.5,20,150000,185000,213,263,4923.59,7,7.99E-04
