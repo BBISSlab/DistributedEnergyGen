@@ -1171,7 +1171,7 @@ class PrimeMover:
                  embedded_ch4=0, embedded_co2=0, embedded_n2o=0,
                  electric_efficiency_LHV=1,  electric_efficiency_HHV=1, thermal_efficiency=1,
                  chp_efficiency_LHV=1, chp_efficiency_HHV=1, effective_efficiency=1,
-                 heat_rate=1, phr=1, exhaust_temperature=20,
+                 heat_rate=1, phr=1, exhaust_temperature=20, heat_recovery_type='hot_water', abc_compatibility=0,
                  lifetime=20, age=0):
         self.PM_id = PM_id
         self.model = model
@@ -1220,15 +1220,19 @@ class PrimeMover:
         self.chp_efficiency_HHV = chp_efficiency_HHV
         self.heat_rate = heat_rate
 
-        # Input as deg C
-        self.exhaust_temperature = exhaust_temperature
+        # Exhaust Characteristics
+        self.exhaust_temperature = exhaust_temperature  # deg C
+        self.heat_recovery_type = heat_recovery_type
+        # 0: Only compatible with single-stage absorption chiller; 1: Compatible with single-stage and two-stage absorption chiller
+        self.abc_compatibility = abc_compatibility
 
     def __repr__(self):
         attrs = ['PM_id', 'model', 'technology', 'lifetime', 'age',
                  'power_nom', 'heat_nom', 'fuel_nom', 'capital_cost', 'om_cost',
                  'co', 'co2', 'nox', 'voc', 'w4e',
                  'electric_efficiency_LHV', 'electric_efficiency_HHV', 'thermal_efficiency', 'chp_efficiency_LHV', 'chp_efficiency_HHV',
-                 'heat_rate', 'phr', 'hpr', 'exhaust_temperature']
+                 'heat_rate', 'phr', 'hpr',
+                 'exhaust_temperature', 'heat_recovery_type', 'abc_compatibility']
         return ('Prime Mover: \n ' + ' \n '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in attrs))
 
     def _get_data(self, dataframe, sheet_name=None, index=0):
@@ -1282,6 +1286,9 @@ class PrimeMover:
         # Converted to deg C from F
         self.exhaust_temperature = (
             dataframe.iloc[index]['exhaust_temp'] - 32.)*(5./9.)
+        # Heat Recovery Characteristics
+        self.heat_recovery_type = dataframe.iloc[index]['heat_recovery_type']
+        self.abc_compatibility = dataframe.iloc[index]['abc_compatibility']
 
         # These two are added so other functions are still working even without the derate
         self.min_capacity = self.power_nom.min()
@@ -1335,7 +1342,6 @@ class PrimeMover:
 
     def size_system(self, peak_electricity_demand, peak_thermal_demand, prime_mover, city=None, operation_mode='FTL'):
         """
-        Currently unused. The CHP is sized by the size_chp function below.
         This method returns the number of CHP units that will be required to meet the peak electric or thermal load. For 
         UPDATE TASK: Make the sizing system able to incorporate different engine size.
         """
@@ -1372,10 +1378,6 @@ class PrimeMover:
             # water_for_energy =  9999
 
         return carbon_monoxide, carbon_dioxide, nox, voc  # , water_for_energy
-
-    ##############################
-    # END OF PRIME MOVER METHODS #
-    ##############################
 
 
 def _generate_PrimeMover_dataframe(csv_file, sheet_name=None, header=0):
@@ -2197,7 +2199,7 @@ def _generate_Grid(impacts_csv_file, projections_csv_file, header=0):
 
 
 class Furnace:
-    def __init__(self, Furnace_id, technology='furnace', primary_energy='gas', building='', climate='any',
+    def __init__(self, Furnace_id, technology='furnace', electric=False, building='', climate='any',
                  capacity=234, efficiency=1, electric_consumption=0, lifetime=20, age=0,
                  retail_equipment_cost=0, total_installed_cost=0, annual_maintenance_cost=0,
                  equipment_cost=0, capital_cost=0, om_cost=0,
@@ -2205,13 +2207,13 @@ class Furnace:
                  voc=8.35*10**-3, nox=0.152, co=6.07**10-2):
         self.Furnace_id = Furnace_id
         self.technology = technology
-        self.primary_energy = primary_energy
+        self.electric = electric  # Boolean
         self.building = building
         self.climate = climate
         # Capacity is in kW
         self.capacity = capacity
         # Efficiency in spec sheet is as a percentage, so must divide by 100.
-        self.efficiency = efficiency/100
+        self.efficiency = efficiency / 100
         # Electric Consumption is in kW. This is the fans and other equipment in the heater
         self.electric_consumption = electric_consumption
         # Lifetime in years
@@ -2241,7 +2243,7 @@ class Furnace:
         self.embedded_n2o = 0.262 * self.capacity
 
     def __repr__(self):
-        attrs = ['Furnace_id', 'technology', 'primary_energy', 'building', 'climate',
+        attrs = ['Furnace_id', 'technology', 'electric', 'building', 'climate',
                  'capacity', 'efficiency', 'electric_consumption', 'lifetime', 'age',
                  'retail_equipment_cost', 'total_installed_cost', 'annual_maintenance_cost',
                  'capital_cost', 'om_cost', 'co2', 'n2o', 'pm', 'so2', 'ch4', 'voc', 'nox', 'co']
@@ -2255,7 +2257,7 @@ class Furnace:
         """
         self.Furnace_id = dataframe.iloc[index]['Furnace_id']
         self.technology = dataframe.iloc[index]['technology']
-        self.primary_energy = dataframe.iloc[index]['primary_energy']
+        self.electric = dataframe.iloc[index]['electric']
         self.building = dataframe.iloc[index]['building']
         self.climate = dataframe.iloc[index]['climate']
         self.capacity = dataframe.iloc[index]['capacity_kW']
@@ -2279,9 +2281,6 @@ class Furnace:
         self.co = dataframe.iloc[index]['carbon_monoxide']
         return dataframe
 
-# End Furnace Class Methods #
-#############################
-
 
 def _generate_Furnace_dataframe(csv_file, sheet_name=None, header=1):
     dataframe = pd.read_csv(filepath_or_buffer=csv_file,
@@ -2289,6 +2288,7 @@ def _generate_Furnace_dataframe(csv_file, sheet_name=None, header=1):
                             dtype={'Furnace_id': 'object',
                                    'technology': 'object',
                                    'primary_energy': 'object',
+                                   'electric': 'bool',
                                    'building': 'object',
                                    'capacity_kW': 'float64',
                                    'efficiency': 'float64',
