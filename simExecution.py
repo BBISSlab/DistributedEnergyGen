@@ -59,8 +59,8 @@ def execute_energy_demand_sim():
     ABC_dict = system_dict['ABC_dict']
 
     # Drop residential AC units and exhaust-fired ABCs
-    AC_drop = ['AC1', 'AC2', 'CH2', 'CH4']
-    ABC_drop = ['ABC_SS1', 'ABC_SS3', 'ABC_TS2', 'ABC_TS3', 'ABC_TS4']
+    AC_drop = ['AC1', 'AC2', 'CH1', 'CH2', 'CH3', 'CH4']
+    ABC_drop = ['ABC_SS1', 'ABC_SS3', 'ABC_TS1', 'ABC_TS2', 'ABC_TS3', 'ABC_TS4']
     for key in AC_drop:
         AC_dict.pop(key)
     for key in ABC_drop:
@@ -70,7 +70,8 @@ def execute_energy_demand_sim():
     ts = time.gmtime()
     print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
 
-    beta_ABC_range = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    # beta_ABC_range = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    beta_ABC_range = [0.0, 1.0]
 
     city_number = 1
     for city in City_dict:
@@ -113,7 +114,7 @@ def execute_energy_demand_sim():
             # Building Loop
             building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
             building_agg.to_feather(
-                'model_outputs\Energy_Demands\Hourly_'+city+'_'+building+'_energy_dem.feather')
+                r'model_outputs\energy_demands\Hourly_'+city+'_'+building+'_energy_dem.feather')
             building_number += 1
         # City Loop
         city_number += 1
@@ -148,7 +149,7 @@ def execute_energy_supply_sim():
     ABC_dict = system_dict['ABC_dict']
 
     # Just look at two furnaces, one electric and one gas
-    Furnace_drop = ['F1', 'F2', 'F3', 'F6', 'B1', 'B2']
+    Furnace_drop = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'B1']
     for key in Furnace_drop:
         Furnace_dict.pop(key)
 
@@ -156,7 +157,8 @@ def execute_energy_supply_sim():
     ts = time.gmtime()
     print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
 
-    alpha_CHP_range = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    alpha_CHP_range = [0.0, #0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 
+                        1.0]
 
     city_number = 1
     for city in City_dict:
@@ -201,9 +203,9 @@ def execute_energy_supply_sim():
                 pm_number += 1
             # Building Loop
             building_number += 1
-            building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
+            building_agg = pd.concat(dataframes_ls, axis=0).reset_index(drop=True)
             building_agg.to_feather(
-                F'model_outputs\energy_supply\Annual_{city}_{building}_energy_sup.feather')
+                r'model_outputs\energy_supply' + F'\Annual_{city}_{building}_energy_sup.feather')
         # City Loop
         city_number += 1
     print('\nCompleted Simulation')
@@ -302,6 +304,6 @@ def execute_corrected_energy_supply_sim():
 
 
 # execute_energy_demand_sim()
-# execute_energy_supply_sim()
+execute_energy_supply_sim()
 # execute_corrected_energy_supply_sim()
 # clean_and_compile_data()
