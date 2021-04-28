@@ -16,6 +16,7 @@ from sysClasses import *
 # Verify that demand and supply are working well
 # Add distribution losses for the Absorption Chiller and the CHP
 
+
 def model(Building_, City_,
           Grid_=None, efficiency_Grid=0.533,
           Furnace_=None, efficiency_Furnace=0.95,
@@ -29,11 +30,11 @@ def model(Building_, City_,
 
     This function simulates the performance of the energy systems. It begins by simulating the PV system,
     followed by the CCHP system to meet the remaining demand, and finally both the Grid and Storage systems
-    to deal with any excess or deficit.    
+    to deal with any excess or deficit.
 
     PARAMETERS
     ----------
-    Building_:              
+    Building_:
     City_:
     Grid_object:
     efficiency_Grid:
@@ -52,7 +53,8 @@ def model(Building_, City_,
     efficiency_CHP:
     memory:
     """
-    # Making copies of the objects so they aren't modified for the following runs
+    # Making copies of the objects so they aren't modified for the following
+    # runs
     current_Building = Building_
     City_ = City_
     # Current object is unused because we assume that all Grid electricity
@@ -91,7 +93,8 @@ def model(Building_, City_,
     df['cooling_demand'] = Building_.cooling_demand
     df['base_electricity_demand'] = Building_.electricity_demand
 
-    # The electricity and heat demands depend on the presence of an absorption chiller
+    # The electricity and heat demands depend on the presence of an absorption
+    # chiller
     df['electricity_demand'] = Building_.electricity_demand + \
         beta_AC * df.cooling_demand / COP_AC
     df['heat_demand'] = Building_.heat_demand + \
@@ -113,16 +116,16 @@ def model(Building_, City_,
 
     # The smallest microturbine can power 5 houses, see [1]
     if Building_ == 'single_family_residential':
-        df.electricity_demand = df.electricity_demand.apply(lambda x: x*5)
-        df.heat_demand = df.heat_demand.apply(lambda x: x*5)
-        df.cooling_demand = df.cooling_demand.apply(lambda x: x*5)
+        df.electricity_demand = df.electricity_demand.apply(lambda x: x * 5)
+        df.heat_demand = df.heat_demand.apply(lambda x: x * 5)
+        df.cooling_demand = df.cooling_demand.apply(lambda x: x * 5)
         Building_.floor_area = Building_.floor_area * 5
 
     # Intensities of Demand
     df['electricity_demand_int'] = df.electricity_demand / \
         Building_.floor_area
-    df['heat_demand_int'] = df.heat_demand/Building_.floor_area
-    df['cooling_demand_int'] = df.cooling_demand/Building_.floor_area
+    df['heat_demand_int'] = df.heat_demand / Building_.floor_area
+    df['cooling_demand_int'] = df.cooling_demand / Building_.floor_area
 
     # The DEFICIT column is initially equal to the total demand. Each module (CHP, PV, Storage, and Grid)
     # modifies this column at the end before feeding into the next module.
@@ -168,9 +171,9 @@ def model(Building_, City_,
     df['alpha_CHP'] = alpha_CHP
     df['HPR_CHP'] = HPR_CHP
     df['beta_AC'] = beta_AC
-    df['cooling_AC'] = df.cooling_demand*df.beta_AC
+    df['cooling_AC'] = df.cooling_demand * df.beta_AC
     df['beta_ABC'] = beta_ABC
-    df['cooling_ABC'] = df.cooling_demand*df.beta_ABC
+    df['cooling_ABC'] = df.cooling_demand * df.beta_ABC
     df['TFCE'] = 1
 
     # empty_df = df.copy()
@@ -191,7 +194,8 @@ def model(Building_, City_,
             deficit = row['electricity_deficit']
             difference = deficit - generated
             if difference >= 0:
-                # If a deficit exists, then surplus = 0 and all of the energy generated was consumed
+                # If a deficit exists, then surplus = 0 and all of the energy
+                # generated was consumed
                 surplus = 0
                 consumed = generated
             else:
@@ -218,7 +222,7 @@ def model(Building_, City_,
             ac_out, num_inverter, PV_age, PV_DEGRADATION_RATE = memory[
                 City_.name + '_' + Building_.building_type]
             df['electricity_PV'] = (
-                1-PV_age*PV_DEGRADATION_RATE)*((ac_out['p_ac'] * num_inverter) / 1000)
+                1 - PV_age * PV_DEGRADATION_RATE) * ((ac_out['p_ac'] * num_inverter) / 1000)
             print('PV from memory. alpha CHP={}, beta ABC={}, HPR={}'.format(
                 alpha_CHP, beta_ABC, HPR_CHP), end='\r')
         except KeyError:
@@ -238,14 +242,15 @@ def model(Building_, City_,
             # [X] Jordan, D. C.; Kurtz, S. R.; VanSant, K.; Newmiller, J. Compendium of photovoltaic degradation rates. Prog. Photovoltaics Res. Appl. 2016, 24 (7), 978–989.
 
             df['electricity_PV'] = (
-                1-PV_age*PV_DEGRADATION_RATE)*((ac_out['p_ac'] * num_inverter) / 1000)
+                1 - PV_age * PV_DEGRADATION_RATE) * ((ac_out['p_ac'] * num_inverter) / 1000)
 
-            # Need to make a dictionary for memory systems so that it runs faster.
+            # Need to make a dictionary for memory systems so that it runs
+            # faster.
             memory[City_.name + '_' + Building_.building_type] = (
                 ac_out, num_inverter, PV_age, PV_DEGRADATION_RATE)
 
         if Building_ == 'single_family_residential':
-            df.electricity_PV = df.electricity_PV.apply(lambda x: x*5)
+            df.electricity_PV = df.electricity_PV.apply(lambda x: x * 5)
 
             df['electricityInt_PV'] = df.electricity_PV / \
                 Building_.floor_area
@@ -303,7 +308,8 @@ def model(Building_, City_,
     impacts = ['co2_int', 'ch4_int', 'n2o_int',
                'co_int', 'nox_int', 'so2_int', 'pm_int', 'voc_int',
                'w4e_int']
-    conversion_factor = (3412/(10**9 * 2.20462))  # lb/MMBtu to kg/MWh or g/kWh
+    # lb/MMBtu to kg/MWh or g/kWh
+    # conversion_factor = (3412 / (10**9 * 2.20462))
     GLF = 0.049  # Average Grid Loss Factor (GLF) from [2]
 
     for impact in impacts:
@@ -321,12 +327,12 @@ def model(Building_, City_,
         # that is present in natural gas. We use the natural gas composition from [7]
         #   Note that only methane is currently considered in this model.
         if impact == 'ch4_int':
-            emission_factor_Grid = 2.50*(10**-2)
+            emission_factor_Grid = 2.50 * (10**-2)
             emission_factor_CHP = 0
             emission_factor_Furnace = current_Furnace.ch4
             ng_fraction = 0.9
         if impact == 'co_int':
-            emission_factor_Grid = 8.71*(10**-2)
+            emission_factor_Grid = 8.71 * (10**-2)
             emission_factor_CHP = current_CHP.co
             emission_factor_Furnace = current_Furnace.co
             ng_fraction = 0
@@ -336,27 +342,27 @@ def model(Building_, City_,
             emission_factor_Furnace = current_Furnace.co2
             ng_fraction = 0.02
         if impact == 'n2o_int':
-            emission_factor_Grid = 8.71*(10**-3)
+            emission_factor_Grid = 8.71 * (10**-3)
             emission_factor_CHP = 0
             emission_factor_Furnace = current_Furnace.n2o
             ng_fraction = 0
         if impact == 'nox_int':
-            emission_factor_Grid = 3.1*(10**-2)
+            emission_factor_Grid = 3.1 * (10**-2)
             emission_factor_CHP = current_CHP.nox
             emission_factor_Furnace = current_Furnace.nox  # kg/MWh
             ng_fraction = 0
         if impact == 'so2_int':
-            emission_factor_Grid = 5.11*(10**-3)
+            emission_factor_Grid = 5.11 * (10**-3)
             emission_factor_CHP = 0
             emission_factor_Furnace = current_Furnace.so2  # kg/MWh
             ng_fraction = 0
         if impact == 'pm_int':
-            emission_factor_Grid = 1.92*(10**-2)
+            emission_factor_Grid = 1.92 * (10**-2)
             emission_factor_CHP = 0
             emission_factor_Furnace = current_Furnace.pm
             ng_fraction = 0
         if impact == 'voc_int':
-            emission_factor_Grid = 6.1*(10**-3)
+            emission_factor_Grid = 6.1 * (10**-3)
             emission_factor_CHP = current_CHP.voc
             emission_factor_Furnace = current_Furnace.voc
             ng_fraction = 0.01
@@ -383,7 +389,8 @@ def model(Building_, City_,
         spec_energy_ng = 13.4 * (10**-3)  # MWh/kg
 
         if impact == 'ch4_int':  # We only consider methane (CH4) emissions
-            # The natural gas power plant does not include the distribution phase in the leakage
+            # The natural gas power plant does not include the distribution
+            # phase in the leakage
             leakage_ng = [0.027,    # Total leakage from production through transmission & storage
                           0.028]    # Total leakage from production through distribution
         else:
@@ -391,17 +398,17 @@ def model(Building_, City_,
 
         Grid_leakage_rate = leakage_ng[0]
         Total_leakage_rate = leakage_ng[1]
-        K_g = (Grid_leakage_rate * ng_fraction)/(spec_energy_ng *
-                                                 efficiency_Grid * (1-Grid_leakage_rate)) + emission_factor_Grid
+        K_g = (Grid_leakage_rate * ng_fraction) / (spec_energy_ng *
+                                                   efficiency_Grid * (1 - Grid_leakage_rate)) + emission_factor_Grid
         K_CHP = ((Total_leakage_rate * ng_fraction * (1 + HPR_CHP)) /
                  (spec_energy_ng * efficiency_CHP * (1 - Total_leakage_rate))) + emission_factor_CHP
         K_f = (Total_leakage_rate * ng_fraction) / (spec_energy_ng *
                                                     efficiency_Furnace * (1 - Total_leakage_rate)) + emission_factor_Furnace
 
         df[impact] = (np.where((df.heat_CHP >= df.heat_demand),
-                               (((df.alpha_Grid) / (1-GLF)) * K_g +
-                                df.alpha_CHP*K_CHP) * df.electricity_demand,
-                               ((((df.alpha_Grid) / (1-GLF)) * K_g + df.alpha_CHP * (K_CHP - HPR_CHP * K_f)) * df.electricity_demand
+                               (((df.alpha_Grid) / (1 - GLF)) * K_g +
+                                df.alpha_CHP * K_CHP) * df.electricity_demand,
+                               ((((df.alpha_Grid) / (1 - GLF)) * K_g + df.alpha_CHP * (K_CHP - HPR_CHP * K_f)) * df.electricity_demand
                                 + df.heat_demand * K_f))) / Building_.floor_area
 
     # 2.1.2 Greenhouse Gas Emissions #
@@ -438,9 +445,9 @@ def model(Building_, City_,
     # 2.2.1 WASTE HEAT #
     # ================ #
     df['wasteHeat'] = np.where((df.heat_CHP < df.heat_demand),
-                               (df.alpha_Grid) / (1-GLF) * (1/efficiency_Grid - 1) *
+                               (df.alpha_Grid) / (1 - GLF) * (1 / efficiency_Grid - 1) *
                                df.electricity_demand,
-                               (((df.alpha_Grid) / (1-GLF) * (1/efficiency_Grid - 1) + df.alpha_CHP * HPR_CHP)
+                               (((df.alpha_Grid) / (1 - GLF) * (1 / efficiency_Grid - 1) + df.alpha_CHP * HPR_CHP)
                                 * df.electricity_demand - df.heat_demand)
                                )
     df['wasteHeat_int'] = df.wasteHeat / Building_.floor_area
@@ -450,10 +457,11 @@ def model(Building_, City_,
 
     # Fuel Consumption
     df['Fuel_Grid'] = df.alpha_Grid / \
-        (1-GLF) * (1/efficiency_Grid)*df.electricity_demand
+        (1 - GLF) * (1 / efficiency_Grid) * df.electricity_demand
     df['Fuel_CHP'] = df.alpha_CHP * \
-        (1+HPR_CHP)*df.electricity_demand/efficiency_CHP
-    # In the System Classes file, is modified to become a decimal. But is loaded as a percent (i.e., as 95 rather than 0.95)
+        (1 + HPR_CHP) * df.electricity_demand / efficiency_CHP
+    # In the System Classes file, is modified to become a decimal. But is
+    # loaded as a percent (i.e., as 95 rather than 0.95)
     df['Fuel_Furnace'] = df.heat_Furnace / efficiency_Furnace
 
     # Fuel Consumption Intensity
@@ -475,7 +483,8 @@ def model(Building_, City_,
     # 2.3 AGGREGATE TO DAILY VALUES #
     #################################
     # Saving the data by hourly values can be memory intensive. We can aggregate these values by day.
-    # For some reason, the index is not being recognized as datetime before resampling.
+    # For some reason, the index is not being recognized as datetime before
+    # resampling.
     df.index = pd.to_datetime(df.index)
     agg_df = df.groupby(['HPR_CHP', 'Prime_Mover', 'alpha_CHP', 'beta_ABC', 'City', 'Season', 'Building']).resample('d').agg({'DryBulb_C': ['mean'],
                                                                                                                               'energy_useful_int': ['sum'],
@@ -491,17 +500,24 @@ def model(Building_, City_,
                                                                                                                               'Fuel_Furnace_int': ['sum'],
                                                                                                                               'wasteHeat_int': ['sum'],
                                                                                                                               # Emissions
-                                                                                                                              # Green House Gases
+                                                                                                                              # Green
+                                                                                                                              # House
+                                                                                                                              # Gases
                                                                                                                               'co2_int': ['sum'],
                                                                                                                               'ch4_int': ['sum'],
                                                                                                                               'n2o_int': ['sum'],
-                                                                                                                              # Criteria Air Pollutants
+                                                                                                                              # Criteria
+                                                                                                                              # Air
+                                                                                                                              # Pollutants
                                                                                                                               'co_int': ['sum'],
                                                                                                                               'nox_int': ['sum'],
                                                                                                                               'pm_int': ['sum'],
                                                                                                                               'so2_int': ['sum'],
                                                                                                                               'voc_int': ['sum'],
-                                                                                                                              # Water for Energy Consumption
+                                                                                                                              # Water
+                                                                                                                              # for
+                                                                                                                              # Energy
+                                                                                                                              # Consumption
                                                                                                                               'w4e_int': ['sum']})
 
     agg_df.columns = agg_df.columns.map('_'.join)
@@ -527,9 +543,10 @@ def model(Building_, City_,
 
     return df, agg_df
 
+
 def energy_demand_sim(Building_, City_, AC_,
                       ABC_, beta_ABC=0,
-                      distribution_losses=0.1,
+                      thermal_distribution_loss_rate=0.1,
                       memory={}):
     """
     This function simulates the electric, heating, and cooling demands based
@@ -593,13 +610,14 @@ def energy_demand_sim(Building_, City_, AC_,
         https://doi.org/10.1016/J.ENG.2016.04.008.
     '''
     if Building_ == 'single_family_residential':
-        df['electricity_demand'] = df.electricity_demand.apply(lambda x: x*5)
-        df['heat_demand'] = df.heat_demand.apply(lambda x: x*5)
-        df['cooling_demand'] = df.cooling_demand.apply(lambda x: x*5)
+        df['electricity_demand'] = df.electricity_demand.apply(lambda x: x * 5)
+        df['heat_demand'] = df.heat_demand.apply(lambda x: x * 5)
+        df['cooling_demand'] = df.cooling_demand.apply(lambda x: x * 5)
         Building_.floor_area = Building_.floor_area * 5
 
     df['electricity_cooling'] = beta_AC * df.cooling_demand / AC_.COP
-    df['heat_cooling'] = beta_ABC * df.cooling_demand / (ABC_.COP * (1 - distribution_losses))
+    df['heat_cooling'] = beta_ABC * df.cooling_demand / \
+        (ABC_.COP * (1 - thermal_distribution_loss_rate))
 
     df['total_electricity_demand'] = df.electricity_demand + df.electricity_cooling
     df['total_heat_demand'] = df.heat_demand + df.heat_cooling
@@ -616,20 +634,20 @@ def energy_demand_sim(Building_, City_, AC_,
     return df
 
 
-def energy_supply(Building_, City_,
-                  energy_demand_df=None,
-                  Furnace_=None, efficiency_Furnace=0.95,
-                  pv_energy_sim=None, has_PVSystem=False, PVSystem_=None,
-                  BES_=None,
-                  alpha_CHP=0, PrimeMover_=None, HPR_CHP=1, efficiency_CHP=0.73,
-                  distribution_losses = 0.1,
-                  aggregate='A',
-                  memory={}):
+def energy_supply_sim(Building_, City_,
+                      energy_demand_df=None,
+                      Furnace_=None, efficiency_Furnace=0.95,
+                      pv_energy_sim=None, has_PVSystem=False, PVSystem_=None,
+                      BES_=None,
+                      alpha_CHP=0, PrimeMover_=None, HPR_CHP=1, efficiency_CHP=0.73,
+                      thermal_distribution_loss_rate=0.1,
+                      aggregate='A',
+                      memory={}):
 
     # Read the energy demand data
     file_path = r'model_outputs\energy_demands'
     file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem.feather'
-    df = pd.read_feather(F'{file_path}\{file_name}')
+    df = pd.read_feather(F'{file_path}\\{file_name}')
 
     # Initialize Energy Supply Columns
     if alpha_CHP == 0:
@@ -665,16 +683,16 @@ def energy_supply(Building_, City_,
 
         df['electricity_CHP'] = df.alpha_CHP * df.electricity_deficit
         df['heat_CHP_0'] = PrimeMover_.hpr * df.electricity_CHP
-        df['heat_CHP'] = df['heat_CHP_0'] * (1 - distribution_losses) 
+        df['heat_CHP'] = df['heat_CHP_0'] * \
+            (1 - thermal_distribution_loss_rate)
         # CHP Intensities
         df['electricity_CHP_int'] = df.electricity_CHP / Building_.floor_area
         df['heat_CHP_int'] = df.heat_CHP / Building_.floor_area
 
         # Adjust deficits from CHP supply
-        df['electricity_deficit'] = np.where(
-            df.electricity_CHP >= df.electricity_deficit, 0, df.electricity_deficit - df.electricity_CHP)
-        df['heat_deficit'] = np.where(
-            df.heat_CHP >= df.heat_deficit, 0, df.heat_deficit - df.heat_CHP)
+        df['electricity_deficit'] = calculate_deficit(
+            df.electricity_deficit, df.electricity_CHP)
+        df['heat_deficit'] = calculate_deficit(df.heat_deficit, df.heat_CHP)
 
         ###########
         # Furnace #
@@ -685,8 +703,8 @@ def energy_supply(Building_, City_,
             Building_.floor_area
 
         # Adjust heat deficit
-        df['heat_deficit'] = np.where(
-            df.heat_Furnace >= df.heat_deficit, 0, df.heat_deficit - df.heat_Furnace)
+        df['heat_deficit'] = calculate_deficit(
+            df.heat_deficit, df.heat_Furnace)
 
         ########
         # Grid #
@@ -695,8 +713,9 @@ def energy_supply(Building_, City_,
         df['electricity_Grid_int'] = df.electricity_Grid / Building_.floor_area
 
         # Adjust electricity deficit
-        df['electricity_deficit'] = np.where(
-            df.electricity_Grid >= df.electricity_deficit, 0, df.electricity_deficit - df.electricity_Grid)
+        df['electricity_deficit'] = calculate_deficit(
+            df.electricity_deficit, df.electricity_Grid)
+
     else:
         ###########
         # Furnace #
@@ -705,7 +724,8 @@ def energy_supply(Building_, City_,
         df['electricity_Furnace'] = (df.heat_demand - df.alpha_CHP * PrimeMover_.hpr * (df.electricity_demand + df.electricity_cooling)) \
             / (df.alpha_CHP * PrimeMover_.hpr + Furnace_.efficiency)
         # If the Furnace electricity is negative, the CHP is supplying more heat than what is needed,
-        # therefore, the Furnace won't be used and you will have waste heat from the CHP
+        # therefore, the Furnace won't be used and you will have waste heat
+        # from the CHP
         df['electricity_Furnace'] = np.where(
             df.electricity_Furnace < 0, 0, df.electricity_Furnace)
         df['electricity_Furnace_int'] = df.electricity_Furnace / Building_.floor_area
@@ -723,24 +743,24 @@ def energy_supply(Building_, City_,
 
         # Adjust deficits
         df['electricity_deficit'] = df.total_electricity_demand
-        df['heat_deficit'] = np.where(
-            df.heat_Furnace >= df.heat_deficit, 0, df.heat_deficit - df.heat_Furnace)
+        df['heat_deficit'] = calculate_deficit(
+            df.heat_deficit, df.heat_Furnace)
 
         #######
         # CHP #
         #######
         df['electricity_CHP'] = df.alpha_CHP * df.electricity_deficit
         df['heat_CHP_0'] = PrimeMover_.hpr * df.electricity_CHP
-        df['heat_CHP'] = df['heat_CHP_0'] * (1 - distribution_losses) 
+        df['heat_CHP'] = df['heat_CHP_0'] * \
+            (1 - thermal_distribution_loss_rate)
         # CHP Intensities
         df['electricity_CHP_int'] = df.electricity_CHP / Building_.floor_area
         df['heat_CHP_int'] = df.heat_CHP / Building_.floor_area
 
         # Adjust deficits from CHP supply
-        df['electricity_deficit'] = np.where(
-            df.electricity_CHP >= df.electricity_deficit, 0, df.electricity_deficit - df.electricity_CHP)
-        df['heat_deficit'] = np.where(
-            df.heat_CHP >= df.heat_deficit, 0, df.heat_deficit - df.heat_CHP)
+        df['electricity_deficit'] = calculate_deficit(
+            df.electricity_deficit, df.electricity_CHP)
+        df['heat_deficit'] = calculate_deficit(df.heat_deficit, df.heat_CHP)
 
         ########
         # Grid #
@@ -749,8 +769,8 @@ def energy_supply(Building_, City_,
         df['electricity_Grid_int'] = df.electricity_Grid / Building_.floor_area
 
         # Adjust electricity deficit
-        df['electricity_deficit'] = np.where(
-            df.electricity_Grid >= df.electricity_deficit, 0, df.electricity_deficit - df.electricity_Grid)
+        df['electricity_deficit'] = calculate_deficit(
+            df.electricity_deficit, df.electricity_Grid)
 
     ####################
     # Aggregate Values #
@@ -791,17 +811,20 @@ def energy_supply(Building_, City_,
 
 def emissions_sim(Building_, City_,
                   data=None,
-                  Furnace_=None, 
-                  PrimeMover_=None):
+                  Furnace_=None,
+                  PrimeMover_=None,
+                  Grid_type='NGCC',
+                  thermal_distribution_loss_rate=0.1,
+                  GLF=0.049):
 
     # Read the energy demand data
     if data is None:
         file_path = r'model_outputs\energy_supply'
         file_name = F'Annual_{City_.name}_{Building_.building_type}_energy_sup.feather'
-        data = pd.read_feather(F'{file_path}\{file_name}')
+        data = pd.read_feather(F'{file_path}\\{file_name}')
 
-    # Load Furnace and PrimeMover dataframes
-    furnace_df = pd.read_csv('data\Tech_specs\Furnace_specs.csv', header=1)
+    # Load Furnace Dataframe
+    furnace_df = pd.read_csv('data\\Tech_specs\\Furnace_specs.csv', header=1)
     furnace_df.rename(columns={'carbon_dioxide': 'Furnace_co2',
                                'nitrous_oxide': 'Furnace_n2o',
                                'PM': 'Furnace_pm',
@@ -813,20 +836,33 @@ def emissions_sim(Building_, City_,
                                'efficiency': 'Furnace_efficiency'}, inplace=True)
     furnace_df['natural_gas'] = np.where(furnace_df.electric is True, 0, 1)
 
-    pm_df = pd.read_csv('data\Tech_specs\PrimeMover_specs.csv', header=1)
+    # Load CHP Dataframe
+    pm_df = pd.read_csv('data\\Tech_specs\\PrimeMover_specs.csv', header=1)
     pm_df.rename(columns={'carbon_monoxide': 'CHP_co',
                           'carbon_dioxide': 'CHP_co2',
                           'voc': 'CHP_voc',
                           'nox': 'CHP_nox'}, inplace=True)
     pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
+    # Create Grid Dataframe
+    NGCC_dict = {'NGCC_ch4': [2.5 * 10**-2],
+                 'NGCC_co': [8.71 * 10**-2],
+                 'NGCC_co2': [170.24],
+                 'NGCC_nox': [3.1 * 10**-2],
+                 'NGCC_n2o': [8.71 * 10**-3],
+                 'NGCC_pm': [1.92 * 10**-2],
+                 'NGCC_so2': [5.11 * 10**-3],
+                 'NGCC_voc': [6.10 * 10**-3],
+                 'NGCC_efficiency': [0.533]}
+
+    NGCC_df = pd.DataFrame.from_dict(NGCC_dict)
+
     # Merge the emission factors of each
     df = pd.merge(data, furnace_df['Furnace_id',
                                    'Furnace_co2', 'Furnace_n2o', 'Furance_ch4',
                                    'Furnace_co', 'Furnace_nox', 'Furnace_pm',
                                    'Furnace_so2', 'Furnace_voc',
-                                   'Furnace_efficiency',
-                                   'natural_gas'])
+                                   'Furnace_efficiency'])
     df = pd.merge(df, pm_df['PM_id', 'CHP_co', 'CHP_co2',
                             'CHP_voc', 'CHP_nox', 'CHP_efficiency'])
 
@@ -835,18 +871,20 @@ def emissions_sim(Building_, City_,
     ###################################
     column_list = ['City', 'Building', 'PM_id', 'alpha_CHP',
                    'AC_id', 'ABC_id', 'beta_ABC', 'Furnace_id',
-                   'electricity_demand_int', 'cooling_demand_int',	'heat_demand_int',
-                   'total_electricity_demand_int',	'total_heat_demand_int',
+                   'electricity_demand_int', 'cooling_demand_int', 'heat_demand_int',
+                   'total_electricity_demand_int', 'total_heat_demand_int',
                    'electricity_Grid_int', 'electricity_CHP_int', 'heat_CHP_int', 'heat_Furnace_int']
 
     impacts = ['co2', 'n2o', 'ch4', 'co', 'nox', 'pm', 's2o', 'voc']
 
     # All impacts are in g per sq m of floor area
     for impact in impacts:
+        # Furnace Emissions
         df[F'Furnace_{impact}_int'] = df.heat_Furnace_int * \
             df[F'Furnace_{impact}']
         column_list.append(F'Furnace_{impact}_int')
 
+        # CHP Emissions
         if impact in ['n2o', 'ch4', 'pm', 's2o']:
             pass
         else:
@@ -854,30 +892,72 @@ def emissions_sim(Building_, City_,
                 df[F'CHP_{impact}']
             column_list.append(F'CHP_{impact}_int')
 
+        # Grid Emissions
+        if Grid_type == 'NGCC':
+            df[F'Grid_{impact}_int'] = NGCC_df[F'NGCC_{impact}_int'] * \
+                df.electricity_Grid_int
+            column_list.append(F'Grid_{impact}_int')
+
     ####################
     # Fuel Consumption #
     ####################
     # Fuel consumption is in kWh per m^2 of floor area
+    df['Grid_NG_int'] = (df.electricity_Grid_int /
+                         ((1 - GLF) * NGCC_df.NGCC_efficiency))
     df['Furnace_NG_int'] = df.heat_Furnace_int / \
         df.Furnace_efficiency * df.natural_gas
     df['CHP_NG_int'] = (df.electricity_CHP_int +
-                        df.heat_CHP_int) / df.CHP_efficiency
+                        (df.heat_CHP_int) / (1 - thermal_distribution_loss_rate)) / df.CHP_efficiency
+
+    # Append columns
+    column_list.extend(['Grid_NG_int', 'Furnace_NG_int', 'CHP_NG_int'])
+
+    ###############################
+    # Calculate Leakage Emissions #
+    ###############################
+    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg
+    grid_leakage_rate = 0.027  # Excludes distribution
+    total_leakage_rate = 0.028  # Includes distribution
+
+    df['Grid_ch4_leak_int'] = calculate_leakage(
+        grid_leakage_rate, df.Grid_NG_int)
+    df['Furnace_ch4_leak_int'] = calculate_leakage(
+        total_leakage_rate, df.Furnace_NG_int)
+    df['CHP_ch4_leak_int'] = calculate_leakage(
+        total_leakage_rate, df.CHP_NG_int)
+
+    ###############################
+    # Calculate Avoided Emissions #
+    ###############################
+    surplus_heat_int = calculate_surplus_energy(df.heat_demand_int, df.heat_CHP_int)
+    for impact in impacts:
+        Furnace_emission_factor = df[F'Furnace_{impact}'].mean()
+        Furnace_efficiency = df['Furnace_efficiency'].mean()
+
+        if impact == 'ch4':
+            df[F'avoided_{impact}'] = calculate_avoided_emisions(
+                surplus_heat_int, Furnace_emission_factor, Furnace_efficiency)
+        else:
+            df[F'avoided_{impact}'] = calculate_avoided_emisions(
+                surplus_heat_int, Furnace_emission_factor, Furnace_efficiency, leakage_rate=0)
+        emissions_df = column_list.append('avoided_{impact}')
 
     # Copy only emissions data
     emissions_df = df[column_list]
 
     return emissions_df
 
+
 def emissions_sim2(Building_, City_,
-                  data=None,
-                  Furnace_dict=None, 
-                  PrimeMover_dict=None):
+                   data=None,
+                   Furnace_dict=None,
+                   PrimeMover_dict=None):
 
     # Read the energy demand data
     if data is None:
         file_path = r'model_outputs\energy_supply'
         file_name = F'Annual_{City_.name}_{Building_.building_type}_energy_sup.feather'
-        data = pd.read_feather(F'{file_path}\{file_name}')
+        data = pd.read_feather(F'{file_path}\\{file_name}')
 
     df = data.copy()
     ###################################
@@ -885,11 +965,11 @@ def emissions_sim2(Building_, City_,
     ###################################
     column_list = ['City', 'Building', 'PM_id', 'alpha_CHP',
                    'AC_id', 'ABC_id', 'beta_ABC', 'Furnace_id',
-                   'electricity_demand_int', 'cooling_demand_int',	'heat_demand_int',
-                   'total_electricity_demand_int',	'total_heat_demand_int',
+                   'electricity_demand_int', 'cooling_demand_int', 'heat_demand_int',
+                   'total_electricity_demand_int', 'total_heat_demand_int',
                    'electricity_Grid_int', 'electricity_CHP_int', 'heat_CHP_int', 'heat_Furnace_int']
-    
-    # Initialize Columns 
+
+    # Initialize Columns
     impacts = ['co2', 'n2o', 'ch4', 'co', 'nox', 'pm', 's2o', 'voc', 'NG']
     for impact in impacts:
         df[F'Furnace_{impact}_int'] = 0
@@ -901,59 +981,58 @@ def emissions_sim2(Building_, City_,
             df[F'CHP_{impact}_int'] = 0
             column_list.append(F'CHP_{impact}_int')
 
-
     # FURNACE #
     ###########
     # GHGs, g per m^2 of floor area
-    df['Furnace_ch4_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].ch4 \
-            if x != 'None' \
-            else 0)
-    df['Furnace_co2_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].co2 \
-            if x != 'None' \
-            else 0)
-    df['Furnace_n2o_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].n2o \
-            if x != 'None' \
-            else 0)
+    df['Furnace_ch4_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].ch4
+                                                if x != 'None'
+                                                else 0)
+    df['Furnace_co2_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].co2
+                                                if x != 'None'
+                                                else 0)
+    df['Furnace_n2o_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].n2o
+                                                if x != 'None'
+                                                else 0)
     # CAPs g per m^2 of floor area
-    df['Furnace_co_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].co \
-            if x != 'None' \
-            else 0)
-    df['Furnace_nox_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].nox \
-            if x != 'None' \
-            else 0)
-    df['Furnace_pm_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].pm \
-            if x != 'None' \
-            else 0)
-    df['Furnace_s2o_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].s2o \
-            if x != 'None' \
-            else 0)
-    df['Furnace_voc_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].voc \
-            if x != 'None' \
-            else 0)
+    df['Furnace_co_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].co
+                                               if x != 'None'
+                                               else 0)
+    df['Furnace_nox_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].nox
+                                                if x != 'None'
+                                                else 0)
+    df['Furnace_pm_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].pm
+                                               if x != 'None'
+                                               else 0)
+    df['Furnace_s2o_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].s2o
+                                                if x != 'None'
+                                                else 0)
+    df['Furnace_voc_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int * Furnace_dict[x].voc
+                                                if x != 'None'
+                                                else 0)
     # Natural Gas Consumption, kWh per m^2 of floor area
-    df['Furnace_NG_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int / Furnace_dict[x].efficiency  \
-            if x in ['F1', 'F2', 'F4', 'B2'] \
-            else 0)
+    df['Furnace_NG_int'] = df.Furnace_id.apply(lambda x: df.heat_Furnace_int / Furnace_dict[x].efficiency
+                                               if x in ['F1', 'F2', 'F4', 'B2']
+                                               else 0)
     # CHP #
-    #######    
+    #######
     # GHGs g per m^2 of floor area
-    df['CHP_co2_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].co2 \
-            if x != 'None' \
-            else 0)
+    df['CHP_co2_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].co2
+                                       if x != 'None'
+                                       else 0)
     # CAPs g per m^2 of floor area
-    df['CHP_co_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].co \
-            if x != 'None' \
-            else 0)
-    df['CHP_nox_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].nox \
-            if x != 'None' \
-            else 0)
-    df['CHP_voc_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].voc \
-            if x != 'None' \
-            else 0)
+    df['CHP_co_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].co
+                                      if x != 'None'
+                                      else 0)
+    df['CHP_nox_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].nox
+                                       if x != 'None'
+                                       else 0)
+    df['CHP_voc_int'] = df.PM_id.apply(lambda x: df.electricity_CHP_int * PrimeMover_dict[x].voc
+                                       if x != 'None'
+                                       else 0)
     # Natural Gas Consumption, kWh per m^2 of floor area
-    df['CHP_NG_int'] = df.PM_id.apply(lambda x: (df.electricity_CHP_int + df.heat_CHP_int) / max(PrimeMover_dict[x].efficiency_LHV, PrimeMover_dict[x].efficiency_HHV)  \
-            if x != 'None' \
-            else 0)
+    df['CHP_NG_int'] = df.PM_id.apply(lambda x: (df.electricity_CHP_int + df.heat_CHP_int) / max(PrimeMover_dict[x].efficiency_LHV, PrimeMover_dict[x].efficiency_HHV)
+                                      if x != 'None'
+                                      else 0)
 
     # Copy only emissions data
     emissions_df = df[column_list]
@@ -973,7 +1052,7 @@ def correct_energy_supply(Building_, City_,
     # Read the energy demand data
     file_path = r'model_outputs\energy_demands'
     file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem.feather'
-    df = pd.read_feather(F'{file_path}\{file_name}')
+    df = pd.read_feather(F'{file_path}\\{file_name}')
     df = df[(df.beta_ABC == 0) | (df.beta_ABC == 1)].copy()
 
     # Initialize Energy Supply Columns
@@ -1049,7 +1128,8 @@ def correct_energy_supply(Building_, City_,
         df['electricity_Furnace'] = (df.heat_demand - df.alpha_CHP * PrimeMover_.hpr * (df.electricity_demand + df.electricity_cooling)) \
             / (df.alpha_CHP * PrimeMover_.hpr + Furnace_.efficiency)
         # If the Furnace electricity is negative, the CHP is supplying more heat than what is needed,
-        # therefore, the Furnace won't be used and you will have waste heat from the CHP
+        # therefore, the Furnace won't be used and you will have waste heat
+        # from the CHP
         df['electricity_Furnace'] = np.where(
             df.electricity_Furnace < 0, 0, df.electricity_Furnace)
         df['electricity_Furnace_int'] = df.electricity_Furnace / Building_.floor_area
@@ -1132,7 +1212,7 @@ def correct_energy_supply(Building_, City_,
     # Read the ones that were simulated already
     file_path = r'model_outputs\energy_supply'
     file_name = F'Annual_{City_.name}_{Building_.building_type}_energy_sup.feather'
-    data = pd.read_feather(F'{file_path}\{file_name}')
+    data = pd.read_feather(F'{file_path}\\{file_name}')
 
     data.drop(['level_0', 'index', 'level_8'], axis=1, inplace=True)
 
@@ -1149,26 +1229,27 @@ def clean_and_compile_data():
     for city in city_list:
         city_dataframes = []
         for building in building_type_list:
-            print(F'{city} {building}')#, end='\r')
+            print(F'{city} {building}')  # , end='\r')
 
             # Read Energy Supply File
             filepath = r'model_outputs\energy_supply'
             filename = F'Annual_{city}_{building}_energy_sup'
             corrected_filename = F'Annual_{city}_{building}_energy_sup_corrected'
-            try: 
-                df = pd.read_feather(F'{filepath}\{corrected_filename}.feather')
+            try:
+                df = pd.read_feather(
+                    F'{filepath}\\{corrected_filename}.feather')
             except FileNotFoundError:
-                df = pd.read_feather(F'{filepath}\{filename}.feather')
+                df = pd.read_feather(F'{filepath}\\{filename}.feather')
 
             try:
                 df.drop(['level_0', 'index', 'level_8'], axis=1, inplace=True)
             except KeyError:
                 pass
             df.rename(columns={'total_electricity_demand_int_sum': 'total_electricity_demand_int',
-            'total_heat_demand_int_sum':'total_heat_demand_int'}, inplace=True)
+                               'total_heat_demand_int_sum': 'total_heat_demand_int'}, inplace=True)
 
             # Save the files back where they belong
-            df.to_feather(F'{filepath}\{filename}.feather')
+            df.to_feather(F'{filepath}\\{filename}.feather')
 
             # Append the dataframe to the city and all dataframes
             city_dataframes.append(df)
@@ -1179,8 +1260,85 @@ def clean_and_compile_data():
 
         all_dataframes.append(city_data)
     all_data = pd.concat(all_dataframes, axis=0).reset_index()
-    all_data.to_feather(F'{filepath}\All_data_energy_sim.feather')
+    all_data.to_feather(F'{filepath}\\All_data_energy_sim.feather')
     print('Saved All Data')
+
+
+def calculate_leakage(leakage_rate, fuel_consumption):
+    if leakage_rate == 0:
+        return 0
+    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg
+
+    system_leakage = ((leakage_rate * fuel_consumption) /
+                      (specific_energy_NG * (1 - leakage_rate)))
+
+    return system_leakage
+
+def calculate_deficit(energy_demand, energy_supply):
+    deficit = np.where(energy_supply >= energy_demand,
+                       0,
+                       energy_demand - energy_supply)
+    return deficit
+
+
+def calculate_surplus_energy(energy_demand, energy_supply):
+    surplus_energy = np.where(energy_supply > energy_demand,
+                              energy_supply - energy_demand, 0)
+    return surplus_energy
+
+
+def calculate_avoided_emisions(
+        surplus_energy,
+        system_emission_factor, system_efficiency,
+        leakage_rate=0.028,
+        leakage_calculation=False):
+    # Avoided natural gas consumption and leakage
+    avoided_NG_consumption = surplus_energy / system_efficiency
+    avoided_leakage_emissions = calculate_leakage(
+        leakage_rate, avoided_NG_consumption)
+
+    # Avoided emisions
+    avoided_emissions = (surplus_energy * \
+        system_emission_factor) + avoided_leakage_emissions
+
+    return avoided_emissions
+
+
+def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100,
+                  feedbacks=False):
+    '''
+    This function calculates the total greenhouse gas
+    emissions as co2_eq. The co2, ch4, and n2o must be in
+    the same units (e.g., grams, kg)
+
+    The Global Warming Potential Values were taken from [1]
+
+    [1]     IPCC. Climate Change 2014: Synthesis Report;
+                Pachauri, R. K., Meyer, L., Eds.;
+                Intergovernmental Panel on Climate Change:
+                Geneva, Switzerland, 2014.
+    '''
+    if feedbacks is False:
+        if GWP_year == 100:
+            GWP_ch4 = 28
+            GWP_n2o = 265
+        if GWP_year == 20:
+            GWP_chp = 84
+            GWP_n2o = 264
+
+    if feedbacks is True:
+        if GWP_year == 100:
+            GWP_ch4 = 34
+            GWP_n2o = 298
+        if GWP_year == 20:
+            GWP_chp = 86
+            GWP_n2o = 268
+
+    co2_eq = co2 + GWP_ch4 * ch4 + GWP_n2o * n2o
+
+    return co2_eq
+
+
 """
 REFERENCES
 ------------------------------------------------------------------------------------------------------
@@ -1188,29 +1346,29 @@ REFERENCES
         and Cost Impacts of Air-Cooled Microturbines for Combined Cooling, Heating, and Power Systems:
         A Case Study in the Atlanta Region. Engineering 2016, 2 (4), 470–480.
         https://doi.org/10.1016/J.ENG.2016.04.008.
-[2]     U.S. Environmental Protection Agency. eGRID2018 
-        https://www.epa.gov/energy/emissions-generation-resource-integrated-database-egrid 
+[2]     U.S. Environmental Protection Agency. eGRID2018
+        https://www.epa.gov/energy/emissions-generation-resource-integrated-database-egrid
         (accessed Apr 13, 2020).
 [3]     NREL. 2020 Annual Technology Baseline; Golden, CO, 2020.
-[4]     U.S. Environmental Protection Agency. 3.1 Stationary Gas Turbines. In AP-42: Compilation of 
+[4]     U.S. Environmental Protection Agency. 3.1 Stationary Gas Turbines. In AP-42: Compilation of
         Air Emissions Factors; Washington D.C., 2000.
 [5]     US Environmental Protection Agency. Catalog of CHP Technologies. 2015.
-[6]     U.S. Environmental Protection Agency. 1.4 Natural Gas Combustion. In AP-42: Compilation of 
+[6]     U.S. Environmental Protection Agency. 1.4 Natural Gas Combustion. In AP-42: Compilation of
         Air Emissions Factors; Washington D.C., 1998.
-[7]     Spath, P. L.; Mann, M. K. Life Cycle Assessment of a Natural Gas Combined-Cycle Power 
+[7]     Spath, P. L.; Mann, M. K. Life Cycle Assessment of a Natural Gas Combined-Cycle Power
         Generation System - National Renewable Energy Laboratory - NREL/TP-570-27715; Golden, CO, 2000.
 
 [8]     Grubert, E. A.; Brandt, A. R. Three Considerations for Modeling Natural Gas System
         Methane Emissions in Life Cycle Assessment. J. Clean. Prod. 2019, 222, 760–767.
         https://doi.org/10.1016/j.jclepro.2019.03.096.
-[9]     Alvarez, R. A.; Zavala-Araiza, D.; Lyon, D. R.; Allen, D. T.; Barkley, Z. R.; Brandt, A. R.; 
-        Davis, K. J.; Herndon, S. C.; Jacob, D. J.; Karion, A.; et al. Assessment of Methane Emissions 
-        from the U.S. Oil and Gas Supply Chain. Science (80-. ). 2018, eaar7204. 
+[9]     Alvarez, R. A.; Zavala-Araiza, D.; Lyon, D. R.; Allen, D. T.; Barkley, Z. R.; Brandt, A. R.;
+        Davis, K. J.; Herndon, S. C.; Jacob, D. J.; Karion, A.; et al. Assessment of Methane Emissions
+        from the U.S. Oil and Gas Supply Chain. Science (80-. ). 2018, eaar7204.
         https://doi.org/10.1126/science.aar7204.
 [10]    Mann, M. K.; Whitaker, M.; Driver, T. PIER Project Report: Life Cycle
         Assessment of Existing and Emerging Distributed Generation Technologies in
         California; Golden, CO, 2011.
-[11]    IPCC. Climate Change 2014: Synthesis Report; Pachauri, R. K., Meyer, L., Eds.; 
+[11]    IPCC. Climate Change 2014: Synthesis Report; Pachauri, R. K., Meyer, L., Eds.;
         Intergovernmental Panel on Climate Change: Geneva, Switzerland, 2014.
 
 """
