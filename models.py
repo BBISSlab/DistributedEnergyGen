@@ -866,6 +866,8 @@ def emissions_sim(Building_, City_,
     df = pd.merge(df, pm_df['PM_id', 'CHP_co', 'CHP_co2',
                             'CHP_voc', 'CHP_nox', 'CHP_efficiency'])
 
+    df.set_index('datetime', inplace=True, drop=True)
+
     ###################################
     # Calculate Operational Emissions #
     ###################################
@@ -915,7 +917,6 @@ def emissions_sim(Building_, City_,
     ###############################
     # Calculate Leakage Emissions #
     ###############################
-    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg
     grid_leakage_rate = 0.027  # Excludes distribution
     total_leakage_rate = 0.028  # Includes distribution
 
@@ -929,24 +930,158 @@ def emissions_sim(Building_, City_,
     ###############################
     # Calculate Avoided Emissions #
     ###############################
-    surplus_heat_int = calculate_surplus_energy(df.heat_demand_int, df.heat_CHP_int)
+    surplus_heat_int = calculate_surplus_energy(
+        df.heat_demand_int, df.heat_CHP_int)
     for impact in impacts:
         Furnace_emission_factor = df[F'Furnace_{impact}'].mean()
         Furnace_efficiency = df['Furnace_efficiency'].mean()
 
         if impact == 'ch4':
-            df[F'avoided_{impact}'] = calculate_avoided_emisions(
+            df[F'avoided_{impact}_int'] = calculate_avoided_emisions(
                 surplus_heat_int, Furnace_emission_factor, Furnace_efficiency)
         else:
-            df[F'avoided_{impact}'] = calculate_avoided_emisions(
+            df[F'avoided_{impact}_int'] = calculate_avoided_emisions(
                 surplus_heat_int, Furnace_emission_factor, Furnace_efficiency, leakage_rate=0)
-        emissions_df = column_list.append('avoided_{impact}')
+        emissions_df = column_list.append('avoided_{impact}_int')
+
+    ###########################
+    # Calculate GHG Emissions #
+    ###########################
+    for system in ['Grid', 'Furnace', 'CHP']:
+        df[F'{system}_GHG_int_100'] = calculate_GHG(co2=df[F'{system}_co2_int'],
+                                                    ch4=df[F'{system}_ch4_int'] - df[F'avoided_ch4_int'],
+                                                    n2o=df[F'{system}_n2o_int'])
+
+        df[F'{system}_GHG_int_20'] = calculate_GHG(co2=df[F'{system}_co2_int'],
+                                                   ch4=(df[F'{system}_ch4_int'] - df[F'avoided_ch4_int']),
+                                                   n2o=df[F'{system}_n2o_int'],
+                                                   GWP_year=20)
+
+    ####################
+    # Calculate Totals #
+    ####################
+    
 
     # Copy only emissions data
     emissions_df = df[column_list]
 
     return emissions_df
 
+
+
+def calculate_leakage(leakage_rate, fuel_consumption):
+    if leakage_rate == 0:
+        return 0
+    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg
+
+    system_leakage = ((leakage_rate * fuel_consumption) /
+                      (specific_energy_NG * (1 - leakage_rate)))
+
+    return system_leakage
+
+
+def calculate_deficit(energy_demand, energy_supply):
+    deficit = np.where(energy_supply >= energy_demand,
+                       0,
+                       energy_demand - energy_supply)
+    return deficit
+
+
+def calculate_surplus_energy(energy_demand, energy_supply):
+    surplus_energy = np.where(energy_supply > energy_demand,
+                              energy_supply - energy_demand, 0)
+    return surplus_energy
+
+
+def calculate_avoided_emisions(
+        surplus_energy,
+        system_emission_factor, system_efficiency,
+        leakage_rate=0.028,
+        leakage_calculation=False):
+    # Avoided natural gas consumption and leakage
+    avoided_NG_consumption = surplus_energy / system_efficiency
+    avoided_leakage_emissions = calculate_leakage(
+        leakage_rate, avoided_NG_consumption)
+
+    # Avoided emisions
+    avoided_emissions = (surplus_energy *
+                         system_emission_factor) + avoided_leakage_emissions
+
+    return avoided_emissions
+
+
+def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100,
+                  feedbacks=False):
+    '''
+    This function calculates the total greenhouse gas
+    emissions as co2_eq. The co2, ch4, and n2o must be in
+    the same units (e.g., grams, kg)
+
+    The Global Warming Potential Values were taken from [1]
+
+    [1]     IPCC. Climate Change 2014: Synthesis Report;
+                Pachauri, R. K., Meyer, L., Eds.;
+                Intergovernmental Panel on Climate Change:
+                Geneva, Switzerland, 2014.
+    '''
+    if feedbacks is False:
+        if GWP_year == 100:
+            GWP_ch4 = 28
+            GWP_n2o = 265
+        if GWP_year == 20:
+            GWP_chp = 84
+            GWP_n2o = 264
+
+    if feedbacks is True:
+        if GWP_year == 100:
+            GWP_ch4 = 34
+            GWP_n2o = 298
+        if GWP_year == 20:
+            GWP_chp = 86
+            GWP_n2o = 268
+
+    co2_eq = co2 + GWP_ch4 * ch4 + GWP_n2o * n2o
+
+    return co2_eq
+
+
+"""
+REFERENCES
+------------------------------------------------------------------------------------------------------
+[1]     James, J.-A.; Thomas, V. M.; Pandit, A.; Li, D.; Crittenden, J. C. Water, Air Emissions,
+        and Cost Impacts of Air-Cooled Microturbines for Combined Cooling, Heating, and Power Systems:
+        A Case Study in the Atlanta Region. Engineering 2016, 2 (4), 470–480.
+        https://doi.org/10.1016/J.ENG.2016.04.008.
+[2]     U.S. Environmental Protection Agency. eGRID2018
+        https://www.epa.gov/energy/emissions-generation-resource-integrated-database-egrid
+        (accessed Apr 13, 2020).
+[3]     NREL. 2020 Annual Technology Baseline; Golden, CO, 2020.
+[4]     U.S. Environmental Protection Agency. 3.1 Stationary Gas Turbines. In AP-42: Compilation of
+        Air Emissions Factors; Washington D.C., 2000.
+[5]     US Environmental Protection Agency. Catalog of CHP Technologies. 2015.
+[6]     U.S. Environmental Protection Agency. 1.4 Natural Gas Combustion. In AP-42: Compilation of
+        Air Emissions Factors; Washington D.C., 1998.
+[7]     Spath, P. L.; Mann, M. K. Life Cycle Assessment of a Natural Gas Combined-Cycle Power
+        Generation System - National Renewable Energy Laboratory - NREL/TP-570-27715; Golden, CO, 2000.
+
+[8]     Grubert, E. A.; Brandt, A. R. Three Considerations for Modeling Natural Gas System
+        Methane Emissions in Life Cycle Assessment. J. Clean. Prod. 2019, 222, 760–767.
+        https://doi.org/10.1016/j.jclepro.2019.03.096.
+[9]     Alvarez, R. A.; Zavala-Araiza, D.; Lyon, D. R.; Allen, D. T.; Barkley, Z. R.; Brandt, A. R.;
+        Davis, K. J.; Herndon, S. C.; Jacob, D. J.; Karion, A.; et al. Assessment of Methane Emissions
+        from the U.S. Oil and Gas Supply Chain. Science (80-. ). 2018, eaar7204.
+        https://doi.org/10.1126/science.aar7204.
+[10]    Mann, M. K.; Whitaker, M.; Driver, T. PIER Project Report: Life Cycle
+        Assessment of Existing and Emerging Distributed Generation Technologies in
+        California; Golden, CO, 2011.
+[11]    IPCC. Climate Change 2014: Synthesis Report; Pachauri, R. K., Meyer, L., Eds.;
+        Intergovernmental Panel on Climate Change: Geneva, Switzerland, 2014.
+
+"""
+
+##########
+# LEGACY #
+##########
 
 def emissions_sim2(Building_, City_,
                    data=None,
@@ -1263,112 +1398,3 @@ def clean_and_compile_data():
     all_data.to_feather(F'{filepath}\\All_data_energy_sim.feather')
     print('Saved All Data')
 
-
-def calculate_leakage(leakage_rate, fuel_consumption):
-    if leakage_rate == 0:
-        return 0
-    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg
-
-    system_leakage = ((leakage_rate * fuel_consumption) /
-                      (specific_energy_NG * (1 - leakage_rate)))
-
-    return system_leakage
-
-def calculate_deficit(energy_demand, energy_supply):
-    deficit = np.where(energy_supply >= energy_demand,
-                       0,
-                       energy_demand - energy_supply)
-    return deficit
-
-
-def calculate_surplus_energy(energy_demand, energy_supply):
-    surplus_energy = np.where(energy_supply > energy_demand,
-                              energy_supply - energy_demand, 0)
-    return surplus_energy
-
-
-def calculate_avoided_emisions(
-        surplus_energy,
-        system_emission_factor, system_efficiency,
-        leakage_rate=0.028,
-        leakage_calculation=False):
-    # Avoided natural gas consumption and leakage
-    avoided_NG_consumption = surplus_energy / system_efficiency
-    avoided_leakage_emissions = calculate_leakage(
-        leakage_rate, avoided_NG_consumption)
-
-    # Avoided emisions
-    avoided_emissions = (surplus_energy * \
-        system_emission_factor) + avoided_leakage_emissions
-
-    return avoided_emissions
-
-
-def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100,
-                  feedbacks=False):
-    '''
-    This function calculates the total greenhouse gas
-    emissions as co2_eq. The co2, ch4, and n2o must be in
-    the same units (e.g., grams, kg)
-
-    The Global Warming Potential Values were taken from [1]
-
-    [1]     IPCC. Climate Change 2014: Synthesis Report;
-                Pachauri, R. K., Meyer, L., Eds.;
-                Intergovernmental Panel on Climate Change:
-                Geneva, Switzerland, 2014.
-    '''
-    if feedbacks is False:
-        if GWP_year == 100:
-            GWP_ch4 = 28
-            GWP_n2o = 265
-        if GWP_year == 20:
-            GWP_chp = 84
-            GWP_n2o = 264
-
-    if feedbacks is True:
-        if GWP_year == 100:
-            GWP_ch4 = 34
-            GWP_n2o = 298
-        if GWP_year == 20:
-            GWP_chp = 86
-            GWP_n2o = 268
-
-    co2_eq = co2 + GWP_ch4 * ch4 + GWP_n2o * n2o
-
-    return co2_eq
-
-
-"""
-REFERENCES
-------------------------------------------------------------------------------------------------------
-[1]     James, J.-A.; Thomas, V. M.; Pandit, A.; Li, D.; Crittenden, J. C. Water, Air Emissions,
-        and Cost Impacts of Air-Cooled Microturbines for Combined Cooling, Heating, and Power Systems:
-        A Case Study in the Atlanta Region. Engineering 2016, 2 (4), 470–480.
-        https://doi.org/10.1016/J.ENG.2016.04.008.
-[2]     U.S. Environmental Protection Agency. eGRID2018
-        https://www.epa.gov/energy/emissions-generation-resource-integrated-database-egrid
-        (accessed Apr 13, 2020).
-[3]     NREL. 2020 Annual Technology Baseline; Golden, CO, 2020.
-[4]     U.S. Environmental Protection Agency. 3.1 Stationary Gas Turbines. In AP-42: Compilation of
-        Air Emissions Factors; Washington D.C., 2000.
-[5]     US Environmental Protection Agency. Catalog of CHP Technologies. 2015.
-[6]     U.S. Environmental Protection Agency. 1.4 Natural Gas Combustion. In AP-42: Compilation of
-        Air Emissions Factors; Washington D.C., 1998.
-[7]     Spath, P. L.; Mann, M. K. Life Cycle Assessment of a Natural Gas Combined-Cycle Power
-        Generation System - National Renewable Energy Laboratory - NREL/TP-570-27715; Golden, CO, 2000.
-
-[8]     Grubert, E. A.; Brandt, A. R. Three Considerations for Modeling Natural Gas System
-        Methane Emissions in Life Cycle Assessment. J. Clean. Prod. 2019, 222, 760–767.
-        https://doi.org/10.1016/j.jclepro.2019.03.096.
-[9]     Alvarez, R. A.; Zavala-Araiza, D.; Lyon, D. R.; Allen, D. T.; Barkley, Z. R.; Brandt, A. R.;
-        Davis, K. J.; Herndon, S. C.; Jacob, D. J.; Karion, A.; et al. Assessment of Methane Emissions
-        from the U.S. Oil and Gas Supply Chain. Science (80-. ). 2018, eaar7204.
-        https://doi.org/10.1126/science.aar7204.
-[10]    Mann, M. K.; Whitaker, M.; Driver, T. PIER Project Report: Life Cycle
-        Assessment of Existing and Emerging Distributed Generation Technologies in
-        California; Golden, CO, 2011.
-[11]    IPCC. Climate Change 2014: Synthesis Report; Pachauri, R. K., Meyer, L., Eds.;
-        Intergovernmental Panel on Climate Change: Geneva, Switzerland, 2014.
-
-"""
