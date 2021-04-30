@@ -24,7 +24,51 @@ import datetime
 import inspect
 import os
 
-def plot_all_impacts(impact, negatives=False, save_name=None):
+
+def calculate_percent_change(data, impact):
+    ################################
+    # DATA CLEANING & ORGANIZATION #
+    ################################
+
+    # Duluth Outpatient Heathcare Appears to have an error in calculation
+    # Drop from the data
+    data.drop(data[(data.Building == 'outpatient_healthcare') &
+                   (data.City == 'duluth')].index, inplace=True)
+
+    # Set Multi-index for data
+    data.set_index(['Building', 'City'], drop=True, inplace=True)
+
+    # The Hybrid Energy System (hes) is anywhere alpha_CHP == 1 and/or
+    # beta_ABC = 1
+    hes_df = data[(data.alpha_CHP == 1) | (data.beta_ABC == 1)]
+
+    # The Conventional Energy System (ces) is anywhere alpha_CHP = 0 and
+    # beta_ABC = 0
+    ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)]
+
+    #########################
+    # % CHANGE CALCULATIONS #
+    #########################
+    delta = hes_df[impact] - ces_df[impact]
+    # Calculate the % Change
+    percent_change = (delta / ces_df[impact]) * 100
+
+    return percent_change
+
+
+def clean_impact_data(data):
+    # Duluth Outpatient Heathcare Appears to have an error in calculation
+    # Drop from the data
+    data.drop(data[(data.Building == 'outpatient_healthcare') &
+                   (data.City == 'duluth')].index, inplace=True)
+
+    # Convert CO2 and GHGs from g into kg
+    for impact in ['co2_int', 'GHG_int_100', 'GHG_int_20']:
+        data[impact] = data[impact] / 1000
+
+    return data
+
+def plot_all_impacts(data, impact, save_name=None):
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
@@ -32,276 +76,160 @@ def plot_all_impacts(impact, negatives=False, save_name=None):
     from matplotlib.ticker import (
         MultipleLocator, FormatStrFormatter, AutoMinorLocator)
 
-    # Get Data
-    data = pd.read_feather(
-        'model_outputs\impacts\Impacts.feather')
-    df['energy_demand_int'] = df.electricity_demand_int + df.heat_demand_int
 
-    df.drop(df[(df.Building == 'outpatient_healthcare') &
-               (df.City == 'duluth')].index, inplace=True)
+    ################################
+    # DATA CLEANING & ORGANIZATION #
+    ################################
+    data = clean_impact_data(data)
+    
+    # The Hybrid Energy System (hes) is anywhere alpha_CHP == 1 and/or
+    # beta_ABC = 1
+    hes_df = data[(data.alpha_CHP == 1) | (
+        data.beta_ABC == 1)].copy()
+    # Merge hes_df with the CHP efficiency
+    pm_df = pd.read_csv(r'data\Tech_specs\PrimeMover_specs.csv', header=2)
+    pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
-    # For Now, Only keep data where alpha_CHP == 1 and beta_ABC = 1
-    df.drop(df[(df.alpha_CHP == 0)].index, inplace=True)
+    print(hes_df.head())
+    hes_df = pd.merge(hes_df, pm_df[['PM_id', 'CHP_efficiency', 'technology']], on='PM_id', how='left').fillna('None')
+    
+    print(hes_df.technology)
+    # The Conventional Energy System (ces) is anywhere alpha_CHP = 0 and
+    # beta_ABC = 0
+    ces_df = data[(data.alpha_CHP == 0) & (
+        data.beta_ABC == 0)].copy()
 
-    baseline_df = pd.read_feather(
-        'PhD_Code\Outputs\Feather\Baseline_data.feather')
-    baseline_df['energy_demand_int'] = baseline_df.electricity_demand_int + \
-        baseline_df.heat_demand_int
-    baseline_df.drop(baseline_df[(baseline_df.Building == 'outpatient_healthcare') &
-                                 (baseline_df.City == 'duluth')].index, inplace=True)
-
+    exit() 
     ############
     # Plotting #
     ############
+    # Close any previous plots
+    plt.close()
+
+    # Format fonts and style
     rcParams['font.family'] = 'Helvetica'
     plt.rc('font', family='sans-serif')
     sns.set_style('ticks', {'axes.facecolor': '0.8'})
     sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
-    for i in [1]:  # building in df.Building.unique():
-        plt.close()
 
-        if negatives is True:
-            df = df[df[impact] <= 0]
-            tick_dict = {
-                ################
-                # Percent Change
-                ################
-                'perc_change_co2': np.arange(-100, 10, 10),
-                'perc_change_co2_w_credit': np.arange(-200, 500, 50),
-                'perc_leak_ch4': np.arange(-100, 10, 10),
-                'perc_leak_ch4_w_credit': np.arange(0, 5.5, 0.5),
-                'perc_change_ch4': np.arange(-100, 10, 10),
-                'perc_change_ch4_w_credit': np.arange(-100, 175, 25),
-                'perc_change_n2o': np.arange(-100, 10, 10),
-                'perc_change_n2o_w_credit': np.arange(-100, 500, 50),
-                'perc_change_co': np.arange(-100, 10, 10),
-                'perc_change_co_w_credit': np.arange(-400, 550, 50),
-                'perc_change_nox': np.arange(-250, 1750, 250),
-                'perc_change_nox_w_credit': np.arange(-1000, 1750, 250),
-                'perc_change_pm': np.arange(0, 100, 10),
-                'perc_change_pm_w_credit': np.arange(0, 100, 10),
-                'perc_change_so2': np.arange(0, 100, 10),
-                'perc_change_so2_w_credit': np.arange(0, 100, 10),
-                'perc_change_voc': np.arange(-250, 1750, 250),
-                'perc_change_voc_w_credit': np.arange(-250, 1500, 250),
-                'perc_change_w4e': np.arange(0, 100, 10),
-                'perc_change_w4e_w_credit': np.arange(0, 100, 10),
-                'perc_leak_GHG': np.arange(0, 100, 10),
-                'perc_leak_GHG_w_credit': np.arange(0, 100, 10),
-                'perc_change_GHG': np.arange(-100, 900, 100),
-                'perc_change_GHG_w_credit': np.arange(-200, 700, 100),
-                'perc_change_Fuel_int': np.arange(-40, 160, 20),
-                'perc_change_Fuel_int_w_credit': np.arange(-40, 150, 10)
-            }
+    # Making the FacetGrid
+    g = sns.FacetGrid(df,
+                      col="beta_ABC",  # row="beta_ABC", margin_titles=True,
+                      hue="chp_EFF",
+                      palette='YlOrRd',
+                      despine=True)
+    g.map(sns.scatterplot,
+          'energy_demand_int',
+          impact,
+          style=hes_df.PM_id,
+          markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
+                   'Gas Turbine': 'X', 'Microturbine': '.'},
+          alpha=0.4,
+          s=80
+          )
 
-        # Making the FacetGrid
-        g = sns.FacetGrid(df,
-                          col="beta_ABC",  # row="beta_ABC", margin_titles=True,
-                          hue="chp_EFF",
-                          palette='YlOrRd',
-                          despine=True)
-        g.map(sns.scatterplot,
-              'energy_demand_int',
-              impact,
-              style=df.technology,
-              markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
-                       'Gas Turbine': 'X', 'Microturbine': '.'},
-              alpha=0.4,
-              s=80
-              )
+    X = np.arange(0, 2600, 100)
+    trendlines = {'GHG_int': 0.2675 * X,
+                  'nox_int': 0.0788 * X,
+                  'voc_int': 0.0078 * X,
+                  'Fuel_int_total_w_credit': 1.6166 * X}
+    g.map(sns.lineplot,
+          x=X,
+          y=trendlines[impact],
+          color='black'
+          # markers={'D'},
+          # alpha=0.4,
+          # s=40
+          )
 
-        X = np.arange(0, 2600, 100)
-        trendlines = {'GHG_int_kg_m^-2_w_credit': 0.2675 * X,
-                      'nox_int_g_m^-2_w_credit': 0.0788 * X,
-                      'voc_int_g_m^-2_w_credit': 0.0078 * X,
-                      'Fuel_int_total_w_credit': 1.6166 * X}
-        g.map(sns.lineplot,
-              x=X,
-              y=trendlines[impact],
-              color='black'
-              # markers={'D'},
-              # alpha=0.4,
-              # s=40
-              )
+    g.set_axis_labels('',  # X-axis
+                      ''  # y-axis
+                      )
 
-        g.set_axis_labels('',  # X-axis
-                          ''  # y-axis
-                          )
+    # g.add_legend()
 
-        # g.add_legend()
+    # Formatting FacetGrid
+    tick_dict = {
+        # Emissions
+        'co2_int': np.arange(-100, 1700, 100),
+        'ch4_int': np.arange(0, 8500, 500),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-200, 350, 50),
+        'nox_int': np.arange(-200, 300, 50),
+        'pm_int': np.arange(-6, 24, 2),
+        'so2_int': np.arange(-2, 6.5, 0.5),
+        'voc_int': np.arange(-10, 110, 10),
+        'GHG_int_100': np.arange(-200, 2000, 200),
+        'GHG_int_20': np.arange(-200, 2000, 200),
+        'NG_int': np.arange(0, 4500, 500),
+        # Fuel and TFCE
+        'TFCE': np.arange(50, 105, 5),
+        'trigen_efficiency': np.arange(50, 105, 5)}
 
-        # Formatting FacetGrid
-        if negatives is False:
-            tick_dict = {
-                ################
-                # Percent Change
-                ################
-                'perc_change_co2': np.arange(-200, 700, 100),
-                'perc_change_co2_w_credit': np.arange(-150, 800, 50),
-                'perc_leak_ch4': np.arange(0, 100, 10),
-                'perc_leak_ch4_w_credit': np.arange(0, 100, 10),
-                'perc_change_ch4': np.arange(0, 100, 10),
-                'perc_change_ch4_w_credit': np.arange(-50, 175, 25),
-                'perc_change_n2o': np.arange(0, 100, 10),
-                'perc_change_n2o_w_credit': np.arange(-130, 20, 10),
-                'perc_change_co': np.arange(0, 100, 10),
-                'perc_change_co_w_credit': np.arange(-350, 500, 50),
-                'perc_change_nox': np.arange(-250, 1750, 250),
-                'perc_change_nox_w_credit': np.arange(-1000, 1750, 250),
-                'perc_change_pm': np.arange(0, 100, 10),
-                'perc_change_pm_w_credit': np.arange(-140, 20, 20),
-                'perc_change_so2': np.arange(0, 100, 10),
-                'perc_change_so2_w_credit': np.arange(-140, 20, 20),
-                'perc_change_voc': np.arange(-250, 1750, 250),
-                'perc_change_voc_w_credit': np.arange(-300, 1400, 100),
-                'w4e_int_g_m^-2': np.arange(0, 100, 10),
-                'w4e_int_g_m^-2_w_credit': np.arange(0, 100, 10),
-                'perc_change_w4e': np.arange(0, 100, 10),
-                'perc_change_w4e_w_credit': np.arange(0, 100, 10),
-                'GHG_leak_total': np.arange(0, 100, 10),
-                'perc_leak_GHG': np.arange(0, 100, 10),
-                'perc_leak_GHG_w_credit': np.arange(0, 100, 10),
-                'perc_change_GHG': np.arange(-100, 900, 100),
-                'perc_change_GHG_w_credit': np.arange(-150, 550, 50),
-                ############
-                # Normalized
-                ############
-                #  GHGs
-                'co2 (kg kWh^-1 m^-2)': np.arange(0, 10**4, 100),
-                'co2_w_credit (kg kWh^-1 m^-2)': np.arange(0, 10**4, 100),
-                'ch4 (g kWh^-1 m^-2)':  np.arange(0, 10**4, 100),
-                'ch4_w_credit (g kWh^-1 m^-2)':  np.arange(0, 10**4, 100),
-                'n2o (g kWh^-1 m^-2)': np.arange(0, 10, 1),
-                'n2o_w_credit (g kWh^-1 m^-2)': np.arange(0, 10, 1),
-                # CAPs
-                'co (g kWh^-1 m^-2)': np.arange(0, 10**3, 100),
-                'co_w_credit (g kWh^-1 m^-2)': np.arange(0, 10**3, 100),
-                'nox (g kWh^-1 m^-2)': np.arange(0, 10**3, 10),
-                'nox_w_credit (g kWh^-1 m^-2)': np.arange(0, 10**3, 10),
-                'pm (g kWh^-1 m^-2)': np.arange(0, 10, 1),
-                'pm_w_credit (g kWh^-1 m^-2)': np.arange(0, 10, 1),
-                'so2 (g kWh^-1 m^-2)': np.arange(0, 1, 0.1),
-                'so2_w_credit (g kWh^-1 m^-2)': np.arange(0, 1, 0.1),
-                'voc (g kWh^-1 m^-2)': np.arange(0, 100, 10),
-                'voc_w_credit (g kWh^-1 m^-2)': np.arange(0, 100, 10),
-                'GHG (kg kWh^-1 m^-2)': np.arange(0, 10**4, 100),
-                'GHG_w_credit (kg kWh^-1 m^-2)': np.arange(0, 100, 10),
-                'Fuel (kWh kWh^-1 m^-2)': np.arange(0, 100, 10),
-                #################
-                # Absolute values
-                #################
-                # Without Credit
-                'co2_int_kg_m^-2': np.arange(0, 275, 25),
-                'ch4_int_g_m^-2': np.arange(0, 850, 50),
-                'n2o_int_g_m^-2': np.arange(-0.25, 1.75, 0.25),
-                'co_int_g_m^-2': np.arange(0, 45, 5),
-                'nox_int_g_m^-2': np.arange(0, 35, 5),
-                'pm_int_g_m^-2': np.arange(-1, 3.5, 0.5),
-                'so2_int_g_m^-2': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-                'voc_int_g_m^-2': np.arange(0, 16, 1),
-                'GHG_int_kg_m^-2': np.arange(0, 325, 25),
-                'Fuel_int_total': np.arange(0, 650, 50),
-                # With CHP Credit
-                'CHP_heat_surplus': np.arange(0, 275, 25),
-                'co2_int_kg_m^-2_w_credit': np.arange(-100, 1700, 100),
-                'ch4_int_g_m^-2_w_credit': np.arange(0, 8500, 500),
-                'n2o_int_g_m^-2_w_credit': np.arange(-2, 11, 1),
-                'co_int_g_m^-2_w_credit': np.arange(-200, 350, 50),
-                'nox_int_g_m^-2_w_credit': np.arange(-200, 300, 50),
-                'pm_int_g_m^-2_w_credit': np.arange(-6, 24, 2),
-                'so2_int_g_m^-2_w_credit': np.arange(-2, 6.5, 0.5),
-                'voc_int_g_m^-2_w_credit': np.arange(-10, 110, 10),
-                'GHG_int_kg_m^-2_w_credit': np.arange(-200, 2000, 200),
-                'Fuel_int_total_w_credit': np.arange(0, 4500, 500),
-                # Fuel and TFCE
-                'Fuel_Grid_int': np.arange(0, 100, 10),
-                'Fuel_CHP_int': np.arange(0, 100, 10),
-                'Fuel_Furnace_int': np.arange(0, 100, 10),
-                'perc_change_Fuel_int': np.arange(-40, 160, 20),
-                'perc_change_Fuel_int_w_credit': np.arange(-40, 150, 10),
-                'TFCE': np.arange(30, 110, 10),
-                'TFCE_w_credit': np.arange(50, 105, 5)}
+    minorticks_dict = {
+        #################
+        # Absolute values
+        #################
+        # With CHP Credit
+        'co2_int': np.arange(-100, 1700, 100),
+        'ch4_int': np.arange(0, 8500, 500),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-200, 350, 50),
+        'nox_int': 25,
+        'pm_int': np.arange(-6, 24, 2),
+        'so2_int': np.arange(-2, 6.5, 0.5),
+        'voc_int': 5,
+        'GHG_int_100': 100,
+        'GHG_int_20': 100,
+        'NG_int': 250,
+        'TFCE': np.arange(30, 110, 10),
+        'TFCE_w_credit': np.arange(50, 105, 5)}
 
-            minorticks_dict = {
-                #################
-                # Absolute values
-                #################
-                # With CHP Credit
-                'CHP_heat_surplus': np.arange(0, 275, 25),
-                'co2_int_kg_m^-2_w_credit': np.arange(-100, 1700, 100),
-                'ch4_int_g_m^-2_w_credit': np.arange(0, 8500, 500),
-                'n2o_int_g_m^-2_w_credit': np.arange(-2, 11, 1),
-                'co_int_g_m^-2_w_credit': np.arange(-200, 350, 50),
-                'nox_int_g_m^-2_w_credit': 25,
-                'pm_int_g_m^-2_w_credit': np.arange(-6, 24, 2),
-                'so2_int_g_m^-2_w_credit': np.arange(-2, 6.5, 0.5),
-                'voc_int_g_m^-2_w_credit': 5,
-                'GHG_int_kg_m^-2_w_credit': 100,
-                'Fuel_int_total_w_credit': 250,
-                # Fuel and TFCE
-                'Fuel_Grid_int': np.arange(0, 100, 10),
-                'Fuel_CHP_int': np.arange(0, 100, 10),
-                'Fuel_Furnace_int': np.arange(0, 100, 10),
-                'perc_change_Fuel_int': np.arange(-40, 160, 20),
-                'perc_change_Fuel_int_w_credit': np.arange(-40, 150, 10),
-                'TFCE': np.arange(30, 110, 10),
-                'TFCE_w_credit': np.arange(50, 105, 5)}
-        g.fig.subplots_adjust(wspace=0.1, hspace=0.05)
-        g.set_titles(
-            col_template='',  # 'alpha = {col_name}',
-            row_template='')  # 'beta = {row_name}')
-        try:
-            y_min = np.min(tick_dict[impact])
-            y_max = np.max(tick_dict[impact])
+    g.fig.subplots_adjust(wspace=0.1, hspace=0.05)
+    g.set_titles(
+        col_template='',  # 'alpha = {col_name}',
+        row_template='')  # 'beta = {row_name}')
+'''    try:
+        y_min = np.min(tick_dict[impact])
+        y_max = np.max(tick_dict[impact])
 
-            if impact in ['co2_int_kg_m^-2_w_credit', 'GHG_int_kg_m^-2_w_credit',
-                          'co2_int_kg_m^-2', 'GHG_int_kg_m^-2',
-                          'ch4_int_g_m^-2_w_credit', 'c44_int_g_m^-2',
-                          'Fuel_int_total_w_credit']:
-                yticklabels = tick_dict[impact] / 1000
-            else:
-                yticklabels = tick_dict[impact]
-            g.set(xlim=(0, 2500),
-                  ylim=(y_min, y_max),
-                  yticks=tick_dict[impact],
-                  yticklabels=yticklabels,
-                  xticks=np.arange(0, 2600, 100),
-                  xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
-                               '', '', '', '', 1.5, '', '', '', '', 2.0,
-                               '', '', '', '', 2.5])
-
-        except KeyError:
-            g.set(xlim=(0, 2500),
-                  xticks=np.arange(0, 2600, 100),
-                  xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
-                               '', '', '', '', 1.5, '', '', '', '', 2.0,
-                               '', '', '', '', 2.5])
-
+        if impact in ['co2_int', 'GHG_int',
+                      'co2_int', 'GHG_int',
+                      'ch4_int', 'ch4_int',
+                      'NG_int']:
+            yticklabels = tick_dict[impact] / 1000
+        else:
+            yticklabels = tick_dict[impact]
         g.set(xlim=(0, 2500),
-              xticks=np.arange(0, 3000, 500),
-              xticklabels=[0, 0.5, 1.0, 1.5, 2.0, 2.5])
+          ylim=(y_min, y_max),
+          yticks=tick_dict[impact],
+          yticklabels=yticklabels,
+          xticks=np.arange(0, 2600, 100),
+          xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
+                       '', '', '', '', 1.5, '', '', '', '', 2.0,
+                               '', '', '', '', 2.5])
 
-        g.axes[0, 0].yaxis.set_minor_locator(
-            MultipleLocator(minorticks_dict[impact]))
-        g.axes[0, 0].xaxis.set_minor_locator(MultipleLocator(100))
+    except KeyError:
+        g.set(xlim=(0, 2500),
+              xticks=np.arange(0, 2600, 100),
+              xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
+                           '', '', '', '', 1.5, '', '', '', '', 2.0,
+                               '', '', '', '', 2.5])
 
-        if save_name is not None:
-            save_path = 'PhD_Code\Outputs\Figures'
-            save_file = F'{save_path}\Edited_{save_name}.png'
-            plt.savefig(save_file, dpi=300)
+    g.set(xlim=(0, 2500),
+          xticks=np.arange(0, 3000, 500),
+          xticklabels=[0, 0.5, 1.0, 1.5, 2.0, 2.5])
 
-        plt.show()
+    g.axes[0, 0].yaxis.set_minor_locator(
+        MultipleLocator(minorticks_dict[impact]))
+    g.axes[0, 0].xaxis.set_minor_locator(MultipleLocator(100))
 
-
-impacts = ['GHG_int_kg_m^-2_w_credit', 'nox_int_g_m^-2_w_credit', 'voc_int_g_m^-2_w_credit',
-           'Fuel_int_total_w_credit']
-name = {'GHG_int_kg_m^-2_w_credit': 'GHG_int_w_credit', 'nox_int_g_m^-2_w_credit': 'nox_int_w_credit', 'voc_int_g_m^-2_w_credit': 'voc_int_w_credit',
-        'Fuel_int_total_w_credit': 'Fuel_int_w_credit'}
-# for i in impacts:
-i = impacts[2]
-plot_all_impacts(i,
-                 negatives=False,
-                 save_name=name[i])
+    if save_name is not None:
+        save_path = 'PhD_Code\\Outputs\\Figures'
+        save_file = F'{save_path}\\Edited_{save_name}.png'
+        plt.savefig(save_file, dpi=300)
+    
+    plt.show()'''
 
 
 def energy_demand_plots():
@@ -315,7 +243,7 @@ def energy_demand_plots():
     plt.close()
 
     data = pd.read_feather(
-        'PhD_Code\Outputs\Feather\Data_normalized_impacts.feather')
+        'PhD_Code\\Outputs\\Feather\\Data_normalized_impacts.feather')
 
     climate_zone_dictionary = {'City': ['albuqu erque', 'atlanta', 'baltimore', 'chicago',
                                         'denver', 'duluth', 'fairbanks', 'helena',
@@ -329,7 +257,7 @@ def energy_demand_plots():
     df = data[['City', 'HDD', 'CDD',
                'Building', 'floor_area',
                'beta_ABC', 'electricity_demand_int', 'heat_demand_int', 'cooling_demand_int',
-               'CHP_heat_surplus', 'alpha_CHP', 'GHG_int_kg_m^-2_w_credit']]
+               'CHP_heat_surplus', 'alpha_CHP', 'GHG_int']]
 
     df['energy_demand_int'] = df.electricity_demand_int + df.heat_demand_int
     df['heat_to_power_ratio'] = df.heat_demand_int / df.electricity_demand_int
@@ -403,7 +331,7 @@ def energy_demand_plots():
             ax.set_xticklabels(tick_dict[building][0])
             ax.set_xticks(tick_dict[building][0])
             ax.set_yticks(tick_dict[building][1])
-            ax.set_yticklabels(tick_dict[building][1]/1000)
+            ax.set_yticklabels(tick_dict[building][1] / 1000)
 
         ############
         # Bar Plot #
@@ -450,7 +378,7 @@ def energy_demand_plots():
 
             # Y Ticks for absolute values #
             ax.set_yticks(tick_dict[building])
-            ax.set_yticklabels(tick_dict[building]/1000)
+            ax.set_yticklabels(tick_dict[building] / 1000)
 
             # Y Ticks for Ratio Values #
             # plt.yscale('log')
@@ -479,7 +407,7 @@ def energy_demand_plots():
             subset.sort_values(by='Climate Zone', inplace=True)
             sns.boxplot(x='Climate Zone',
                         # y='CHP_heat_surplus',
-                        y='GHG_int_kg_m^-2_w_credit',
+                        y='GHG_int',
                         hue='beta_ABC',
                         data=subset,
                         palette='muted')
@@ -538,7 +466,7 @@ def energy_demand_plots():
 
             # Y Ticks for absolute values #
             ax.set_yticks(tick_dict[building])
-            ax.set_yticklabels(tick_dict[building]/1000)
+            ax.set_yticklabels(tick_dict[building] / 1000)
 
             # Y Ticks for Ratio Values #
             # plt.yscale('log')
@@ -563,15 +491,15 @@ def energy_demand_plots():
     plt.subplots_adjust(wspace=0.15, hspace=0.2)
 
     # Save Figure
-    save_path = 'PhD_Code\Outputs\Figures'
-    save_file = F'{save_path}\Heat_Surplus_Bar.png'
+    save_path = 'PhD_Code\\Outputs\\Figures'
+    save_file = F'{save_path}\\Heat_Surplus_Bar.png'
     # plt.savefig(save_file, dpi=300)
     print(F'Saved {save_file}')
 
     plt.show()
 
 
-# energy_demand_plots()
+
 
 
 def energy_demand_violin_plots():
@@ -580,7 +508,7 @@ def energy_demand_violin_plots():
     import seaborn as sns
 
     data = pd.read_feather(
-        'PhD_Code\Outputs\Feather\Data_normalized_impacts.feather')
+        'PhD_Code\\Outputs\\Feather\\Data_normalized_impacts.feather')
     df = data[['City', 'HDD', 'CDD',
                'Building', 'floor_area',
                'beta_ABC', 'electricity_demand_int', 'heat_demand_int', 'cooling_demand_int']]
@@ -654,7 +582,7 @@ def energy_demand_violin_plots():
                        }
 
         ax.set_yticks(y_tick_dict[building])
-        ax.set_yticklabels(y_tick_dict[building]/1000)
+        ax.set_yticklabels(y_tick_dict[building] / 1000)
 
     fig.text(0.05, 0.5, r'Annual Energy Demand Intensity, $MWh-m^2$',
              ha='center', va='center', rotation='vertical', fontsize=14)
@@ -662,15 +590,15 @@ def energy_demand_violin_plots():
     plt.subplots_adjust(wspace=0.3)
 
     # Save Figure
-    save_path = 'PhD_Code\Outputs\Figures'
-    save_file = F'{save_path}\Energy_Demand_Violins.png'
+    save_path = 'PhD_Code\\Outputs\\Figures'
+    save_file = F'{save_path}\\Energy_Demand_Violins.png'
     # plt.savefig(save_file, dpi=300)
     print(F'Saved {save_file}')
 
     plt.show()
 
 
-# energy_demand_violin_plots()
+
 
 def TOC_art(violin=False, box=True, bar=False):
     """
@@ -685,7 +613,7 @@ def TOC_art(violin=False, box=True, bar=False):
       TIFF at 300 dpi for color and at 1200 dpi for black and white.
       EPS in RGB document color mode with all fonts converted to outlines or embedded in the file.
     • Label the graphic “For Table of Contents Only” and provide it on the last page of the submitted
-      manuscript. 
+      manuscript.
     """
 
     import matplotlib.pyplot as plt
@@ -697,7 +625,7 @@ def TOC_art(violin=False, box=True, bar=False):
     plt.close()
 
     data = pd.read_feather(
-        'PhD_Code\Outputs\Feather\Compiled_data_sample.feather')
+        'PhD_Code\\Outputs\\Feather\\Compiled_data_sample.feather')
 
     climate_zone_dictionary = {'City': ['albuquerque', 'atlanta', 'baltimore', 'chicago',
                                         'denver', 'duluth', 'fairbanks', 'helena',
@@ -712,7 +640,7 @@ def TOC_art(violin=False, box=True, bar=False):
                'Building', 'floor_area',
                'alpha_CHP', 'beta_ABC', 'technology',
                'electricity_demand_int', 'heat_demand_int', 'cooling_demand_int',
-               'GHG_int_kg_m^-2_w_credit', 'perc_change_GHG_w_credit']]
+               'GHG_int', 'perc_change_GHG_w_credit']]
 
     df['energy_demand_int'] = df.electricity_demand_int + df.heat_demand_int
     df['heat_to_power_ratio'] = df.heat_demand_int / df.electricity_demand_int
@@ -724,7 +652,7 @@ def TOC_art(violin=False, box=True, bar=False):
 
     sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.5)
 
-    fig, ax = plt.subplots(1, 1, figsize=(6.5/2, 3.5))
+    fig, ax = plt.subplots(1, 1, figsize=(6.5 / 2, 3.5))
 
     ###############
     # Violin Plot #
@@ -751,8 +679,8 @@ def TOC_art(violin=False, box=True, bar=False):
         ax.set_yticks(np.arange(-150, 600, 50))
 
         # Save Figure
-        save_path = 'PhD_Code\Outputs\Figures'
-        save_file = F'{save_path}\TOC_violin.png'
+        save_path = 'PhD_Code\\Outputs\\Figures'
+        save_file = F'{save_path}\\TOC_violin.png'
         plt.savefig(save_file, dpi=300)
         print(F'Saved {save_file}')
 
@@ -789,8 +717,8 @@ def TOC_art(violin=False, box=True, bar=False):
         # 'Micro-\n-turbine', 'Reciproc. \nEngine'])
 
         # Save Figure
-        save_path = 'PhD_Code\Outputs\Figures'
-        save_file = F'{save_path}\TOC_box.png'
+        save_path = 'PhD_Code\\Outputs\\Figures'
+        save_file = F'{save_path}\\TOC_box.png'
         plt.savefig(save_file, dpi=300)
         print(F'Saved {save_file}')
 
@@ -804,11 +732,11 @@ def TOC_art(violin=False, box=True, bar=False):
         subset = df[(df.alpha_CHP == 0) & (df.alpha_CHP == 1)]
         subset.sort_values(by='technology', inplace=True)
         sns.barplot(x='technology',
-                    y='GHG_int_kg_m^-2_w_credit',
+                    y='GHG_int',
                     # hue='beta_ABC',
                     data=subset[subset.alpha_CHP == 0])
         sns.barplot(x='technology',
-                    y='GHG_int_kg_m^-2_w_credit',
+                    y='GHG_int',
                     # hue='beta_ABC',
                     data=subset[subset.alpha_CHP == 1])
 
@@ -824,12 +752,21 @@ def TOC_art(violin=False, box=True, bar=False):
         ax.set_yticks(np.arange(-150, 550, 50))
 
         # Save Figure
-        save_path = 'PhD_Code\Outputs\Figures'
-        save_file = F'{save_path}\TOC_box.png'
+        save_path = 'PhD_Code\\Outputs\\Figures'
+        save_file = F'{save_path}\\TOC_box.png'
         plt.savefig(save_file, dpi=300)
         print(F'Saved {save_file}')
 
         plt.show()
 
 
+
+
+#########################
+# Running Plot Programs #
+#########################
+data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+plot_all_impacts(data=data, impact='co2_int')
 # TOC_art(violin=False, box=True, bar=False)
+# energy_demand_violin_plots()
+# energy_demand_plots()

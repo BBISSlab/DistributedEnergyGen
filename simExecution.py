@@ -213,7 +213,6 @@ def execute_energy_supply_sim():
 
 def execute_impacts_sim(data):
     impacts = impacts_sim(data)
-
     impacts.to_feather(r'model_outputs\impacts\All_impacts.feather')
 
     impacts.to_csv(r'model_outputs\testing\All_impacts.csv')

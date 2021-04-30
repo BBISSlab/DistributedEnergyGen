@@ -551,18 +551,6 @@ def energy_demand_sim(Building_, City_, AC_,
     """
     This function simulates the electric, heating, and cooling demands based
     on the types of technologies adopted.
-
-    PARAMETERS
-    ----------
-    Building_:
-    City_:
-    Furnace_object:
-    efficiency_Furnace:
-    COP_AC:
-    beta_AC:
-    COP_ABC:
-    beta_ABC:
-    memory:
     """
 
     # Turnedoff SettingWithCopyWarning for now.
@@ -629,7 +617,7 @@ def energy_demand_sim(Building_, City_, AC_,
     df['cooling_demand_int'] = df.cooling_demand / Building_.floor_area
     df['total_electricity_demand_int'] = df.total_electricity_demand / \
         Building_.floor_area
-    df['total_heat_demand_int'] = df.total_electricity_demand / Building_.floor_area
+    df['total_heat_demand_int'] = df.total_heat_demand / Building_.floor_area
 
     return df
 
@@ -665,7 +653,6 @@ def energy_supply_sim(Building_, City_,
     """
     df['electricity_deficit'] = df.total_electricity_demand
     df['heat_deficit'] = df.total_heat_demand
-    df['cooling_deficit'] = df.cooling_demand
 
     # Check for Compatibility of Prime Mover and Absorption Chiller
     if PrimeMover_.abc_compatibility == 0:
@@ -991,6 +978,9 @@ def impacts_sim(data,
         df['electricity_CHP_int']
     total_heat_output = df['heat_Furnace_int'] + df['heat_CHP_int']
     total_cooling_output = df['cooling_demand_int']
+    df['energy_demand_int'] = df.electricity_demand_int + df.heat_demand_int
+    column_list.append('energy_demand_int')
+
     df['NG_int'] = df['Grid_NG_int'] + df['Furnace_NG_int'] + df['CHP_NG_int']
 
     ##################
@@ -1006,6 +996,7 @@ def impacts_sim(data,
         total_electricity_output + total_heat_output + total_cooling_output) / df['NG_int']
     column_list.append('trigen_efficiency')
 
+    
     # Copy only emissions data
     impacts_df = df[column_list]
 
@@ -1113,6 +1104,37 @@ def aggregate_impacts(dataframe, impact):
     return total_impact
 
 
+
+def getDuplicateColumns(df):
+      
+    # Create an empty set
+    duplicateColumnNames = set()
+      
+    # Iterate through all the columns 
+    # of dataframe
+    for x in range(df.shape[1]):
+          
+        # Take column at xth index.
+        col = df.iloc[:, x]
+          
+        # Iterate through all the columns in
+        # DataFrame from (x + 1)th index to
+        # last index
+        for y in range(x + 1, df.shape[1]):
+              
+            # Take column at yth index.
+            otherCol = df.iloc[:, y]
+              
+            # Check if two columns at x & y
+            # index are equal or not,
+            # if equal then adding 
+            # to the set
+            if col.equals(otherCol):
+                duplicateColumnNames.add(df.columns.values[y])
+                  
+    # Return list of unique column names 
+    # whose contents are duplicates.
+    return list(duplicateColumnNames)
 """
 REFERENCES
 ------------------------------------------------------------------------------------------------------
