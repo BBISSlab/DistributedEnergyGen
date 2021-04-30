@@ -254,11 +254,11 @@ def compile_data(all_cities=True, file_type='supply'):
 
 
 
-# execute_energy_demand_sim()
-# execute_energy_supply_sim()
-# df = compile_data()
-# df.to_feather(r'model_outputs\energy_supply\All_supply_data.feather')
-# df.to_csv(r'model_outputs\testing\All_supply_data.csv')
+execute_energy_demand_sim()
+execute_energy_supply_sim()
+df = compile_data()
+df.to_feather(r'model_outputs\energy_supply\All_supply_data.feather')
+df.to_csv(r'model_outputs\testing\All_supply_data.csv')
 
 data = pd.read_feather(r'model_outputs\energy_supply\All_supply_data.feather')
 # print(data.head())
