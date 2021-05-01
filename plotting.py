@@ -68,6 +68,41 @@ def clean_impact_data(data):
 
     return data
 
+
+# Do linear regression on baseline
+def lin_reg(data):
+    from sklearn.linear_model import LinearRegression
+
+    # Clean and separate the data
+    data = clean_impact_data(data)
+
+    ces_df = data[(data.alpha_CHP == 0) & (
+        data.beta_ABC == 0)].copy()
+    
+    # Linear Regression
+    model = LinearRegression()
+    x = ces_df.energy_demand_int
+    X = x.values.reshape(len(x.index), 1)
+
+    # Select the items you want to get data for
+    impacts = ['co2_int', 'n2o_int', 'ch4_int', 
+            'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+            'GHG_int_100', 'GHG_int_20', 'NG_int', 'TFCE']
+    
+    # Perform regression for each impact
+    for impact in impacts:
+        y = ces_df[impact]
+        Y = y.values.reshape(len(y.index), 1)
+
+        model.fit(X, Y)
+        Y_predicted = model.predict(X)
+        
+        # Copy results onto ces_df
+        ces_df[F'{impact}_predicted'] = Y_predicted
+    
+    return ces_df
+
+
 def plot_all_impacts(data, impact, save_name=None):
     import matplotlib.pyplot as plt
     import numpy as np
@@ -499,9 +534,6 @@ def energy_demand_plots():
     plt.show()
 
 
-
-
-
 def energy_demand_violin_plots():
     import matplotlib.pyplot as plt
     import pandas as pd
@@ -596,8 +628,6 @@ def energy_demand_violin_plots():
     print(F'Saved {save_file}')
 
     plt.show()
-
-
 
 
 def TOC_art(violin=False, box=True, bar=False):
@@ -766,7 +796,9 @@ def TOC_art(violin=False, box=True, bar=False):
 # Running Plot Programs #
 #########################
 data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
-plot_all_impacts(data=data, impact='co2_int')
+df = lin_reg(data)
+print(df)
+# plot_all_impacts(data=data, impact='co2_int')
 # TOC_art(violin=False, box=True, bar=False)
 # energy_demand_violin_plots()
 # energy_demand_plots()
