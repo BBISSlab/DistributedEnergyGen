@@ -91,15 +91,15 @@ def plot_all_impacts(data, impact, save_name=None):
     pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
     print(hes_df.head())
-    hes_df = pd.merge(hes_df, pm_df[['PM_id', 'CHP_efficiency', 'technology']], on='PM_id', how='left').fillna('None')
+    hes_df = pd.merge(hes_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
+    hes_df = pd.merge(hes_df, pm_df[['PM_id', 'CHP_efficiency']], on='PM_id', how='left').fillna(1)
     
-    print(hes_df.technology)
+
     # The Conventional Energy System (ces) is anywhere alpha_CHP = 0 and
     # beta_ABC = 0
     ces_df = data[(data.alpha_CHP == 0) & (
         data.beta_ABC == 0)].copy()
 
-    exit() 
     ############
     # Plotting #
     ############
@@ -113,9 +113,9 @@ def plot_all_impacts(data, impact, save_name=None):
     sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
 
     # Making the FacetGrid
-    g = sns.FacetGrid(df,
+    g = sns.FacetGrid(hes_df,
                       col="beta_ABC",  # row="beta_ABC", margin_titles=True,
-                      hue="chp_EFF",
+                      hue="CHP_efficiency",
                       palette='YlOrRd',
                       despine=True)
     g.map(sns.scatterplot,

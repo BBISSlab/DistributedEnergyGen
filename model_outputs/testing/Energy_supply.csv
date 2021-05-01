@@ -1,0 +1,3 @@
+,City,Building,PM_id,alpha_CHP,AC_id,ABC_id,beta_ABC,Furnace_id,level_8,electricity_demand_int,cooling_demand_int,heat_demand_int,total_electricity_demand_int,total_heat_demand_int,electricity_Grid_int,electricity_CHP_int,heat_CHP_int,heat_Furnace_int
+0,albuquerque,full_service_restaurant,None,0,AC3,None,0.0,B2,1970-12-31,527.1547703922264,142.53412978266968,322.70789613240834,569.0765732694823,322.70789613240834,569.0765732694823,0.0,0.0,322.70789613240834
+1,albuquerque,full_service_restaurant,None,0,None,ABC_SS2,1.0,B2,1970-12-31,527.1547703922264,142.53412978266968,322.70789613240834,527.1547703922264,536.7231060162959,527.1547703922264,0.0,0.0,536.7231060162959
