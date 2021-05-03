@@ -66,44 +66,66 @@ def clean_impact_data(data):
     for impact in ['co2_int', 'GHG_int_100', 'GHG_int_20']:
         data[impact] = data[impact] / 1000
 
+    for impact in ['TFCE', 'trigen_efficiency']:
+        data[impact] = data[impact] * 100
     return data
 
 
-# Do linear regression on baseline
-def lin_reg(data):
+def lin_reg(data, impact):
     from sklearn.linear_model import LinearRegression
 
-    # Clean and separate the data
-    data = clean_impact_data(data)
-
-    ces_df = data[(data.alpha_CHP == 0) & (
-        data.beta_ABC == 0)].copy()
-    
     # Linear Regression
-    model = LinearRegression()
-    x = ces_df.energy_demand_int
+    model = LinearRegression(fit_intercept=False)
+    x = data.energy_demand_int
     X = x.values.reshape(len(x.index), 1)
 
     # Select the items you want to get data for
-    impacts = ['co2_int', 'n2o_int', 'ch4_int', 
-            'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-            'GHG_int_100', 'GHG_int_20', 'NG_int', 'TFCE']
-    
+    impacts = ['co2_int', 'n2o_int', 'ch4_int',
+               'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+               'GHG_int_100', 'GHG_int_20', 'NG_int']
+
     # Perform regression for each impact
-    for impact in impacts:
-        y = ces_df[impact]
-        Y = y.values.reshape(len(y.index), 1)
+    y = data[impact]
+    Y = y.values.reshape(len(y.index), 1)
 
-        model.fit(X, Y)
-        Y_predicted = model.predict(X)
-        
-        # Copy results onto ces_df
-        ces_df[F'{impact}_predicted'] = Y_predicted
-    
-    return ces_df
+    model.fit(X, Y)
+    Y_predicted = model.predict(X)
+
+    # Save data as a dictionary
+    regression_dict = {'coef': model.coef_[0][0],
+                       'intercept': 0,# model.intercept_[0],
+                       'score': model.score(X, Y)}
+
+    return regression_dict
 
 
-def plot_all_impacts(data, impact, save_name=None):
+def log_reg(data, impact):
+    from sklearn.linear_model import LogisticRegression
+
+    # Linear Regression
+    model = LinearRegression(fit_intercept=True)
+    x = data.energy_demand_int
+    X = x.values.reshape(len(x.index), 1)
+
+    # Select the items you want to get data for
+    impacts = ['TFCE', 'trigen_efficiency']
+
+    # Perform regression for each impact
+    y = data[impact]
+    Y = y.values.reshape(len(y.index), 1)
+
+    model.fit(X, Y)
+    Y_predicted = model.predict(X)
+
+    # Save data as a dictionary
+    regression_dict = {'coef': model.coef_[0][0],
+                       'intercept': 0,# model.intercept_[0],
+                       'score': model.score(X, Y)}
+
+    return regression_dict
+
+def plot_all_impacts(data, impact,
+                     save=False, show=False):
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
@@ -111,12 +133,11 @@ def plot_all_impacts(data, impact, save_name=None):
     from matplotlib.ticker import (
         MultipleLocator, FormatStrFormatter, AutoMinorLocator)
 
-
     ################################
     # DATA CLEANING & ORGANIZATION #
     ################################
     data = clean_impact_data(data)
-    
+
     # The Hybrid Energy System (hes) is anywhere alpha_CHP == 1 and/or
     # beta_ABC = 1
     hes_df = data[(data.alpha_CHP == 1) | (
@@ -125,15 +146,16 @@ def plot_all_impacts(data, impact, save_name=None):
     pm_df = pd.read_csv(r'data\Tech_specs\PrimeMover_specs.csv', header=2)
     pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
-    print(hes_df.head())
-    hes_df = pd.merge(hes_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
-    hes_df = pd.merge(hes_df, pm_df[['PM_id', 'CHP_efficiency']], on='PM_id', how='left').fillna(1)
-    
+    hes_df = pd.merge(
+        hes_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
+    hes_df = pd.merge(
+        hes_df, pm_df[['PM_id', 'CHP_efficiency']], on='PM_id', how='left').fillna(1)
 
     # The Conventional Energy System (ces) is anywhere alpha_CHP = 0 and
     # beta_ABC = 0
-    ces_df = data[(data.alpha_CHP == 0) & (
-        data.beta_ABC == 0)].copy()
+    ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)].copy()
+    # Linear regression to plot the baseline (CES)
+    regression_dict = lin_reg(ces_df[ces_df.beta_ABC == 0], impact)
 
     ############
     # Plotting #
@@ -147,55 +169,18 @@ def plot_all_impacts(data, impact, save_name=None):
     sns.set_style('ticks', {'axes.facecolor': '0.8'})
     sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
 
-    # Making the FacetGrid
-    g = sns.FacetGrid(hes_df,
-                      col="beta_ABC",  # row="beta_ABC", margin_titles=True,
-                      hue="CHP_efficiency",
-                      palette='YlOrRd',
-                      despine=True)
-    g.map(sns.scatterplot,
-          'energy_demand_int',
-          impact,
-          style=hes_df.PM_id,
-          markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
-                   'Gas Turbine': 'X', 'Microturbine': '.'},
-          alpha=0.4,
-          s=80
-          )
-
-    X = np.arange(0, 2600, 100)
-    trendlines = {'GHG_int': 0.2675 * X,
-                  'nox_int': 0.0788 * X,
-                  'voc_int': 0.0078 * X,
-                  'Fuel_int_total_w_credit': 1.6166 * X}
-    g.map(sns.lineplot,
-          x=X,
-          y=trendlines[impact],
-          color='black'
-          # markers={'D'},
-          # alpha=0.4,
-          # s=40
-          )
-
-    g.set_axis_labels('',  # X-axis
-                      ''  # y-axis
-                      )
-
-    # g.add_legend()
-
-    # Formatting FacetGrid
     tick_dict = {
         # Emissions
         'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(0, 8500, 500),
+        'ch4_int': np.arange(-5, 30, 5),
         'n2o_int': np.arange(-2, 11, 1),
-        'co_int': np.arange(-200, 350, 50),
-        'nox_int': np.arange(-200, 300, 50),
-        'pm_int': np.arange(-6, 24, 2),
-        'so2_int': np.arange(-2, 6.5, 0.5),
+        'co_int': np.arange(-20, 320, 20),
+        'nox_int': np.arange(-10, 140, 10),
+        'pm_int': np.arange(-2, 32, 2),
+        'so2_int': np.arange(-0.5, 6.5, 0.5),
         'voc_int': np.arange(-10, 110, 10),
-        'GHG_int_100': np.arange(-200, 2000, 200),
-        'GHG_int_20': np.arange(-200, 2000, 200),
+        'GHG_int_100': np.arange(0, 2000, 200),
+        'GHG_int_20': np.arange(0, 2000, 200),
         'NG_int': np.arange(0, 4500, 500),
         # Fuel and TFCE
         'TFCE': np.arange(50, 105, 5),
@@ -206,65 +191,140 @@ def plot_all_impacts(data, impact, save_name=None):
         # Absolute values
         #################
         # With CHP Credit
-        'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(0, 8500, 500),
-        'n2o_int': np.arange(-2, 11, 1),
-        'co_int': np.arange(-200, 350, 50),
-        'nox_int': 25,
-        'pm_int': np.arange(-6, 24, 2),
-        'so2_int': np.arange(-2, 6.5, 0.5),
+        'co2_int': 50.,
+        'ch4_int': 1,
+        'n2o_int': 0.5,
+        'co_int': 10.,
+        'nox_int': 5.,
+        'pm_int': 1,
+        'so2_int': 0.1,
         'voc_int': 5,
         'GHG_int_100': 100,
         'GHG_int_20': 100,
         'NG_int': 250,
-        'TFCE': np.arange(30, 110, 10),
-        'TFCE_w_credit': np.arange(50, 105, 5)}
+        'TFCE': 5,
+        'TFCE_w_credit': 1}
 
-    g.fig.subplots_adjust(wspace=0.1, hspace=0.05)
-    g.set_titles(
-        col_template='',  # 'alpha = {col_name}',
-        row_template='')  # 'beta = {row_name}')
-'''    try:
-        y_min = np.min(tick_dict[impact])
-        y_max = np.max(tick_dict[impact])
+    # Making the FacetGrid
+    abc_df = hes_df[hes_df.alpha_CHP == 0].copy()
+    chp_df = hes_df[hes_df.alpha_CHP > 0].copy()
 
-        if impact in ['co2_int', 'GHG_int',
-                      'co2_int', 'GHG_int',
-                      'ch4_int', 'ch4_int',
-                      'NG_int']:
-            yticklabels = tick_dict[impact] / 1000
-        else:
-            yticklabels = tick_dict[impact]
-        g.set(xlim=(0, 2500),
-          ylim=(y_min, y_max),
-          yticks=tick_dict[impact],
-          yticklabels=yticklabels,
-          xticks=np.arange(0, 2600, 100),
-          xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
-                       '', '', '', '', 1.5, '', '', '', '', 2.0,
-                               '', '', '', '', 2.5])
+    # Predicting CES
+    regression_dict = lin_reg(ces_df, impact)
+    X = np.arange(0, 2600, 100)
+    trendline = regression_dict['coef'] * X + regression_dict['intercept']
 
-    except KeyError:
-        g.set(xlim=(0, 2500),
-              xticks=np.arange(0, 2600, 100),
-              xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
-                           '', '', '', '', 1.5, '', '', '', '', 2.0,
-                               '', '', '', '', 2.5])
+    # Make subplots
+    fig, axn = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10, 5))
 
-    g.set(xlim=(0, 2500),
-          xticks=np.arange(0, 3000, 500),
-          xticklabels=[0, 0.5, 1.0, 1.5, 2.0, 2.5])
+    ################
+    # LEFT SUBPLOT #
+    ################
+    # No ABC
+    ax = plt.subplot(1, 2, 1)
+    subset = hes_df[hes_df.beta_ABC == 0]
 
-    g.axes[0, 0].yaxis.set_minor_locator(
-        MultipleLocator(minorticks_dict[impact]))
-    g.axes[0, 0].xaxis.set_minor_locator(MultipleLocator(100))
+    # Plot HES Scatter
+    # CHP provides energy
+    sns.scatterplot(x=subset['energy_demand_int'],
+                    y=subset[impact],
+                    style=subset['technology'],
+                    markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
+                             'Gas Turbine': 'X', 'Microturbine': '.'},
+                    hue=subset["CHP_efficiency"],
+                    palette='YlOrRd',
+                    alpha=0.4,
+                    s=80
+                    )
 
-    if save_name is not None:
-        save_path = 'PhD_Code\\Outputs\\Figures'
-        save_file = F'{save_path}\\Edited_{save_name}.png'
+    # Plot CES Baseline
+    sns.lineplot(x=X, y=trendline, color='black')
+    if impact == 'GHG_int_20':
+        regression_dict = lin_reg(ces_df, 'GHG_int_100')
+        trendline2 = regression_dict['coef'] * X + regression_dict['intercept']
+        ax3 = sns.lineplot(x=X, y=trendline2, color='black')
+        ax3.lines[0].set_linestyle("--")
+
+    # Formatting
+    xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+    ax.set_xticks(np.arange(0, 3000, 500))
+    ax.set_xlim(0, 2500)
+    ax.xaxis.set_minor_locator(MultipleLocator(100))
+    ax.set_xticklabels(xticklabels)
+    ax.set_xlabel('')
+
+    ax.set_yticks(tick_dict[impact])
+    if impact in ['co2_int', 'GHG_int_100', 'GHG_int_20', 'NG_int']:
+        ax.set_yticklabels(tick_dict[impact] / 1000)
+    else:
+        ax.set_yticklabels(tick_dict[impact])
+    ax.set_ylim(np.min(tick_dict[impact]), np.max(tick_dict[impact]))
+    ax.yaxis.set_minor_locator(MultipleLocator(minorticks_dict[impact]))
+    ax.set_ylabel('')
+
+    ax.legend([], frameon=False)
+
+    #################
+    # RIGHT SUBPLOT #
+    #################
+    # Represents when ABC is used
+    ax2 = plt.subplot(1, 2, 2)
+    subset = hes_df[(hes_df.beta_ABC == 1) & (hes_df.alpha_CHP > 0)]
+    abc_subset = hes_df[(hes_df.beta_ABC == 1) & (hes_df.alpha_CHP == 0)]
+
+    sns.scatterplot(x=subset['energy_demand_int'],
+                    y=subset[impact],
+                    style=subset['technology'],
+                    markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
+                             'Gas Turbine': 'X', 'Microturbine': '.'},
+                    hue=subset["CHP_efficiency"],
+                    palette='YlOrRd',
+                    alpha=0.4,
+                    s=80
+                    )
+
+    # No CHP only ABC
+    sns.scatterplot(x=abc_df['energy_demand_int'],
+                    y=abc_df[impact],
+                    marker='.',
+                    s=50,
+                    color='royalblue',
+                    alpha=0.05)
+
+    # Plot CES Baseline
+    sns.lineplot(x=X, y=trendline, color='black')
+    if impact == 'GHG_int_20':
+        regression_dict = lin_reg(ces_df, 'GHG_int_100')
+        trendline2 = regression_dict['coef'] * X + regression_dict['intercept']
+        ax3 = sns.lineplot(x=X, y=trendline2, color='black')
+        ax3.lines[0].set_linestyle("--")
+
+    # Formatting
+    ax2.set_xticks(np.arange(0, 3000, 500))
+    ax2.set_xticklabels(xticklabels)
+    ax2.set_xlim(0, 2500)
+    ax2.xaxis.set_minor_locator(MultipleLocator(100))
+    ax2.set_xlabel('')
+
+    ax2.set_yticks(tick_dict[impact])
+    ax2.set_yticklabels([])
+    ax2.set_ylim(np.min(tick_dict[impact]), np.max(tick_dict[impact]))
+    ax2.yaxis.set_minor_locator(MultipleLocator(minorticks_dict[impact]))
+
+    ax2.set_ylabel('')
+
+    ax2.legend([], frameon=False)
+
+    plt.subplots_adjust(wspace=0.05)
+
+    if save is True:
+        save_path = r'model_outputs\plots'
+        save_name = F'{impact}'
+        save_file = F'{save_path}\\{save_name}.png'
         plt.savefig(save_file, dpi=300)
-    
-    plt.show()'''
+
+    if show is True:
+        plt.show()
 
 
 def energy_demand_plots():
@@ -790,15 +850,198 @@ def TOC_art(violin=False, box=True, bar=False):
         plt.show()
 
 
+def mod_axes(ax, impact):
+    tick_dict = {
+        # Emissions
+        'co2_int': np.arange(-100, 1700, 100),
+        'ch4_int': np.arange(0, 8500, 500),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-200, 350, 50),
+        'nox_int': np.arange(-200, 300, 50),
+        'pm_int': np.arange(-6, 24, 2),
+        'so2_int': np.arange(-2, 6.5, 0.5),
+        'voc_int': np.arange(-10, 110, 10),
+        'GHG_int_100': np.arange(-200, 2000, 200),
+        'GHG_int_20': np.arange(-200, 2000, 200),
+        'NG_int': np.arange(0, 4500, 500),
+        # Fuel and TFCE
+        'TFCE': np.arange(50, 105, 5),
+        'trigen_efficiency': np.arange(50, 105, 5)}
+    minorticks_dict = {
+        #################
+        # Absolute values
+        #################
+        # With CHP Credit
+        'co2_int': np.arange(-100, 1700, 100),
+        'ch4_int': np.arange(0, 8500, 500),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-200, 350, 50),
+        'nox_int': 25,
+        'pm_int': np.arange(-6, 24, 2),
+        'so2_int': np.arange(-2, 6.5, 0.5),
+        'voc_int': 5,
+        'GHG_int_100': 100,
+        'GHG_int_20': 100,
+        'NG_int': 250,
+        'TFCE': np.arange(30, 110, 10),
+        'TFCE_w_credit': np.arange(50, 105, 5)}
+
+    return ax
 
 
 #########################
 # Running Plot Programs #
 #########################
 data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
-df = lin_reg(data)
-print(df)
-# plot_all_impacts(data=data, impact='co2_int')
+# output = lin_reg(data)
+# print(output)
+
+impacts = ['co2_int', 'n2o_int', 'ch4_int',
+               'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+               'GHG_int_100', 'GHG_int_20', 'NG_int']
+
+for impact in impacts:
+    plot_all_impacts(data=data, impact=impact,
+                 save=True, show=False)
 # TOC_art(violin=False, box=True, bar=False)
 # energy_demand_violin_plots()
 # energy_demand_plots()
+
+
+'''
+    g = sns.FacetGrid(chp_df,
+                      col="beta_ABC",  # row="beta_ABC", margin_titles=True,
+                      despine=True)
+    g.map(sns.scatterplot,
+          x=chp_df['energy_demand_int'],
+          y=chp_df[impact],
+          style=chp_df['technology'],
+          markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
+                   'Gas Turbine': 'X', 'Microturbine': '.'},
+          hue=chp_df["CHP_efficiency"],
+          palette='YlOrRd',
+          alpha=0.4,
+          s=80
+          )
+    ax2 = plt.subplot(1,2,2)
+    plt.scatter(x=abc_df['energy_demand_int'],
+          y=abc_df[impact],
+          marker='d',
+          s=20,
+          color='royalblue',
+          alpha=0.01)
+    g.map(plt.scatter,
+          x=abc_df['energy_demand_int'],
+          y=abc_df[impact],
+          marker='d',
+          s=20,
+          color='royalblue',
+          alpha=0.01)
+
+    if impact in ['TFCE', 'trigen_efficiency']:
+        g.map(sns.scatterplot,
+              x='energy_demand_int',
+              y=impact,
+              markers='.',
+              color='black',
+              s=50)
+    else:
+        # Create linear regression here.
+        g = sns.FacetGrid(ces_df,
+                      col="beta_ABC",  # row="beta_ABC", margin_titles=True,
+                      despine=True)
+        g.map(sns.lineplot,
+              x=X,
+              y=trendline,
+              color='black')
+
+    g.set_axis_labels('',  # X-axis
+                      ''  # y-axis
+                      )
+
+    # g.add_legend()
+
+    # Formatting FacetGrid
+    tick_dict = {
+        # Emissions
+        'co2_int': np.arange(-100, 1700, 100),
+        'ch4_int': np.arange(0, 8500, 500),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-200, 350, 50),
+        'nox_int': np.arange(-200, 300, 50),
+        'pm_int': np.arange(-6, 24, 2),
+        'so2_int': np.arange(-2, 6.5, 0.5),
+        'voc_int': np.arange(-10, 110, 10),
+        'GHG_int_100': np.arange(-200, 2000, 200),
+        'GHG_int_20': np.arange(-200, 2000, 200),
+        'NG_int': np.arange(0, 4500, 500),
+        # Fuel and TFCE
+        'TFCE': np.arange(50, 105, 5),
+        'trigen_efficiency': np.arange(50, 105, 5)}
+
+    minorticks_dict = {
+        #################
+        # Absolute values
+        #################
+        # With CHP Credit
+        'co2_int': np.arange(-100, 1700, 100),
+        'ch4_int': np.arange(0, 8500, 500),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-200, 350, 50),
+        'nox_int': 25,
+        'pm_int': np.arange(-6, 24, 2),
+        'so2_int': np.arange(-2, 6.5, 0.5),
+        'voc_int': 5,
+        'GHG_int_100': 100,
+        'GHG_int_20': 100,
+        'NG_int': 250,
+        'TFCE': np.arange(30, 110, 10),
+        'TFCE_w_credit': np.arange(50, 105, 5)}
+
+    g.fig.subplots_adjust(wspace=0.1, hspace=0.05)
+    g.set_titles(
+        col_template='',  # 'alpha = {col_name}',
+        row_template='')  # 'beta = {row_name}')'''
+
+
+'''    try:
+        y_min = np.min(tick_dict[impact])
+        y_max = np.max(tick_dict[impact])
+
+        if impact in ['co2_int', 'GHG_int',
+                      'co2_int', 'GHG_int',
+                      'ch4_int', 'ch4_int',
+                      'NG_int']:
+            yticklabels = tick_dict[impact] / 1000
+        else:
+            yticklabels = tick_dict[impact]
+        g.set(xlim=(0, 2500),
+          ylim=(y_min, y_max),
+          yticks=tick_dict[impact],
+          yticklabels=yticklabels,
+          xticks=np.arange(0, 2600, 100),
+          xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
+                       '', '', '', '', 1.5, '', '', '', '', 2.0,
+                               '', '', '', '', 2.5])
+
+    except KeyError:
+        g.set(xlim=(0, 2500),
+              xticks=np.arange(0, 2600, 100),
+              xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
+                           '', '', '', '', 1.5, '', '', '', '', 2.0,
+                               '', '', '', '', 2.5])
+
+    g.set(xlim=(0, 2500),
+          xticks=np.arange(0, 3000, 500),
+          xticklabels=[0, 0.5, 1.0, 1.5, 2.0, 2.5])
+
+    g.axes[0, 0].yaxis.set_minor_locator(
+        MultipleLocator(minorticks_dict[impact]))
+    g.axes[0, 0].xaxis.set_minor_locator(MultipleLocator(100))
+
+    if save_name is not None:
+        save_path = 'PhD_Code\\Outputs\\Figures'
+        save_file = F'{save_path}\\Edited_{save_name}.png'
+        plt.savefig(save_file, dpi=300)
+
+    plt.show()'''

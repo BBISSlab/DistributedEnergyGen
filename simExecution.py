@@ -260,9 +260,9 @@ def compile_data(all_cities=True, file_type='supply'):
 # df.to_feather(r'model_outputs\energy_supply\All_supply_data.feather')
 # df.to_csv(r'model_outputs\testing\All_supply_data.csv')
 
-# data = pd.read_feather(r'model_outputs\energy_supply\All_supply_data.feather')
+data = pd.read_feather(r'model_outputs\energy_supply\All_supply_data.feather')
 # print(data.head())
-# execute_impacts_sim(data=data)
+execute_impacts_sim(data=data)
 
 def test_supply():
 

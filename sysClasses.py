@@ -2213,7 +2213,7 @@ class Furnace:
         # Capacity is in kW
         self.capacity = capacity
         # Efficiency in spec sheet is as a percentage, so must divide by 100.
-        self.efficiency = efficiency / 100
+        self.efficiency = efficiency
         # Electric Consumption is in kW. This is the fans and other equipment in the heater
         self.electric_consumption = electric_consumption
         # Lifetime in years
