@@ -73,9 +73,10 @@ def clean_impact_data(data):
 
 def lin_reg(data, impact):
     from sklearn.linear_model import LinearRegression
+    from sklearn.linear_model import Ridge
 
     # Linear Regression
-    model = LinearRegression(fit_intercept=False)
+    model = LinearRegression(fit_intercept=True)
     x = data.energy_demand_int
     X = x.values.reshape(len(x.index), 1)
 
@@ -93,39 +94,15 @@ def lin_reg(data, impact):
 
     # Save data as a dictionary
     regression_dict = {'coef': model.coef_[0][0],
-                       'intercept': 0,# model.intercept_[0],
+                       'intercept': model.intercept_[0],
                        'score': model.score(X, Y)}
 
     return regression_dict
 
-
-def log_reg(data, impact):
-    from sklearn.linear_model import LogisticRegression
-
-    # Linear Regression
-    model = LinearRegression(fit_intercept=True)
-    x = data.energy_demand_int
-    X = x.values.reshape(len(x.index), 1)
-
-    # Select the items you want to get data for
-    impacts = ['TFCE', 'trigen_efficiency']
-
-    # Perform regression for each impact
-    y = data[impact]
-    Y = y.values.reshape(len(y.index), 1)
-
-    model.fit(X, Y)
-    Y_predicted = model.predict(X)
-
-    # Save data as a dictionary
-    regression_dict = {'coef': model.coef_[0][0],
-                       'intercept': 0,# model.intercept_[0],
-                       'score': model.score(X, Y)}
-
-    return regression_dict
 
 def plot_all_impacts(data, impact,
-                     save=False, show=False):
+                     save=False, show=False,
+                     building=''):
     import matplotlib.pyplot as plt
     import numpy as np
     import pandas as pd
@@ -155,7 +132,26 @@ def plot_all_impacts(data, impact,
     # beta_ABC = 0
     ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)].copy()
     # Linear regression to plot the baseline (CES)
-    regression_dict = lin_reg(ces_df[ces_df.beta_ABC == 0], impact)
+    X = np.arange(1, 2600, 10)
+
+    if impact in ['TFCE']:
+        log_reg_dict = {'full_service_restaurant': [0.2301, -0.9362],
+                        'hospital': [0.2204, -0.7394],
+                        'hotel': [0.1399, -0.1498],
+                        'office': [0.2299, -0.5822],
+                        'midrise_apartment': [0.2279, -0.4587],
+                        'outpatient_healthcare': [0.1847, -0.523],
+                        'school': [0.221, -0.5393],
+                        'quick_service_restaurant': [0.2358, -1.0697],
+                        'retail': [0.2232, -0.5758],
+                        'supermarket': [0.2801, -1.1821],
+                        'warehouse': [0.1931, -0.2435]}
+
+        tfce_params = log_reg_dict[building]
+        trendline = (tfce_params[0] * np.log(X) + tfce_params[1]) * 100
+    else:
+        regression_dict = lin_reg(ces_df, impact)
+        trendline = regression_dict['coef'] * X + regression_dict['intercept']
 
     ############
     # Plotting #
@@ -171,14 +167,14 @@ def plot_all_impacts(data, impact,
 
     tick_dict = {
         # Emissions
-        'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(-5, 30, 5),
-        'n2o_int': np.arange(-2, 11, 1),
+        'co2_int': np.arange(0, 1800, 200),
+        'ch4_int': np.arange(0, 30, 5),
+        'n2o_int': np.arange(0, 11, 1),
         'co_int': np.arange(-20, 320, 20),
         'nox_int': np.arange(-10, 140, 10),
-        'pm_int': np.arange(-2, 32, 2),
-        'so2_int': np.arange(-0.5, 6.5, 0.5),
-        'voc_int': np.arange(-10, 110, 10),
+        'pm_int': np.arange(0, 32, 2),
+        'so2_int': np.arange(0, 6.5, 0.5),
+        'voc_int': np.arange(0, 110, 10),
         'GHG_int_100': np.arange(0, 2000, 200),
         'GHG_int_20': np.arange(0, 2000, 200),
         'NG_int': np.arange(0, 4500, 500),
@@ -209,13 +205,8 @@ def plot_all_impacts(data, impact,
     abc_df = hes_df[hes_df.alpha_CHP == 0].copy()
     chp_df = hes_df[hes_df.alpha_CHP > 0].copy()
 
-    # Predicting CES
-    regression_dict = lin_reg(ces_df, impact)
-    X = np.arange(0, 2600, 100)
-    trendline = regression_dict['coef'] * X + regression_dict['intercept']
-
     # Make subplots
-    fig, axn = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10, 5))
+    fig, axn = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(6, 3))
 
     ################
     # LEFT SUBPLOT #
@@ -246,10 +237,26 @@ def plot_all_impacts(data, impact,
         ax3.lines[0].set_linestyle("--")
 
     # Formatting
-    xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
-    ax.set_xticks(np.arange(0, 3000, 500))
-    ax.set_xlim(0, 2500)
-    ax.xaxis.set_minor_locator(MultipleLocator(100))
+    if impact in ['TFCE']:
+        x_ticks = {'full_service_restaurant': np.arange(600, 1900, 100),
+                'hospital': np.arange(300, 600, 50),
+                'hotel': np.arange(100, 700, 50),
+                'midrise_apartment': np.arange(0, 300, 50),
+                'office': np.arange(100, 260, 10),
+                'outpatient_healthcare': np.arange(400, 620, 20),
+                'school': np.arange(100, 420, 20),
+                'quick_service_restaurant': np.arange(700, 2400, 100),
+                'retail': np.arange(100, 520, 20),
+                'supermarket': np.arange(400, 860, 20),
+                'warehouse': np.arange(40, 260, 20)}
+        xticklabels = x_ticks[building] / 100
+        ax.set_xlim(np.min(x_ticks[building]), np.max(x_ticks[building]))
+    else:
+        xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+        ax.set_xticks(np.arange(0, 3000, 500))
+        ax.set_xlim(0, 2500)
+        ax.xaxis.set_minor_locator(MultipleLocator(100))
+    
     ax.set_xticklabels(xticklabels)
     ax.set_xlabel('')
 
@@ -300,10 +307,27 @@ def plot_all_impacts(data, impact,
         ax3.lines[0].set_linestyle("--")
 
     # Formatting
-    ax2.set_xticks(np.arange(0, 3000, 500))
+    if impact in ['TFCE']:
+        x_ticks = {'full_service_restaurant': np.arange(600, 1900, 100),
+                'hospital': np.arange(300, 600, 50),
+                'hotel': np.arange(100, 700, 50),
+                'midrise_apartment': np.arange(0, 300, 50),
+                'office': np.arange(100, 260, 10),
+                'outpatient_healthcare': np.arange(400, 620, 20),
+                'school': np.arange(100, 420, 20),
+                'quick_service_restaurant': np.arange(700, 2400, 100),
+                'retail': np.arange(100, 520, 20),
+                'supermarket': np.arange(400, 860, 20),
+                'warehouse': np.arange(40, 260, 20)}
+        xticklabels = x_ticks[building] / 100
+        ax2.set_xlim(np.min(x_ticks[building]), np.max(x_ticks[building]))
+    else:
+        xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+        ax2.set_xticks(np.arange(0, 3000, 500))
+        ax2.set_xlim(0, 2500)
+        ax2.xaxis.set_minor_locator(MultipleLocator(100))
+    
     ax2.set_xticklabels(xticklabels)
-    ax2.set_xlim(0, 2500)
-    ax2.xaxis.set_minor_locator(MultipleLocator(100))
     ax2.set_xlabel('')
 
     ax2.set_yticks(tick_dict[impact])
@@ -315,11 +339,16 @@ def plot_all_impacts(data, impact,
 
     ax2.legend([], frameon=False)
 
-    plt.subplots_adjust(wspace=0.05)
+    plt.subplots_adjust(wspace=0.1)
+
+    sns.despine(fig)
 
     if save is True:
         save_path = r'model_outputs\plots'
-        save_name = F'{impact}'
+        if building is not None:
+            save_name = F'{impact}_{building}'
+        else:
+            save_name = F'{impact}'
         save_file = F'{save_path}\\{save_name}.png'
         plt.savefig(save_file, dpi=300)
 
@@ -850,45 +879,6 @@ def TOC_art(violin=False, box=True, bar=False):
         plt.show()
 
 
-def mod_axes(ax, impact):
-    tick_dict = {
-        # Emissions
-        'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(0, 8500, 500),
-        'n2o_int': np.arange(-2, 11, 1),
-        'co_int': np.arange(-200, 350, 50),
-        'nox_int': np.arange(-200, 300, 50),
-        'pm_int': np.arange(-6, 24, 2),
-        'so2_int': np.arange(-2, 6.5, 0.5),
-        'voc_int': np.arange(-10, 110, 10),
-        'GHG_int_100': np.arange(-200, 2000, 200),
-        'GHG_int_20': np.arange(-200, 2000, 200),
-        'NG_int': np.arange(0, 4500, 500),
-        # Fuel and TFCE
-        'TFCE': np.arange(50, 105, 5),
-        'trigen_efficiency': np.arange(50, 105, 5)}
-    minorticks_dict = {
-        #################
-        # Absolute values
-        #################
-        # With CHP Credit
-        'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(0, 8500, 500),
-        'n2o_int': np.arange(-2, 11, 1),
-        'co_int': np.arange(-200, 350, 50),
-        'nox_int': 25,
-        'pm_int': np.arange(-6, 24, 2),
-        'so2_int': np.arange(-2, 6.5, 0.5),
-        'voc_int': 5,
-        'GHG_int_100': 100,
-        'GHG_int_20': 100,
-        'NG_int': 250,
-        'TFCE': np.arange(30, 110, 10),
-        'TFCE_w_credit': np.arange(50, 105, 5)}
-
-    return ax
-
-
 #########################
 # Running Plot Programs #
 #########################
@@ -897,151 +887,49 @@ data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 # print(output)
 
 impacts = ['co2_int', 'n2o_int', 'ch4_int',
-               'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-               'GHG_int_100', 'GHG_int_20', 'NG_int']
+           'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+           'GHG_int_100', 'GHG_int_20', 'NG_int']
+building_cat = {'full_service_restaurant': ['full_service_restaurant'],
+                'hospital': ['hospital'],
+                'hotel': ['large_hotel', 'small_hotel'],
+                'midrise_apartment': ['midrise_apartment'],
+                'office': ['large_office', 'medium_office', 'small_office'],
+                'outpatient_healthcare': ['outpatient_healthcare'],
+                'school': ['primary_school', 'secondary_school'],
+                'quick_service_restaurant': ['quick_service_restaurant'],
+                'retail': ['stand_alone_retail', 'strip_mall'],
+                'supermarket': ['supermarket'],
+                'warehouse': ['warehouse']}
 
-for impact in impacts:
-    plot_all_impacts(data=data, impact=impact,
-                 save=True, show=False)
+#for category in building_cat:
+    #print(F'{category}: {building_cat[category]}')
+# subset = data[(data.Building == 'warehouse')]# | (data.Building == 'medium_office') | (data.Building == 'small_office')]
+'''for impact in impacts:    
+    print(impact)'''
+plot_all_impacts(data=data, impact='GHG_int_20',
+                     save=True, show=True, building=None)
 # TOC_art(violin=False, box=True, bar=False)
 # energy_demand_violin_plots()
 # energy_demand_plots()
 
-
-'''
-    g = sns.FacetGrid(chp_df,
-                      col="beta_ABC",  # row="beta_ABC", margin_titles=True,
-                      despine=True)
-    g.map(sns.scatterplot,
-          x=chp_df['energy_demand_int'],
-          y=chp_df[impact],
-          style=chp_df['technology'],
-          markers={'Fuel Cell': 'P', 'Reciprocating Engine': 's',
-                   'Gas Turbine': 'X', 'Microturbine': '.'},
-          hue=chp_df["CHP_efficiency"],
-          palette='YlOrRd',
-          alpha=0.4,
-          s=80
-          )
-    ax2 = plt.subplot(1,2,2)
-    plt.scatter(x=abc_df['energy_demand_int'],
-          y=abc_df[impact],
-          marker='d',
-          s=20,
-          color='royalblue',
-          alpha=0.01)
-    g.map(plt.scatter,
-          x=abc_df['energy_demand_int'],
-          y=abc_df[impact],
-          marker='d',
-          s=20,
-          color='royalblue',
-          alpha=0.01)
-
-    if impact in ['TFCE', 'trigen_efficiency']:
-        g.map(sns.scatterplot,
-              x='energy_demand_int',
-              y=impact,
-              markers='.',
-              color='black',
-              s=50)
-    else:
-        # Create linear regression here.
-        g = sns.FacetGrid(ces_df,
-                      col="beta_ABC",  # row="beta_ABC", margin_titles=True,
-                      despine=True)
-        g.map(sns.lineplot,
-              x=X,
-              y=trendline,
-              color='black')
-
-    g.set_axis_labels('',  # X-axis
-                      ''  # y-axis
-                      )
-
-    # g.add_legend()
-
-    # Formatting FacetGrid
-    tick_dict = {
-        # Emissions
-        'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(0, 8500, 500),
-        'n2o_int': np.arange(-2, 11, 1),
-        'co_int': np.arange(-200, 350, 50),
-        'nox_int': np.arange(-200, 300, 50),
-        'pm_int': np.arange(-6, 24, 2),
-        'so2_int': np.arange(-2, 6.5, 0.5),
-        'voc_int': np.arange(-10, 110, 10),
-        'GHG_int_100': np.arange(-200, 2000, 200),
-        'GHG_int_20': np.arange(-200, 2000, 200),
-        'NG_int': np.arange(0, 4500, 500),
-        # Fuel and TFCE
-        'TFCE': np.arange(50, 105, 5),
-        'trigen_efficiency': np.arange(50, 105, 5)}
-
-    minorticks_dict = {
-        #################
-        # Absolute values
-        #################
-        # With CHP Credit
-        'co2_int': np.arange(-100, 1700, 100),
-        'ch4_int': np.arange(0, 8500, 500),
-        'n2o_int': np.arange(-2, 11, 1),
-        'co_int': np.arange(-200, 350, 50),
-        'nox_int': 25,
-        'pm_int': np.arange(-6, 24, 2),
-        'so2_int': np.arange(-2, 6.5, 0.5),
-        'voc_int': 5,
-        'GHG_int_100': 100,
-        'GHG_int_20': 100,
-        'NG_int': 250,
-        'TFCE': np.arange(30, 110, 10),
-        'TFCE_w_credit': np.arange(50, 105, 5)}
-
-    g.fig.subplots_adjust(wspace=0.1, hspace=0.05)
-    g.set_titles(
-        col_template='',  # 'alpha = {col_name}',
-        row_template='')  # 'beta = {row_name}')'''
+def get_regression_results(data):
+    data = clean_impact_data(data)
+    ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)].copy()
 
 
-'''    try:
-        y_min = np.min(tick_dict[impact])
-        y_max = np.max(tick_dict[impact])
+    impact_names = []
+    slopes = []
+    intercepts = []
+    scores = []
 
-        if impact in ['co2_int', 'GHG_int',
-                      'co2_int', 'GHG_int',
-                      'ch4_int', 'ch4_int',
-                      'NG_int']:
-            yticklabels = tick_dict[impact] / 1000
-        else:
-            yticklabels = tick_dict[impact]
-        g.set(xlim=(0, 2500),
-          ylim=(y_min, y_max),
-          yticks=tick_dict[impact],
-          yticklabels=yticklabels,
-          xticks=np.arange(0, 2600, 100),
-          xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
-                       '', '', '', '', 1.5, '', '', '', '', 2.0,
-                               '', '', '', '', 2.5])
+    for impact in impacts:
+        reg_dict = lin_reg(ces_df, impact)
+        impact_names.append(impact)
+        slopes.append(reg_dict['coef'])
+        intercepts.append(reg_dict['intercept'])
+        scores.append(reg_dict['score'])
 
-    except KeyError:
-        g.set(xlim=(0, 2500),
-              xticks=np.arange(0, 2600, 100),
-              xticklabels=[0, '', '', '', '', 0.5, '', '', '', '', 1.0,
-                           '', '', '', '', 1.5, '', '', '', '', 2.0,
-                               '', '', '', '', 2.5])
-
-    g.set(xlim=(0, 2500),
-          xticks=np.arange(0, 3000, 500),
-          xticklabels=[0, 0.5, 1.0, 1.5, 2.0, 2.5])
-
-    g.axes[0, 0].yaxis.set_minor_locator(
-        MultipleLocator(minorticks_dict[impact]))
-    g.axes[0, 0].xaxis.set_minor_locator(MultipleLocator(100))
-
-    if save_name is not None:
-        save_path = 'PhD_Code\\Outputs\\Figures'
-        save_file = F'{save_path}\\Edited_{save_name}.png'
-        plt.savefig(save_file, dpi=300)
-
-    plt.show()'''
+    dictionary = {'impact':impact_names, 'slope':slopes, 'intercept':intercepts, 'score':scores}
+    df = pd.DataFrame.from_dict(dictionary)
+    df.to_csv(r'model_outputs\testing\Regression_results_w_intercept.csv')
+    print(df)
