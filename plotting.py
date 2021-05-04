@@ -25,81 +25,6 @@ import inspect
 import os
 
 
-def calculate_percent_change(data, impact):
-    ################################
-    # DATA CLEANING & ORGANIZATION #
-    ################################
-
-    # Duluth Outpatient Heathcare Appears to have an error in calculation
-    # Drop from the data
-    data.drop(data[(data.Building == 'outpatient_healthcare') &
-                   (data.City == 'duluth')].index, inplace=True)
-
-    # Set Multi-index for data
-    data.set_index(['Building', 'City'], drop=True, inplace=True)
-
-    # The Hybrid Energy System (hes) is anywhere alpha_CHP == 1 and/or
-    # beta_ABC = 1
-    hes_df = data[(data.alpha_CHP == 1) | (data.beta_ABC == 1)]
-
-    # The Conventional Energy System (ces) is anywhere alpha_CHP = 0 and
-    # beta_ABC = 0
-    ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)]
-
-    #########################
-    # % CHANGE CALCULATIONS #
-    #########################
-    delta = hes_df[impact] - ces_df[impact]
-    # Calculate the % Change
-    percent_change = (delta / ces_df[impact]) * 100
-
-    return percent_change
-
-
-def clean_impact_data(data):
-    # Duluth Outpatient Heathcare Appears to have an error in calculation
-    # Drop from the data
-    data.drop(data[(data.Building == 'outpatient_healthcare') &
-                   (data.City == 'duluth')].index, inplace=True)
-
-    # Convert CO2 and GHGs from g into kg
-    for impact in ['co2_int', 'GHG_int_100', 'GHG_int_20']:
-        data[impact] = data[impact] / 1000
-
-    for impact in ['TFCE', 'trigen_efficiency']:
-        data[impact] = data[impact] * 100
-    return data
-
-
-def lin_reg(data, impact):
-    from sklearn.linear_model import LinearRegression
-    from sklearn.linear_model import Ridge
-
-    # Linear Regression
-    model = LinearRegression(fit_intercept=True)
-    x = data.energy_demand_int
-    X = x.values.reshape(len(x.index), 1)
-
-    # Select the items you want to get data for
-    impacts = ['co2_int', 'n2o_int', 'ch4_int',
-               'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-               'GHG_int_100', 'GHG_int_20', 'NG_int']
-
-    # Perform regression for each impact
-    y = data[impact]
-    Y = y.values.reshape(len(y.index), 1)
-
-    model.fit(X, Y)
-    Y_predicted = model.predict(X)
-
-    # Save data as a dictionary
-    regression_dict = {'coef': model.coef_[0][0],
-                       'intercept': model.intercept_[0],
-                       'score': model.score(X, Y)}
-
-    return regression_dict
-
-
 def plot_all_impacts(data, impact,
                      save=False, show=False,
                      building=''):
@@ -109,6 +34,7 @@ def plot_all_impacts(data, impact,
     import seaborn as sns
     from matplotlib.ticker import (
         MultipleLocator, FormatStrFormatter, AutoMinorLocator)
+    from data_analysis import lin_reg, clean_impact_data
 
     ################################
     # DATA CLEANING & ORGANIZATION #
@@ -180,7 +106,19 @@ def plot_all_impacts(data, impact,
         'NG_int': np.arange(0, 4500, 500),
         # Fuel and TFCE
         'TFCE': np.arange(50, 105, 5),
-        'trigen_efficiency': np.arange(50, 105, 5)}
+        'trigen_efficiency': np.arange(50, 105, 5),
+        # Relative Change
+        'percent_change_co2_int': np.arange(-200, 900, 100),
+        'percent_change_ch4_int': np.arange(-50, 150, 10),
+        'percent_change_n2o_int': np.arange(-130, 20, 10),
+        'percent_change_co_int': np.arange(-350, 500, 50),
+        'percent_change_nox_int': np.arange(-1000, 1800, 200),
+        'percent_change_pm_int': np.arange(-140, 20, 20),
+        'percent_change_so2_int': np.arange(-140, 20, 20),
+        'percent_change_voc_int': np.arange(-200, 1600, 200),
+        'percent_change_GHG_int_100': np.arange(-150, 550, 50),
+        'percent_change_GHG_int_20': np.arange(-50, 350, 50),
+        'percent_change_NG_int': np.arange(-50, 200, 50)}
 
     minorticks_dict = {
         #################
@@ -199,7 +137,18 @@ def plot_all_impacts(data, impact,
         'GHG_int_20': 100,
         'NG_int': 250,
         'TFCE': 5,
-        'TFCE_w_credit': 1}
+        # Relative Change
+        'percent_change_co2_int': 50,
+        'percent_change_ch4_int': 5,
+        'percent_change_n2o_int': 5,
+        'percent_change_co_int': 10,
+        'percent_change_nox_int': 50,
+        'percent_change_pm_int': 5,
+        'percent_change_so2_int': 5,
+        'percent_change_voc_int': 50,
+        'percent_change_GHG_int_100': 10,
+        'percent_change_GHG_int_20': 10,
+        'percent_change_NG_int': 10}
 
     # Making the FacetGrid
     abc_df = hes_df[hes_df.alpha_CHP == 0].copy()
@@ -239,16 +188,16 @@ def plot_all_impacts(data, impact,
     # Formatting
     if impact in ['TFCE']:
         x_ticks = {'full_service_restaurant': np.arange(600, 1900, 100),
-                'hospital': np.arange(300, 600, 50),
-                'hotel': np.arange(100, 700, 50),
-                'midrise_apartment': np.arange(0, 300, 50),
-                'office': np.arange(100, 260, 10),
-                'outpatient_healthcare': np.arange(400, 620, 20),
-                'school': np.arange(100, 420, 20),
-                'quick_service_restaurant': np.arange(700, 2400, 100),
-                'retail': np.arange(100, 520, 20),
-                'supermarket': np.arange(400, 860, 20),
-                'warehouse': np.arange(40, 260, 20)}
+                   'hospital': np.arange(300, 600, 50),
+                   'hotel': np.arange(100, 700, 50),
+                   'midrise_apartment': np.arange(0, 300, 50),
+                   'office': np.arange(100, 260, 10),
+                   'outpatient_healthcare': np.arange(400, 620, 20),
+                   'school': np.arange(100, 420, 20),
+                   'quick_service_restaurant': np.arange(700, 2400, 100),
+                   'retail': np.arange(100, 520, 20),
+                   'supermarket': np.arange(400, 860, 20),
+                   'warehouse': np.arange(40, 260, 20)}
         xticklabels = x_ticks[building] / 100
         ax.set_xlim(np.min(x_ticks[building]), np.max(x_ticks[building]))
     else:
@@ -256,7 +205,7 @@ def plot_all_impacts(data, impact,
         ax.set_xticks(np.arange(0, 3000, 500))
         ax.set_xlim(0, 2500)
         ax.xaxis.set_minor_locator(MultipleLocator(100))
-    
+
     ax.set_xticklabels(xticklabels)
     ax.set_xlabel('')
 
@@ -309,16 +258,16 @@ def plot_all_impacts(data, impact,
     # Formatting
     if impact in ['TFCE']:
         x_ticks = {'full_service_restaurant': np.arange(600, 1900, 100),
-                'hospital': np.arange(300, 600, 50),
-                'hotel': np.arange(100, 700, 50),
-                'midrise_apartment': np.arange(0, 300, 50),
-                'office': np.arange(100, 260, 10),
-                'outpatient_healthcare': np.arange(400, 620, 20),
-                'school': np.arange(100, 420, 20),
-                'quick_service_restaurant': np.arange(700, 2400, 100),
-                'retail': np.arange(100, 520, 20),
-                'supermarket': np.arange(400, 860, 20),
-                'warehouse': np.arange(40, 260, 20)}
+                   'hospital': np.arange(300, 600, 50),
+                   'hotel': np.arange(100, 700, 50),
+                   'midrise_apartment': np.arange(0, 300, 50),
+                   'office': np.arange(100, 260, 10),
+                   'outpatient_healthcare': np.arange(400, 620, 20),
+                   'school': np.arange(100, 420, 20),
+                   'quick_service_restaurant': np.arange(700, 2400, 100),
+                   'retail': np.arange(100, 520, 20),
+                   'supermarket': np.arange(400, 860, 20),
+                   'warehouse': np.arange(40, 260, 20)}
         xticklabels = x_ticks[building] / 100
         ax2.set_xlim(np.min(x_ticks[building]), np.max(x_ticks[building]))
     else:
@@ -326,7 +275,7 @@ def plot_all_impacts(data, impact,
         ax2.set_xticks(np.arange(0, 3000, 500))
         ax2.set_xlim(0, 2500)
         ax2.xaxis.set_minor_locator(MultipleLocator(100))
-    
+
     ax2.set_xticklabels(xticklabels)
     ax2.set_xlabel('')
 
@@ -354,6 +303,8 @@ def plot_all_impacts(data, impact,
 
     if show is True:
         plt.show()
+
+    return
 
 
 def energy_demand_plots():
@@ -744,7 +695,7 @@ def TOC_art(violin=False, box=True, bar=False):
     plt.close()
 
     data = pd.read_feather(
-        'PhD_Code\\Outputs\\Feather\\Compiled_data_sample.feather')
+        r'model_outputs\impacts\All_impacts.feather')
 
     climate_zone_dictionary = {'City': ['albuquerque', 'atlanta', 'baltimore', 'chicago',
                                         'denver', 'duluth', 'fairbanks', 'helena',
@@ -871,7 +822,7 @@ def TOC_art(violin=False, box=True, bar=False):
         ax.set_yticks(np.arange(-150, 550, 50))
 
         # Save Figure
-        save_path = 'PhD_Code\\Outputs\\Figures'
+        save_path = 'model_outputs\\plots'
         save_file = F'{save_path}\\TOC_box.png'
         plt.savefig(save_file, dpi=300)
         print(F'Saved {save_file}')
@@ -889,47 +840,28 @@ data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 impacts = ['co2_int', 'n2o_int', 'ch4_int',
            'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
            'GHG_int_100', 'GHG_int_20', 'NG_int']
-building_cat = {'full_service_restaurant': ['full_service_restaurant'],
-                'hospital': ['hospital'],
-                'hotel': ['large_hotel', 'small_hotel'],
-                'midrise_apartment': ['midrise_apartment'],
-                'office': ['large_office', 'medium_office', 'small_office'],
-                'outpatient_healthcare': ['outpatient_healthcare'],
-                'school': ['primary_school', 'secondary_school'],
-                'quick_service_restaurant': ['quick_service_restaurant'],
-                'retail': ['stand_alone_retail', 'strip_mall'],
-                'supermarket': ['supermarket'],
-                'warehouse': ['warehouse']}
+building_cat = {  # 'full_service_restaurant': ['full_service_restaurant'],
+    # 'hospital': ['hospital'],
+    # 'hotel': ['large_hotel', 'small_hotel'],
+    # 'midrise_apartment': ['midrise_apartment'],
+    # 'office': ['large_office', 'medium_office', 'small_office'],
+    # 'outpatient_healthcare': ['outpatient_healthcare'],
+    # 'school': ['primary_school', 'secondary_school'],
+    # 'quick_service_restaurant': ['quick_service_restaurant'],
+    'retail': ['stand_alone_retail', 'strip_mall'],
+    # 'supermarket': ['supermarket'],
+    # 'warehouse': ['warehouse']
+        }
 
-#for category in building_cat:
-    #print(F'{category}: {building_cat[category]}')
-# subset = data[(data.Building == 'warehouse')]# | (data.Building == 'medium_office') | (data.Building == 'small_office')]
-'''for impact in impacts:    
+# for category in building_cat:
+#print(F'{category}: {building_cat[category]}')
+'''subset = data[(data.Building == 'stand_alone_retail')
+                | (data.Building =='strip_mall')]'''
+# | (data.Building == 'small_office')]
+'''for impact in impacts:
     print(impact)'''
-plot_all_impacts(data=data, impact='GHG_int_20',
-                     save=True, show=True, building=None)
+plot_all_impacts(data=subset, impact='TFCE',
+                 save=True, show=True, building='retail')
 # TOC_art(violin=False, box=True, bar=False)
 # energy_demand_violin_plots()
 # energy_demand_plots()
-
-def get_regression_results(data):
-    data = clean_impact_data(data)
-    ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)].copy()
-
-
-    impact_names = []
-    slopes = []
-    intercepts = []
-    scores = []
-
-    for impact in impacts:
-        reg_dict = lin_reg(ces_df, impact)
-        impact_names.append(impact)
-        slopes.append(reg_dict['coef'])
-        intercepts.append(reg_dict['intercept'])
-        scores.append(reg_dict['score'])
-
-    dictionary = {'impact':impact_names, 'slope':slopes, 'intercept':intercepts, 'score':scores}
-    df = pd.DataFrame.from_dict(dictionary)
-    df.to_csv(r'model_outputs\testing\Regression_results_w_intercept.csv')
-    print(df)
