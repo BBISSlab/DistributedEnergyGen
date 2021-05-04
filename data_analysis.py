@@ -24,12 +24,15 @@ def clean_impact_data(data):
     data.drop(data[(data.Building == 'outpatient_healthcare') &
                    (data.City == 'duluth')].index, inplace=True)
 
-    # Convert CO2 and GHGs from g into kg
-    for impact in ['co2_int', 'GHG_int_100', 'GHG_int_20']:
-        data[impact] = data[impact] / 1000
+    if 'percent_change_co2_int' in data.columns:
+        pass
+    else:
+        # Convert CO2 and GHGs from g into kg
+        for impact in ['co2_int', 'GHG_int_100', 'GHG_int_20']:
+            data[impact] = data[impact] / 1000
 
-    for impact in ['TFCE', 'trigen_efficiency']:
-        data[impact] = data[impact] * 100
+        for impact in ['TFCE', 'trigen_efficiency']:
+            data[impact] = data[impact] * 100
     return data
 
 
@@ -37,27 +40,33 @@ def lin_reg(data, impact):
     from sklearn.linear_model import LinearRegression
     from sklearn.linear_model import Ridge
 
-    # Linear Regression
-    model = LinearRegression(fit_intercept=True)
-    x = data.energy_demand_int
-    X = x.values.reshape(len(x.index), 1)
-
-    # Select the items you want to get data for
-    impacts = ['co2_int', 'n2o_int', 'ch4_int',
-               'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-               'GHG_int_100', 'GHG_int_20', 'NG_int']
-
-    # Perform regression for each impact
-    y = data[impact]
-    Y = y.values.reshape(len(y.index), 1)
-
-    model.fit(X, Y)
-    Y_predicted = model.predict(X)
-
     # Save data as a dictionary
-    regression_dict = {'coef': model.coef_[0][0],
+    if 'percent_change_co2_int' in data.columns:
+        regression_dict = {'coef': 0,
+                       'intercept': 0,
+                       'score': 1}
+    else:
+        # Linear Regression
+        model = LinearRegression(fit_intercept=True)
+        x = data.energy_demand_int
+        X = x.values.reshape(len(x.index), 1)
+
+        # Select the items you want to get data for
+        impacts = ['co2_int', 'n2o_int', 'ch4_int',
+                'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+                'GHG_int_100', 'GHG_int_20', 'NG_int']
+
+        # Perform regression for each impact
+        y = data[impact]
+        Y = y.values.reshape(len(y.index), 1)
+
+        model.fit(X, Y)
+        Y_predicted = model.predict(X)
+
+        regression_dict = {'coef': model.coef_[0][0],
                        'intercept': model.intercept_[0],
                        'score': model.score(X, Y)}
+
 
     return regression_dict
 
@@ -158,3 +167,4 @@ def run_perc_change():
 
     percent_change.to_feather(r'model_outputs\impacts\percent_change.feather')
 
+run_perc_change()

@@ -91,6 +91,7 @@ def plot_all_impacts(data, impact,
     sns.set_style('ticks', {'axes.facecolor': '0.8'})
     sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
 
+    # Tick Marks
     tick_dict = {
         # Emissions
         'co2_int': np.arange(0, 1800, 200),
@@ -108,17 +109,17 @@ def plot_all_impacts(data, impact,
         'TFCE': np.arange(50, 105, 5),
         'trigen_efficiency': np.arange(50, 105, 5),
         # Relative Change
-        'percent_change_co2_int': np.arange(-200, 900, 100),
-        'percent_change_ch4_int': np.arange(-50, 150, 10),
-        'percent_change_n2o_int': np.arange(-130, 20, 10),
-        'percent_change_co_int': np.arange(-350, 500, 50),
-        'percent_change_nox_int': np.arange(-1000, 1800, 200),
-        'percent_change_pm_int': np.arange(-140, 20, 20),
-        'percent_change_so2_int': np.arange(-140, 20, 20),
-        'percent_change_voc_int': np.arange(-200, 1600, 200),
-        'percent_change_GHG_int_100': np.arange(-150, 550, 50),
-        'percent_change_GHG_int_20': np.arange(-50, 350, 50),
-        'percent_change_NG_int': np.arange(-50, 200, 50)}
+        'percent_change_co2_int': np.arange(-200, 1200, 200),
+        'percent_change_ch4_int': np.arange(-100, 10, 10),
+        'percent_change_n2o_int': np.arange(-100, 10, 10),
+        'percent_change_co_int': np.arange(-100, 500, 50),
+        'percent_change_nox_int': np.arange(-100, 600, 100),
+        'percent_change_pm_int': np.arange(-100, 10, 10),
+        'percent_change_so2_int': np.arange(-100, 10, 10),
+        'percent_change_voc_int': np.arange(-100, 1600, 200),
+        'percent_change_GHG_int_100': np.arange(-50, 700, 50),
+        'percent_change_GHG_int_20': np.arange(-50, 450, 50),
+        'percent_change_NG_int': np.arange(-20, 140, 20)}
 
     minorticks_dict = {
         #################
@@ -148,7 +149,7 @@ def plot_all_impacts(data, impact,
         'percent_change_voc_int': 50,
         'percent_change_GHG_int_100': 10,
         'percent_change_GHG_int_20': 10,
-        'percent_change_NG_int': 10}
+        'percent_change_NG_int': 5}
 
     # Making the FacetGrid
     abc_df = hes_df[hes_df.alpha_CHP == 0].copy()
@@ -830,38 +831,63 @@ def TOC_art(violin=False, box=True, bar=False):
         plt.show()
 
 
+def execute_impact_plot(type='impact'):
+    if type == 'impact':
+        data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+
+        impacts = ['co2_int', 'n2o_int', 'ch4_int',
+                'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+                'GHG_int_100', 'GHG_int_20', 'NG_int']
+
+        for impact in impacts:
+            plot_all_impacts(data=data, impact=impact,
+                        save=True, show=True, building=None)
+    if type == 'percent':
+        data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+        rel_impacts = ['percent_change_co2_int',
+                'percent_change_ch4_int',
+                'percent_change_n2o_int',
+                'percent_change_co_int',
+                'percent_change_nox_int',
+                'percent_change_pm_int',
+                'percent_change_so2_int',
+                'percent_change_voc_int',
+                'percent_change_GHG_int_100',
+                'percent_change_GHG_int_20',
+                'percent_change_NG_int'] 
+
+        for impact in rel_impacts:
+            plot_all_impacts(data=data, impact=impact,
+                    save=True, show=False, building=None)
+    if type == 'TFCE':
+        building_cat = {  # 'full_service_restaurant': ['full_service_restaurant'],
+            # 'hospital': ['hospital'],
+            # 'hotel': ['large_hotel', 'small_hotel'],
+            # 'midrise_apartment': ['midrise_apartment'],
+            # 'office': ['large_office', 'medium_office', 'small_office'],
+            # 'outpatient_healthcare': ['outpatient_healthcare'],
+            # 'school': ['primary_school', 'secondary_school'],
+            # 'quick_service_restaurant': ['quick_service_restaurant'],
+            'retail': ['stand_alone_retail', 'strip_mall'],
+            # 'supermarket': ['supermarket'],
+            # 'warehouse': ['warehouse']
+                }
+
+        # for category in building_cat:
+        #print(F'{category}: {building_cat[category]}')
+        '''subset = data[(data.Building == 'stand_alone_retail')
+                        | (data.Building =='strip_mall')]'''
+                        # | (data.Building == 'small_office')]
+    
+
 #########################
 # Running Plot Programs #
 #########################
-data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
-# output = lin_reg(data)
-# print(output)
+# data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
 
-impacts = ['co2_int', 'n2o_int', 'ch4_int',
-           'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-           'GHG_int_100', 'GHG_int_20', 'NG_int']
-building_cat = {  # 'full_service_restaurant': ['full_service_restaurant'],
-    # 'hospital': ['hospital'],
-    # 'hotel': ['large_hotel', 'small_hotel'],
-    # 'midrise_apartment': ['midrise_apartment'],
-    # 'office': ['large_office', 'medium_office', 'small_office'],
-    # 'outpatient_healthcare': ['outpatient_healthcare'],
-    # 'school': ['primary_school', 'secondary_school'],
-    # 'quick_service_restaurant': ['quick_service_restaurant'],
-    'retail': ['stand_alone_retail', 'strip_mall'],
-    # 'supermarket': ['supermarket'],
-    # 'warehouse': ['warehouse']
-        }
+execute_impact_plot(type='percent')
 
-# for category in building_cat:
-#print(F'{category}: {building_cat[category]}')
-'''subset = data[(data.Building == 'stand_alone_retail')
-                | (data.Building =='strip_mall')]'''
-# | (data.Building == 'small_office')]
-'''for impact in impacts:
-    print(impact)'''
-plot_all_impacts(data=subset, impact='TFCE',
-                 save=True, show=True, building='retail')
+
 # TOC_art(violin=False, box=True, bar=False)
 # energy_demand_violin_plots()
 # energy_demand_plots()
