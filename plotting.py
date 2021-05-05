@@ -187,29 +187,6 @@ def plot_all_impacts(data, impact,
         ax3.lines[0].set_linestyle("--")
 
     # Formatting
-    if impact in ['TFCE']:
-        x_ticks = {'full_service_restaurant': np.arange(600, 1900, 100),
-                   'hospital': np.arange(300, 600, 50),
-                   'hotel': np.arange(100, 700, 50),
-                   'midrise_apartment': np.arange(0, 300, 50),
-                   'office': np.arange(100, 260, 10),
-                   'outpatient_healthcare': np.arange(400, 620, 20),
-                   'school': np.arange(100, 420, 20),
-                   'quick_service_restaurant': np.arange(700, 2400, 100),
-                   'retail': np.arange(100, 520, 20),
-                   'supermarket': np.arange(400, 860, 20),
-                   'warehouse': np.arange(40, 260, 20)}
-        xticklabels = x_ticks[building] / 100
-        ax.set_xlim(np.min(x_ticks[building]), np.max(x_ticks[building]))
-    else:
-        xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
-        ax.set_xticks(np.arange(0, 3000, 500))
-        ax.set_xlim(0, 2500)
-        ax.xaxis.set_minor_locator(MultipleLocator(100))
-
-    ax.set_xticklabels(xticklabels)
-    ax.set_xlabel('')
-
     ax.set_yticks(tick_dict[impact])
     if impact in ['co2_int', 'GHG_int_100', 'GHG_int_20', 'NG_int']:
         ax.set_yticklabels(tick_dict[impact] / 1000)
@@ -257,29 +234,6 @@ def plot_all_impacts(data, impact,
         ax3.lines[0].set_linestyle("--")
 
     # Formatting
-    if impact in ['TFCE']:
-        x_ticks = {'full_service_restaurant': np.arange(600, 1900, 100),
-                   'hospital': np.arange(300, 600, 50),
-                   'hotel': np.arange(100, 700, 50),
-                   'midrise_apartment': np.arange(0, 300, 50),
-                   'office': np.arange(100, 260, 10),
-                   'outpatient_healthcare': np.arange(400, 620, 20),
-                   'school': np.arange(100, 420, 20),
-                   'quick_service_restaurant': np.arange(700, 2400, 100),
-                   'retail': np.arange(100, 520, 20),
-                   'supermarket': np.arange(400, 860, 20),
-                   'warehouse': np.arange(40, 260, 20)}
-        xticklabels = x_ticks[building] / 100
-        ax2.set_xlim(np.min(x_ticks[building]), np.max(x_ticks[building]))
-    else:
-        xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
-        ax2.set_xticks(np.arange(0, 3000, 500))
-        ax2.set_xlim(0, 2500)
-        ax2.xaxis.set_minor_locator(MultipleLocator(100))
-
-    ax2.set_xticklabels(xticklabels)
-    ax2.set_xlabel('')
-
     ax2.set_yticks(tick_dict[impact])
     ax2.set_yticklabels([])
     ax2.set_ylim(np.min(tick_dict[impact]), np.max(tick_dict[impact]))
@@ -292,6 +246,57 @@ def plot_all_impacts(data, impact,
     plt.subplots_adjust(wspace=0.1)
 
     sns.despine(fig)
+
+    # X Axis formatting
+    for axis in [ax, ax2]:
+        if impact in ['TFCE']:
+            x_ticks = {'full_service_restaurant': np.arange(500, 2500, 500),
+                       'hospital': np.arange(300, 700, 100),
+                       'hotel': np.arange(0, 800, 200),
+                       'midrise_apartment': np.arange(0, 400, 100),
+                       'office': np.arange(100, 400, 100),
+                       'outpatient_healthcare': np.arange(300, 800, 100),
+                       'quick_service_restaurant': np.arange(500, 2500, 500),
+                       'retail': np.arange(100, 600, 100),
+                       'school': np.arange(100, 600, 100),
+                       'supermarket': np.arange(400, 800, 100),
+                       'warehouse': np.arange(0, 400, 100)}
+
+            x_minor_ticks = {'full_service_restaurant': 100,
+                             'hospital': 20,
+                             'hotel': 50,
+                             'midrise_apartment': 20,
+                             'office': 20,
+                             'outpatient_healthcare': 10,
+                             'school': 10,
+                             'quick_service_restaurant': 100,
+                             'retail': 10,
+                             'supermarket': 20,
+                             'warehouse': 10}
+
+            # X tick limits
+            x_min = np.min(x_ticks[building])
+            x_max = np.max(x_ticks[building])
+            axis.set_xlim(x_min, x_max)
+
+            xticks = x_ticks[building]
+
+            # Major X ticks
+            axis.set_xticks(xticks)
+            axis.set_xticklabels(xticks / 1000)
+            axis.set_xlabel('')
+            # Minor X ticks
+            axis.xaxis.set_minor_locator(
+                MultipleLocator(x_minor_ticks[building]))
+        else:
+            axis.set_xlim(0, 2500)
+
+            xticklabels = [0, 0.5, 1.0, 1.5, 2.0, 2.5]
+            axis.set_xticks(np.arange(0, 3000, 500))
+            axis.xaxis.set_minor_locator(MultipleLocator(100))
+
+            axis.set_xticklabels(xticklabels)
+            axis.set_xlabel('')
 
     if save is True:
         save_path = r'model_outputs\plots'
@@ -671,7 +676,7 @@ def energy_demand_violin_plots():
     plt.show()
 
 
-def TOC_art(violin=False, box=True, bar=False):
+def TOC_art():
     """
     This function plots the art for the TOC. Guidelines are below:
     Text should usually be limited to the labeling of compounds, reaction arrows, and diagrams. Long
@@ -696,27 +701,11 @@ def TOC_art(violin=False, box=True, bar=False):
     plt.close()
 
     data = pd.read_feather(
-        r'model_outputs\impacts\All_impacts.feather')
+        r'model_outputs\impacts\percent_change.feather')
 
-    climate_zone_dictionary = {'City': ['albuquerque', 'atlanta', 'baltimore', 'chicago',
-                                        'denver', 'duluth', 'fairbanks', 'helena',
-                                        'houston', 'las_vegas', 'los_angeles', 'miami',
-                                        'minneapolis', 'phoenix', 'san_francisco', 'seattle'],
-                               'Climate Zone': ['4B', '3A', '4A', '5A',
-                                                '5B', '7', '8', '6B',
-                                                '2A', '3B', '3B-CA', '1A',
-                                                '6A', '2B', '3C', '4C']}
-    climates = pd.DataFrame.from_dict(climate_zone_dictionary)
-    df = data[['City', 'HDD', 'CDD',
-               'Building', 'floor_area',
-               'alpha_CHP', 'beta_ABC', 'technology',
-               'electricity_demand_int', 'heat_demand_int', 'cooling_demand_int',
-               'GHG_int', 'perc_change_GHG_w_credit']]
+    pm_df = pd.read_csv(r'data\Tech_specs\PrimeMover_specs.csv', header=2)
 
-    df['energy_demand_int'] = df.electricity_demand_int + df.heat_demand_int
-    df['heat_to_power_ratio'] = df.heat_demand_int / df.electricity_demand_int
-    df = pd.merge(df, climates)
-    # df.drop_duplicates(inplace=True)
+    df = data.merge(pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('AbsCh Only')
 
     rcParams['font.family'] = 'Helvetica'
     plt.rc('font', family='sans-serif')
@@ -725,110 +714,43 @@ def TOC_art(violin=False, box=True, bar=False):
 
     fig, ax = plt.subplots(1, 1, figsize=(6.5 / 2, 3.5))
 
-    ###############
-    # Violin Plot #
-    ###############
-    if violin is True:
-        subset = df[df.alpha_CHP == 1]
-        subset.sort_values(by='technology', inplace=True)
-        sns.violinplot(x='technology',
-                       y='perc_change_GHG_w_credit',
-                       hue='beta_ABC',
-                       data=subset,
-                       palette='muted',
-                       split=True)
-
-        ##############
-        # Formatting #
-        ##############
-        # Text
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.legend([], frameon=False)
-
-        # Ticks
-        ax.set_yticks(np.arange(-150, 600, 50))
-
-        # Save Figure
-        save_path = 'PhD_Code\\Outputs\\Figures'
-        save_file = F'{save_path}\\TOC_violin.png'
-        plt.savefig(save_file, dpi=300)
-        print(F'Saved {save_file}')
-
-        plt.show()
-
+    print(df.columns)
     ############
     # Box Plot #
     ############
+    df.sort_values(by='technology', inplace=True)
+    # pal = {label: 'Greys' if label == 'AbsCh Only' else 'muted' for label in df.technology.unique()}
+    
+    sns.boxplot(x='technology',
+                y='percent_change_GHG_int_100',
+                hue='beta_ABC',
+                data=df,
+                palette='muted',
+                showfliers=False)
 
-    if box is True:
-        subset = df[df.alpha_CHP == 1]
-        subset.sort_values(by='technology', inplace=True)
-        sns.boxplot(x='technology',
-                    y='perc_change_GHG_w_credit',
-                    hue='beta_ABC',
-                    data=subset,
-                    palette='muted',
-                    showfliers=False)
+    ##############
+    # Formatting #
+    ##############
+    # Text
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.legend([], frameon=False)
 
-        ##############
-        # Formatting #
-        ##############
-        # Text
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.legend([], frameon=False)
+    # Ticks
+    ax.set_yticks(np.arange(-100, 500, 100))
+    ax.set_yticklabels(['' for i in np.arange(-100, 500, 100)])
+    ax.set_xticklabels(['', '', '', '', ''])
+    ax.yaxis.set_minor_locator(MultipleLocator(50))
+    # ax.set_xticklabels(['Fuel\nCells', 'Gas\nTurbine',
+    # 'Micro-\n-turbine', 'Reciproc. \nEngine'])
 
-        # Ticks
-        ax.set_yticks(np.arange(-200, 450, 100))
-        ax.set_yticklabels(['' for i in np.arange(-200, 400, 100)])
-        ax.set_xticklabels(['', '', '', ''])
-        ax.yaxis.set_minor_locator(MultipleLocator(50))
-        # ax.set_xticklabels(['Fuel\nCells', 'Gas\nTurbine',
-        # 'Micro-\n-turbine', 'Reciproc. \nEngine'])
+    # Save Figure
+    save_path = r'model_outputs\plots'
+    save_file = F'{save_path}\\TOC_box.png'
+    plt.savefig(save_file, dpi=300)
+    print(F'Saved {save_file}')
 
-        # Save Figure
-        save_path = 'PhD_Code\\Outputs\\Figures'
-        save_file = F'{save_path}\\TOC_box.png'
-        plt.savefig(save_file, dpi=300)
-        print(F'Saved {save_file}')
-
-        plt.show()
-
-    ############
-    # Bar Plot #
-    ############
-
-    if bar is True:
-        subset = df[(df.alpha_CHP == 0) & (df.alpha_CHP == 1)]
-        subset.sort_values(by='technology', inplace=True)
-        sns.barplot(x='technology',
-                    y='GHG_int',
-                    # hue='beta_ABC',
-                    data=subset[subset.alpha_CHP == 0])
-        sns.barplot(x='technology',
-                    y='GHG_int',
-                    # hue='beta_ABC',
-                    data=subset[subset.alpha_CHP == 1])
-
-        ##############
-        # Formatting #
-        ##############
-        # Text
-        ax.set_xlabel('')
-        ax.set_ylabel('')
-        ax.legend([], frameon=False)
-
-        # Ticks
-        ax.set_yticks(np.arange(-150, 550, 50))
-
-        # Save Figure
-        save_path = 'model_outputs\\plots'
-        save_file = F'{save_path}\\TOC_box.png'
-        plt.savefig(save_file, dpi=300)
-        print(F'Saved {save_file}')
-
-        plt.show()
+    plt.show()
 
 
 def execute_impact_plot(type='impact'):
@@ -836,58 +758,61 @@ def execute_impact_plot(type='impact'):
         data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 
         impacts = ['co2_int', 'n2o_int', 'ch4_int',
-                'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-                'GHG_int_100', 'GHG_int_20', 'NG_int']
+                   'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
+                   'GHG_int_100', 'GHG_int_20', 'NG_int']
 
         for impact in impacts:
             plot_all_impacts(data=data, impact=impact,
-                        save=True, show=True, building=None)
+                             save=True, show=True, building=None)
     if type == 'percent':
         data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
         rel_impacts = ['percent_change_co2_int',
-                'percent_change_ch4_int',
-                'percent_change_n2o_int',
-                'percent_change_co_int',
-                'percent_change_nox_int',
-                'percent_change_pm_int',
-                'percent_change_so2_int',
-                'percent_change_voc_int',
-                'percent_change_GHG_int_100',
-                'percent_change_GHG_int_20',
-                'percent_change_NG_int'] 
+                       'percent_change_ch4_int',
+                       'percent_change_n2o_int',
+                       'percent_change_co_int',
+                       'percent_change_nox_int',
+                       'percent_change_pm_int',
+                       'percent_change_so2_int',
+                       'percent_change_voc_int',
+                       'percent_change_GHG_int_100',
+                       'percent_change_GHG_int_20',
+                       'percent_change_NG_int']
 
         for impact in rel_impacts:
             plot_all_impacts(data=data, impact=impact,
-                    save=True, show=False, building=None)
+                             save=True, show=False, building=None)
     if type == 'TFCE':
-        building_cat = {  # 'full_service_restaurant': ['full_service_restaurant'],
-            # 'hospital': ['hospital'],
-            # 'hotel': ['large_hotel', 'small_hotel'],
-            # 'midrise_apartment': ['midrise_apartment'],
-            # 'office': ['large_office', 'medium_office', 'small_office'],
-            # 'outpatient_healthcare': ['outpatient_healthcare'],
-            # 'school': ['primary_school', 'secondary_school'],
-            # 'quick_service_restaurant': ['quick_service_restaurant'],
-            'retail': ['stand_alone_retail', 'strip_mall'],
-            # 'supermarket': ['supermarket'],
-            # 'warehouse': ['warehouse']
-                }
+        data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+        building_cat = {
+            'full_service_restaurant': data[(data.Building == 'full_service_restaurant')],
+            'hospital': data[(data.Building == 'hospital')],
+            'hotel': data[(data.Building == 'large_hotel') | (data.Building == 'small_hotel')],
+            'midrise_apartment': data[(data.Building == 'midrise_apartment')],
+            'office': data[(data.Building == 'large_office')
+                           | (data.Building == 'medium_office')
+                           | (data.Building == 'small_office')],
+            'outpatient_healthcare': data[(data.Building == 'outpatient_healthcare')],
+            'school': data[(data.Building == 'primary_school')
+                           | (data.Building == 'secondary_school')],
+            'quick_service_restaurant': data[(data.Building == 'quick_service_restaurant')],
+            'retail': data[(data.Building == 'stand_alone_retail') | (data.Building == 'strip_mall')],
+            'supermarket': data[(data.Building == 'supermarket')],
+            'warehouse': data[(data.Building == 'warehouse')]
+        }
 
-        # for category in building_cat:
-        #print(F'{category}: {building_cat[category]}')
-        '''subset = data[(data.Building == 'stand_alone_retail')
-                        | (data.Building =='strip_mall')]'''
-                        # | (data.Building == 'small_office')]
-    
+        for category in building_cat:
+            print(category)
+            subset = building_cat[category]
+            plot_all_impacts(data=subset, impact='TFCE',
+                             save=True, show=False, building=category)
 
 #########################
 # Running Plot Programs #
 #########################
 # data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+# execute_impact_plot(type='TFCE')
 
-execute_impact_plot(type='percent')
 
-
-# TOC_art(violin=False, box=True, bar=False)
+TOC_art()
 # energy_demand_violin_plots()
 # energy_demand_plots()
