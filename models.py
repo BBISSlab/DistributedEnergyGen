@@ -663,11 +663,10 @@ def energy_supply_sim(Building_, City_,
     if (pv_energy_sim is not None):
         pass
 
-    if Furnace_.electric is False:
+    if Furnace_.Furnace_id in ['F1', 'F2', 'F4', 'B2']:
         #######
         # CHP #
         #######
-
         df['electricity_CHP'] = df.alpha_CHP * df.electricity_deficit
         df['heat_CHP_0'] = PrimeMover_.hpr * df.electricity_CHP
         df['heat_CHP'] = df['heat_CHP_0'] * \
@@ -894,7 +893,7 @@ def impacts_sim(data,
     df['Grid_NG_int'] = (df.electricity_Grid_int /
                          ((1 - GLF) * NGCC_dict['efficiency']))
     df['Furnace_NG_int'] = df.heat_Furnace_int / \
-        df.Furnace_efficiency
+        (df.Furnace_efficiency/100) #Furnace efficiency is as % in the tech file
     df['CHP_NG_int'] = (df.electricity_CHP_int +
                         (df.heat_CHP_int) / (1 - thermal_distribution_loss_rate)) / df.CHP_efficiency
 

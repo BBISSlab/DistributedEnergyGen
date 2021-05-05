@@ -94,7 +94,7 @@ def execute_energy_demand_sim():
                         ABC_ = ABC_dict[abc]
 
                         print('City: {}, {} of 16 | Building: {}, {} of 16 | Beta_ABC = {} | AC {}: {} of 3 | ABC {}: {} of 4 | Time: {}'.format(
-                            city, city_number, building, building_number, beta, ac, ac_number, abc, abc_number, time.strftime("%Y-%m-%d %H:%M:%S", ts)), end='\r')
+                            city, city_number, building, building_number, beta, ac, ac_number, abc, abc_number, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')
 
                         df = energy_demand_sim(Building_=Building_,
                                                City_=City_,
@@ -183,7 +183,7 @@ def execute_energy_supply_sim():
                     for alpha in alpha_CHP_range:
 
                         print('City: {}, {} of 16 | Building: {}, {} of 16 | Alpha_CHP = {} | Furnace {}: {} of 5 | CHP {}: {} of 22 | Time: {}'.format(
-                            city, city_number, building, building_number, alpha, furnace, Furnace_number, pm, pm_number, time.strftime("%Y-%m-%d %H:%M:%S", ts)), end='\r')
+                            city, city_number, building, building_number, alpha, furnace, Furnace_number, pm, pm_number, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')
 
                         df = energy_supply_sim(Building_=Building_,
                                            City_=City_,
@@ -254,12 +254,43 @@ def compile_data(all_cities=True, file_type='supply'):
 
 
 
-execute_energy_demand_sim()
-execute_energy_supply_sim()
-df = compile_data()
-df.to_feather(r'model_outputs\energy_supply\All_supply_data.feather')
-df.to_csv(r'model_outputs\testing\All_supply_data.csv')
+# execute_energy_demand_sim()
+# execute_energy_supply_sim()
+# df = compile_data()
+# df.to_feather(r'model_outputs\energy_supply\All_supply_data.feather')
+# df.to_csv(r'model_outputs\testing\All_supply_data.csv')
 
 data = pd.read_feather(r'model_outputs\energy_supply\All_supply_data.feather')
 # print(data.head())
 execute_impacts_sim(data=data)
+
+def test_supply():
+
+    cities_to_simulate = ['albuquerque']
+    system_dict = generate_objects(
+            all_cities=False, selected_cities=cities_to_simulate)
+
+    City_dict = system_dict['City_dict']
+    Grid_dict = system_dict['Grid_dict']
+    PrimeMover_dict = system_dict['PrimeMover_dict']
+    BES_dict = system_dict['BatteryStorage_dict']
+    Furnace_dict = system_dict['Furnace_dict']
+    AC_dict = system_dict['AC_dict']
+    ABC_dict = system_dict['ABC_dict']
+
+    Building_ = Building(name='Test', building_type='full_service_restaurant', City_=City_dict['albuquerque'])
+    City_ = City_dict['albuquerque']
+    Furnace_ = Furnace_dict['B2']
+    PrimeMover_ = PrimeMover_dict['RE1']
+    alpha = 0
+    df = energy_supply_sim(Building_=Building_,
+                                           City_=City_,
+                                           Furnace_=Furnace_,
+                                           PrimeMover_=PrimeMover_,
+                                           alpha_CHP=alpha)
+
+    df.to_csv(r'model_outputs\testing\Energy_supply.csv')
+
+    print('DONE')
+
+# test_supply()
