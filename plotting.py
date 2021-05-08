@@ -82,10 +82,13 @@ def plot_all_impacts(data, impact,
     pm_df = pd.read_csv(r'data\Tech_specs\PrimeMover_specs.csv', header=2)
     pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
-    hes_df = pd.merge(
-        hes_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
-    hes_df = pd.merge(
-        hes_df, pm_df[['PM_id', 'CHP_efficiency']], on='PM_id', how='left').fillna(1)
+    if 'technology' in hes_df.columns:
+        pass
+    else:
+        hes_df = pd.merge(
+            hes_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
+        hes_df = pd.merge(
+            hes_df, pm_df[['PM_id', 'CHP_efficiency']], on='PM_id', how='left').fillna(1)
 
     # The Conventional Energy System (ces) is anywhere alpha_CHP = 0 and
     # beta_ABC = 0
@@ -135,8 +138,8 @@ def plot_all_impacts(data, impact,
         'pm_int': np.arange(0, 32, 2),
         'so2_int': np.arange(0, 6.5, 0.5),
         'voc_int': np.arange(0, 110, 10),
-        'GHG_int_100': np.arange(0, 2000, 200),
-        'GHG_int_20': np.arange(0, 2000, 200),
+        'GHG_int_100': np.arange(0, 2200, 200),
+        'GHG_int_20': np.arange(0, 2600, 200),
         'NG_int': np.arange(0, 4500, 500),
         # Fuel and TFCE
         'TFCE': np.arange(50, 105, 5),
@@ -150,7 +153,7 @@ def plot_all_impacts(data, impact,
         'percent_change_pm_int': np.arange(-100, 10, 10),
         'percent_change_so2_int': np.arange(-100, 10, 10),
         'percent_change_voc_int': np.arange(-100, 1600, 200),
-        'percent_change_GHG_int_100': np.arange(-50, 700, 50),
+        'percent_change_GHG_int_100': np.arange(-100, 550, 50),
         'percent_change_GHG_int_20': np.arange(-50, 450, 50),
         'percent_change_NG_int': np.arange(-20, 140, 20)}
 
@@ -901,13 +904,15 @@ def plot_fraction_contribution(impact):
 #########################
 # Running Plot Programs #
 #########################
-# data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+def plot_percent(impact):
+    data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+    plot_all_impacts(data=data, impact=impact,
+                save=True, show=True, building=None)
 # execute_impact_plot(type='impact')
 # TOC_art()
 # energy_demand_violin_plots()
 # energy_demand_plots()
-data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
-plot_all_impacts(data=data, impact='GHG_int_20',
-                save=True, show=True, building=None)
+# data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+plot_percent('percent_change_ch4_int')
 
 # plot_fraction_contribution('ch4')

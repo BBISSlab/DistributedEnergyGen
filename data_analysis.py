@@ -199,18 +199,15 @@ def leakage_sensitivity():
     sensitivity_df = pd.merge(sensitivity_df, pm_df[['PM_id', 'technology']],
                               on='PM_id', how='left').fillna('None')
 
-    sensitivity_df['technology'] = np.where((sensitivity_df.alpha_CHP == 0)
-                                            & (sensitivity_df.beta_ABC == 1), 'ABC Only', sensitivity_df.technology)
-
     ####################
     # CALCULATE % LEAK #
     ####################
-    sensitivity_df['percent_leak_base'] = sensitivity_df.GHG_leak_base / \
-        sensitivity_df.GHG_base
-    sensitivity_df['percent_leak_10_percent'] = sensitivity_df.GHG_leak_10_percent / \
-        sensitivity_df.GHG_10_percent
+    sensitivity_df['percent_leak_base_case'] = sensitivity_df.GHG_leak_base_case / \
+        sensitivity_df.GHG_base_case * 100
+    sensitivity_df['percent_leak_sensitivity'] = sensitivity_df.GHG_leak_sensitivity / \
+        sensitivity_df.GHG_int_sensitivity * 100
 
-    '''#########################
+    #########################
     # CALCULATE DIFFERENCES #
     #########################
 
@@ -232,25 +229,32 @@ def leakage_sensitivity():
     sensitivity_df = pd.concat(super_x, axis=0)
 
     # Calculate % Change from ces
-    sensitivity_df['percent_change_leak_to_ces'] = calculate_percent_change(sensitivity_df.GHG_leak_10_percent, sensitivity_df.GHG_leak_ces)
-    sensitivity_df['percent_change_leak_to_base'] = calculate_percent_change(sensitivity_df.GHG_leak_10_percent, sensitivity_df.GHG_leak_base)
+    sensitivity_df['percent_change_leak_base_case_to_ces'] = calculate_percent_change(sensitivity_df.GHG_leak_base_case, sensitivity_df.GHG_leak_ces)
+    sensitivity_df['percent_change_leak_to_ces'] = calculate_percent_change(sensitivity_df.GHG_leak_sensitivity, sensitivity_df.GHG_leak_ces)
+    sensitivity_df['percent_change_leak_to_base_case'] = calculate_percent_change(sensitivity_df.GHG_leak_sensitivity, sensitivity_df.GHG_leak_base_case)
     stats_df = sensitivity_df.groupby(['technology', 'alpha_CHP', 'beta_ABC'
-        ]).agg({'GHG_base':['mean', 'std'],
-                'percent_leak_base':['mean', 'std'],
-                'percent_leak_10_percent':['mean', 'std'],
+        ]).agg({'GHG_leak_ces':['mean', 'std'],
+            'GHG_base_case':['mean', 'std'],
+                'GHG_leak_base_case':['mean', 'std'],
+                'percent_leak_base_case':['mean', 'std'],
+                'GHG_no_leak':['mean', 'std'],
+                'GHG_int_sensitivity':['mean', 'std'], 
+                'GHG_leak_sensitivity':['mean', 'std'],
+                'percent_leak_sensitivity':['mean', 'std'],
+                'percent_change_leak_base_case_to_ces':['mean','std'],
                 'percent_change_leak_to_ces':['mean', 'std'],
-                'percent_change_leak_to_base':['mean', 'std']})
+                'percent_change_leak_to_base_case':['mean', 'std']})
 
-    print(stats_df)'''
-    return sensitivity_df  # , stats_df
+    print(stats_df)
+    return sensitivity_df, stats_df
 
 
 def merge_leakage_dataframes(
         baseline_data, no_leakage_data, increased_leakage_data):
     baseline_data['GHG_int_leakage'] = models.calculate_GHG(
         ch4=baseline_data['ch4_leak_int'])
-    baseline_data.rename(columns={'GHG_int_100': 'GHG_base',
-                                  'GHG_int_leakage': 'GHG_leak_base'}, inplace=True)
+    baseline_data.rename(columns={'GHG_int_100': 'GHG_base_case',
+                                  'GHG_int_leakage': 'GHG_leak_base_case'}, inplace=True)
 
     no_leakage_data.rename(
         columns={
@@ -259,8 +263,8 @@ def merge_leakage_dataframes(
 
     increased_leakage_data['GHG_int_leakage'] = models.calculate_GHG(
         ch4=increased_leakage_data['ch4_leak_int'])
-    increased_leakage_data.rename(columns={'GHG_int_100': 'GHG_10_percent',
-                                           'GHG_int_leakage': 'GHG_leak_10_percent'}, inplace=True)
+    increased_leakage_data.rename(columns={'GHG_int_100': 'GHG_int_sensitivity',
+                                           'GHG_int_leakage': 'GHG_leak_sensitivity'}, inplace=True)
 
     index_columns = ['City', 'Building', 'PM_id', 'alpha_CHP', 'beta_ABC']
     merged_data = pd.merge(
@@ -277,8 +281,8 @@ def merge_leakage_dataframes(
 
     merged_data = merged_data[['City', 'Building', 'PM_id',
                                'alpha_CHP', 'beta_ABC',
-                               'GHG_base', 'GHG_leak_base', 'GHG_no_leak',
-                               'GHG_10_percent', 'GHG_leak_10_percent']].copy()
+                               'GHG_base_case', 'GHG_leak_base_case', 'GHG_no_leak',
+                               'GHG_int_sensitivity', 'GHG_leak_sensitivity']].copy()
 
     merged_data.drop_duplicates(inplace=True)
     merged_data.reset_index(inplace=True, drop=True)
@@ -309,7 +313,7 @@ def calculate_percent_contribution(numerator, denominator):
     return numerator / denominator * 100
 
 
-def calculate_baseline(data):
+def calculate_ces_reference(data):
     ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)].copy()
 
     super_x = []
@@ -372,68 +376,54 @@ def sim_statistics(raw_data):
     return statistics_df
 
 
-def calculate_reductions(percent_data):
+def percentage_stats(method='technology', reductions=False):
+    percent_data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
     data = clean_impact_data(percent_data)
 
     data.drop(['CHP_efficiency', 'energy_demand_int'], axis=1, inplace=True)
     data.drop_duplicates(inplace=True)
 
-    percents_df = data.groupby(['alpha_CHP', 'beta_ABC', 'PM_id'])
-
+    if method == 'technology':
+        group = ['alpha_CHP', 'beta_ABC', 'technology']
+    if method == 'PM_id':
+        group = ['alpha_CHP', 'beta_ABC', 'PM_id']
+    
+    percents_df = data.groupby(group)
     mean = percents_df.mean()
     std = percents_df.std()
 
-    avg_percents_df = pd.merge(mean, std,
-                               on=['alpha_CHP', 'beta_ABC', 'PM_id'],
+    stats_df = pd.merge(mean, std,
+                               on=group,
                                how='left',
                                suffixes=['_mean', '_std'],
                                sort=True)
 
-    avg_percents_df.to_csv(r'model_outputs\impacts\avg_percents_pmid.csv')
+    # Saving file
+    savepath = r'model_outputs\impacts'
+    savefile = F'avg_percents_{method}.csv'
+    stats_df.to_csv(F'{savepath}\{savefile}')
 
-    impacts = ['percent_change_co2_int',
-               'percent_change_n2o_int', 'percent_change_ch4_int',
-               'percent_change_co_int', 'percent_change_nox_int', 'percent_change_pm_int',
-               'percent_change_so2_int', 'percent_change_voc_int',
-               'percent_change_GHG_int_100', 'percent_change_GHG_int_20', 'percent_change_NG_int']
+    if reductions is True:
+        impacts = ['percent_change_co2_int',
+                'percent_change_n2o_int', 'percent_change_ch4_int',
+                'percent_change_co_int', 'percent_change_nox_int', 'percent_change_pm_int',
+                'percent_change_so2_int', 'percent_change_voc_int',
+                'percent_change_GHG_int_100', 'percent_change_GHG_int_20', 'percent_change_NG_int']
 
-    totals = data.groupby(['alpha_CHP', 'beta_ABC', 'PM_id'])
-    # print(totals.count())
-    super_y = []
-    for impact in impacts:
-        reductions = data[['alpha_CHP', 'beta_ABC', 'PM_id', impact]].copy()
-        reductions = reductions[reductions[impact] < -0.005]
-        grouped_df = reductions.groupby(['alpha_CHP', 'beta_ABC', 'PM_id'])
-        # super_y.append(grouped_df.count())
-        print(grouped_df.count())
+        # totals = data.groupby(['alpha_CHP', 'beta_ABC', 'technology'])
+        # print(totals.count())
+        super_y = []
+        for impact in impacts:
+            reductions = data[['alpha_CHP', 'beta_ABC', 'technology', impact]].copy()
+            reductions = reductions[reductions[impact] < -0.005]
+            grouped_df = reductions.groupby(['alpha_CHP', 'beta_ABC', 'technology'])
+            super_y.append(grouped_df.count())
+            # print(grouped_df.count())
 
-    # reductions_df = pd.concat(super_y, axis=0)
-
-    # print(reductions_df)
-
-    '''case_numbers = {'None': percents_df[percents_df.technology == 'None'].count(),
-                    'Fuel Cell': percents_df[percents_df.technology == 'Fuel Cell'].count(),
-                    'Reciprocating Engine': percents_df[percents_df.technology == 'Reciprocating Engine'].count(),
-                    'Gas Turbine': percents_df[percents_df.technology == 'Gas Turbine'].count(),
-                    'Microturbine': percents_df[percents_df.technology == 'Microturbine'].count()}
-
-    reductions_df = percents_df[(percents_df[impact] <= 0)]
-
-    reduction_cases = {'None': reductions_df[reductions_df.technology == 'None'].count(),
-                    'Fuel Cell': reductions_df[reductions_df.technology == 'Fuel Cell'].count(),
-                    'Reciprocating Engine': reductions_df[reductions_df.technology == 'Reciprocating Engine'].count(),
-                    'Gas Turbine': reductions_df[reductions_df.technology == 'Gas Turbine'].count(),
-                    'Microturbine': reductions_df[reductions_df.technology == 'Microturbine'].count()}
-
-    percent_cases = {}
-    for case in case_numbers:
-        percent_cases[case] = reduction_cases[case] / case_numbers[case] * 100
-
-    print(case_numbers)
-    print(reduction_cases)
-    print(percent_cases)'''
-
-    return reductions
+        reductions_df = pd.concat(super_y, axis=1)
+        reductions_df.fillna(value=0, inplace=True)
+        # print(reductions_df)
+        return reductions_df
 
 
 def GWP_sensitivity(data):
@@ -471,6 +461,10 @@ def GWP_sensitivity(data):
 
     return GHG_df
 
+##########################
+# Generate CES Reference #
+##########################
+
 
 ##############
 # Statistics #
@@ -481,18 +475,24 @@ def GWP_sensitivity(data):
 # stats = sim_statistics(raw_data)
 # stats.to_csv(r'model_outputs\impacts\statistics.csv')
 
-# Percents
-# percent_data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
-# reductions_df = calculate_reductions(percent_data)
-# reductions_df.to_csv('model_outputs\impacts\reductions.csv')
+# Percent stats
+# percentage_stats(method='PM_id')
 
-run_perc_change()
-# df= leakage_sensitivity()
-# df.to_csv(r'model_outputs\testing\leakage_sensitivity.csv')
-# stats.to_csv(r'model_outputs\testing\leakage_stats.csv')
+# run_perc_change()
+
+#######################
+# Leakage Sensitivity #
+#######################
+# sensitivity, sensitivity_stats= leakage_sensitivity()
+# sensitivity.to_csv(r'model_outputs\testing\leakage_sensitivity.csv')
+# sensitivity_stats.to_csv(r'model_outputs\testing\leakage_stats.csv')
+
 ###################
 # GWP Sensitivity #
 ###################
-# data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
-# GWP_df = GWP_sensitivity(data)
-# GWP_df.to_csv(r'model_outputs\impacts\GWP_sensitivity.csv')
+def run_gwp_sensitivity():
+    data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+    GWP_df = GWP_sensitivity(data)
+    GWP_df.to_csv(r'model_outputs\impacts\GWP_sensitivity.csv')
+
+run_gwp_sensitivity()

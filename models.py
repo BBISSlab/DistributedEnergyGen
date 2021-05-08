@@ -1088,10 +1088,14 @@ def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100, GWP_factor=1,
 
 def aggregate_impacts(dataframe, impact):
     if impact == 'GHG':
-        GHG_100 = dataframe['Grid_GHG_int_100'] + \
-            dataframe['Furnace_GHG_int_100'] + dataframe['CHP_GHG_int_100']
-        GHG_20 = dataframe['Grid_GHG_int_20'] + \
-            dataframe['Furnace_GHG_int_20'] + dataframe['CHP_GHG_int_20']
+        GHG_100 = calculate_GHG(co2=dataframe.co2_int,
+                ch4=dataframe.ch4_int,
+                n2o=dataframe.n2o_int,
+                GWP_year=100)
+        GHG_20 = calculate_GHG(co2=dataframe.co2_int,
+                ch4=dataframe.ch4_int,
+                n2o=dataframe.n2o_int,
+                GWP_year=20)
         return GHG_100, GHG_20
     else:
         if impact in ['n2o', 'pm', 'so2']:
