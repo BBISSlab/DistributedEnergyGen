@@ -803,6 +803,8 @@ def impacts_sim(data,
                 PrimeMover_=None,
                 Grid_type='NGCC',
                 thermal_distribution_loss_rate=0.1,
+                leakage_factor=1,
+                GWP_factor=1,
                 GLF=0.049):
 
     # Read the energy demand data
@@ -850,10 +852,11 @@ def impacts_sim(data,
                                     'Furnace_co', 'Furnace_nox', 'Furnace_pm',
                                     'Furnace_so2', 'Furnace_voc']], on='Furnace_id', how='left').fillna(0)
     df = pd.merge(df, furnace_df[['Furnace_id',
-                                    'Furnace_efficiency']], on='Furnace_id', how='left').fillna(1)
+                                  'Furnace_efficiency']], on='Furnace_id', how='left').fillna(1)
     df = pd.merge(df, pm_df[['PM_id', 'CHP_co', 'CHP_co2',
                             'CHP_voc', 'CHP_nox']], on='PM_id', how='left').fillna(0)
-    df = pd.merge(df, pm_df[['PM_id', 'CHP_efficiency']], on='PM_id', how='left').fillna(1)
+    df = pd.merge(df, pm_df[['PM_id', 'CHP_efficiency']],
+                  on='PM_id', how='left').fillna(1)
 
     ###################################
     # Calculate Operational Emissions #
@@ -883,7 +886,8 @@ def impacts_sim(data,
 
         # Grid Emissions
         if Grid_type == 'NGCC':
-            df[F'Grid_{impact}_int'] = NGCC_dict[impact] * df.electricity_Grid_int
+            df[F'Grid_{impact}_int'] = NGCC_dict[impact] * \
+                df.electricity_Grid_int
             column_list.append(F'Grid_{impact}_int')
 
     ####################
@@ -893,7 +897,7 @@ def impacts_sim(data,
     df['Grid_NG_int'] = (df.electricity_Grid_int /
                          ((1 - GLF) * NGCC_dict['efficiency']))
     df['Furnace_NG_int'] = df.heat_Furnace_int / \
-        (df.Furnace_efficiency/100) #Furnace efficiency is as % in the tech file
+        (df.Furnace_efficiency / 100)  # Furnace efficiency is as % in the tech file
     df['CHP_NG_int'] = (df.electricity_CHP_int +
                         (df.heat_CHP_int) / (1 - thermal_distribution_loss_rate)) / df.CHP_efficiency
 
@@ -903,8 +907,8 @@ def impacts_sim(data,
     ###############################
     # Calculate Leakage Emissions #
     ###############################
-    grid_leakage_rate = 0.027  # Excludes distribution
-    total_leakage_rate = 0.028  # Includes distribution
+    grid_leakage_rate = 0.027 * leakage_factor  # Excludes distribution
+    total_leakage_rate = 0.028 * leakage_factor  # Includes distribution
 
     df['Grid_ch4_leak_int'] = calculate_leakage(
         grid_leakage_rate, df.Grid_NG_int)
@@ -913,6 +917,11 @@ def impacts_sim(data,
     df['CHP_ch4_leak_int'] = calculate_leakage(
         total_leakage_rate, df.CHP_NG_int)
 
+    df['ch4_leak_int'] = df.Grid_ch4_leak_int + \
+        df.Furnace_ch4_leak_int + df.CHP_ch4_leak_int
+
+    column_list.extend(['Grid_ch4_leak_int', 'Furnace_ch4_leak_int',
+                        'CHP_ch4_leak_int', 'ch4_leak_int'])
     ###############################
     # Calculate Avoided Emissions #
     ###############################
@@ -948,14 +957,14 @@ def impacts_sim(data,
         column_list.extend([F'{system}_GHG_int_100', F'{system}_GHG_int_20'])
     # CHP
     df[F'CHP_GHG_int_100'] = calculate_GHG(co2=df[F'CHP_co2_int'],
-                                            ch4=df[F'CHP_ch4_leak_int'] -
-                                                df[F'avoided_ch4_int'],
-                                            n2o=0)
+                                           ch4=df[F'CHP_ch4_leak_int'] -
+                                           df[F'avoided_ch4_int'],
+                                           n2o=0)
 
     df[F'CHP_GHG_int_20'] = calculate_GHG(co2=df[F'CHP_co2_int'],
-                                            ch4=df[F'CHP_ch4_leak_int'] -
-                                                df[F'avoided_ch4_int'],
-                                            n2o=0, GWP_year=20)
+                                          ch4=df[F'CHP_ch4_leak_int'] -
+                                          df[F'avoided_ch4_int'],
+                                          n2o=0, GWP_year=20)
     column_list.extend([F'CHP_GHG_int_100', F'CHP_GHG_int_20'])
 
     ##############################
@@ -995,7 +1004,6 @@ def impacts_sim(data,
         total_electricity_output + total_heat_output + total_cooling_output) / df['NG_int']
     column_list.append('trigen_efficiency')
 
-    
     # Copy only emissions data
     impacts_df = df[column_list]
 
@@ -1005,7 +1013,7 @@ def impacts_sim(data,
 def calculate_leakage(leakage_rate, fuel_consumption):
     if leakage_rate == 0:
         return 0
-    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg
+    specific_energy_NG = 13.4 * (10**-3)  # MWh/kg = kWh/g
 
     system_leakage = ((leakage_rate * fuel_consumption) /
                       (specific_energy_NG * (1 - leakage_rate)))
@@ -1043,7 +1051,7 @@ def calculate_avoided_emisions(
     return avoided_emissions
 
 
-def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100,
+def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100, GWP_factor=1,
                   feedbacks=False):
     '''
     This function calculates the total greenhouse gas
@@ -1073,7 +1081,7 @@ def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100,
             GWP_ch4 = 86
             GWP_n2o = 268
 
-    co2_eq = co2 + GWP_ch4 * ch4 + GWP_n2o * n2o
+    co2_eq = co2 + (GWP_ch4 * ch4 + GWP_n2o * n2o) * GWP_factor
 
     return co2_eq
 
@@ -1086,15 +1094,22 @@ def aggregate_impacts(dataframe, impact):
             dataframe['Furnace_GHG_int_20'] + dataframe['CHP_GHG_int_20']
         return GHG_100, GHG_20
     else:
-        if impact in ['n2o', 'ch4', 'pm', 'so2']:
+        if impact in ['n2o', 'pm', 'so2']:
             op_impacts = dataframe[F'Grid_{impact}_int'] + \
                 dataframe[F'Furnace_{impact}_int']
+        elif impact in ['ch4']:
+            op_impacts = dataframe[F'Grid_{impact}_int'] + \
+                dataframe[F'Grid_{impact}_leak_int'] + \
+                dataframe[F'Furnace_{impact}_int'] + \
+                dataframe[F'Furnace_{impact}_leak_int'] + \
+                dataframe[F'CHP_{impact}_leak_int']
         else:
             op_impacts = dataframe[F'Grid_{impact}_int'] + \
-                dataframe[F'Furnace_{impact}_int'] + dataframe[F'CHP_{impact}_int']
-        
+                dataframe[F'Furnace_{impact}_int'] + \
+                dataframe[F'CHP_{impact}_int']
+
         try:
-            avoided_impact = dataframe[F'avoided_{impact}']
+            avoided_impact = dataframe[F'avoided_{impact}_int']
         except KeyError:
             avoided_impact = 0
 
@@ -1103,37 +1118,38 @@ def aggregate_impacts(dataframe, impact):
     return total_impact
 
 
-
 def getDuplicateColumns(df):
-      
+
     # Create an empty set
     duplicateColumnNames = set()
-      
-    # Iterate through all the columns 
+
+    # Iterate through all the columns
     # of dataframe
     for x in range(df.shape[1]):
-          
+
         # Take column at xth index.
         col = df.iloc[:, x]
-          
+
         # Iterate through all the columns in
         # DataFrame from (x + 1)th index to
         # last index
         for y in range(x + 1, df.shape[1]):
-              
+
             # Take column at yth index.
             otherCol = df.iloc[:, y]
-              
+
             # Check if two columns at x & y
             # index are equal or not,
-            # if equal then adding 
+            # if equal then adding
             # to the set
             if col.equals(otherCol):
                 duplicateColumnNames.add(df.columns.values[y])
-                  
-    # Return list of unique column names 
+
+    # Return list of unique column names
     # whose contents are duplicates.
     return list(duplicateColumnNames)
+
+
 """
 REFERENCES
 ------------------------------------------------------------------------------------------------------

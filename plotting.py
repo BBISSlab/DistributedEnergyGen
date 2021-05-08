@@ -128,7 +128,7 @@ def plot_all_impacts(data, impact,
     tick_dict = {
         # Emissions
         'co2_int': np.arange(0, 1800, 200),
-        'ch4_int': np.arange(0, 30, 5),
+        'ch4_int': np.arange(0, 11000, 1000),
         'n2o_int': np.arange(0, 11, 1),
         'co_int': np.arange(-20, 320, 20),
         'nox_int': np.arange(-10, 140, 10),
@@ -143,7 +143,7 @@ def plot_all_impacts(data, impact,
         'trigen_efficiency': np.arange(50, 105, 5),
         # Relative Change
         'percent_change_co2_int': np.arange(-200, 1200, 200),
-        'percent_change_ch4_int': np.arange(-100, 10, 10),
+        'percent_change_ch4_int': np.arange(-20, 150, 10),
         'percent_change_n2o_int': np.arange(-100, 10, 10),
         'percent_change_co_int': np.arange(-100, 500, 50),
         'percent_change_nox_int': np.arange(-100, 600, 100),
@@ -160,7 +160,7 @@ def plot_all_impacts(data, impact,
         #################
         # With CHP Credit
         'co2_int': 50.,
-        'ch4_int': 1,
+        'ch4_int': 500,
         'n2o_int': 0.5,
         'co_int': 10.,
         'nox_int': 5.,
@@ -221,7 +221,7 @@ def plot_all_impacts(data, impact,
 
     # Formatting
     ax.set_yticks(tick_dict[impact])
-    if impact in ['co2_int', 'GHG_int_100', 'GHG_int_20', 'NG_int']:
+    if impact in ['co2_int', 'ch4_int', 'GHG_int_100', 'GHG_int_20', 'NG_int']:
         ax.set_yticklabels(tick_dict[impact] / 1000)
     else:
         ax.set_yticklabels(tick_dict[impact])
@@ -872,11 +872,42 @@ def energy_demand_violin_plots():
     plt.show()
 
 
+def plot_fraction_contribution(impact):
+    df = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+
+    fig, axn = plt.subplots(3, 1, sharex=True)
+
+    ax1 = plt.subplot(3, 1, 1)
+    sns.lineplot(
+        x=df.energy_demand_int, y=(
+            df[F'Grid_{impact}_int'] + df[F'Grid_{impact}_leak_int']) / df[F'{impact}_int'])
+
+    ax2 = plt.subplot(3, 1, 2)
+    sns.lineplot(
+        x=df.energy_demand_int, y=(
+            df[F'Furnace_{impact}_int'] + df[F'Furnace_{impact}_leak_int']) / df[F'{impact}_int'])
+
+    ax3 = plt.subplot(3, 1, 3)
+    sns.lineplot(x=df.energy_demand_int, y=(
+        df[F'CHP_{impact}_leak_int']) / df[F'{impact}_int'])
+
+    '''sns.lineplot(x=df.energy_demand_int,
+    y=df[F'avoided_{impact}_int'])'''
+
+    plt.legend()
+    plt.show()
+
+    return
 #########################
 # Running Plot Programs #
 #########################
 # data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
-# execute_impact_plot(type='TFCE')
+# execute_impact_plot(type='impact')
 # TOC_art()
 # energy_demand_violin_plots()
 # energy_demand_plots()
+data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+plot_all_impacts(data=data, impact='GHG_int_20',
+                save=True, show=True, building=None)
+
+# plot_fraction_contribution('ch4')
