@@ -19,7 +19,7 @@ import inspect
 import os
 
 
-def clean_impact_data(data):
+def clean_impact_data(data, fit_intercept=True):
     # Duluth Outpatient Heathcare Appears to have an error in calculation
     # Drop from the data
     data.drop(data[(data.Building == 'outpatient_healthcare') &
@@ -37,7 +37,7 @@ def clean_impact_data(data):
     return data
 
 
-def lin_reg(data, impact):
+def lin_reg(data, impact, fit_intercept):
     from sklearn.linear_model import LinearRegression
     from sklearn.linear_model import Ridge
 
@@ -48,7 +48,7 @@ def lin_reg(data, impact):
                            'score': 1}
     else:
         # Linear Regression
-        model = LinearRegression(fit_intercept=True)
+        model = LinearRegression(fit_intercept=fit_intercept)
         x = data.energy_demand_int
         X = x.values.reshape(len(x.index), 1)
 
@@ -63,15 +63,19 @@ def lin_reg(data, impact):
 
         model.fit(X, Y)
         Y_predicted = model.predict(X)
-
-        regression_dict = {'coef': model.coef_[0][0],
-                           'intercept': model.intercept_[0],
-                           'score': model.score(X, Y)}
+        if fit_intercept is True:
+            regression_dict = {'coef': model.coef_[0][0],
+                            'intercept': model.intercept_[0],
+                            'score': model.score(X, Y)}
+        else:
+            regression_dict = {'coef': model.coef_[0][0],
+                            'intercept': 0,
+                            'score': model.score(X, Y)}
 
     return regression_dict
 
 
-def get_regression_results(data):
+def get_regression_results(data, fit_intercept=True):
     data = clean_impact_data(data)
     ces_df = data[(data.alpha_CHP == 0) & (data.beta_ABC == 0)].copy()
 
@@ -85,7 +89,7 @@ def get_regression_results(data):
     scores = []
 
     for impact in impacts:
-        reg_dict = lin_reg(ces_df, impact)
+        reg_dict = lin_reg(ces_df, impact, fit_intercept)
         impact_names.append(impact)
         slopes.append(reg_dict['coef'])
         intercepts.append(reg_dict['intercept'])
@@ -97,7 +101,11 @@ def get_regression_results(data):
         'intercept': intercepts,
         'score': scores}
     df = pd.DataFrame.from_dict(dictionary)
-    df.to_csv(r'model_outputs\testing\Regression_results_w_intercept.csv')
+
+    savepath = r'model_outputs\impacts'
+    savefile = F'Regression_results_interc_{fit_intercept}.csv'
+
+    df.to_csv(F'{savepath}\{savefile}')
     print(df)
 
 
@@ -128,7 +136,7 @@ def calc_city_relative_change(data, city):
 
     impacts = ['co2_int', 'n2o_int', 'ch4_int',
                'co_int', 'nox_int', 'pm_int', 'so2_int', 'voc_int',
-               'GHG_int_100', 'GHG_int_20', 'NG_int']
+               'GHG_int_100', 'GHG_int_20', 'NG_int', 'TFCE']
 
     super_x = []
     for building in building_type_list:
@@ -478,7 +486,7 @@ def GWP_sensitivity(data):
 # Percent stats
 # percentage_stats(method='PM_id')
 
-# run_perc_change()
+run_perc_change()
 
 #######################
 # Leakage Sensitivity #
@@ -495,4 +503,53 @@ def run_gwp_sensitivity():
     GWP_df = GWP_sensitivity(data)
     GWP_df.to_csv(r'model_outputs\impacts\GWP_sensitivity.csv')
 
-run_gwp_sensitivity()
+# run_gwp_sensitivity()
+
+##############
+# REGRESSION #
+##############
+
+def ng_tfce_regression():
+    from sklearn.linear_model import LinearRegression
+    import matplotlib.pyplot as plt
+
+    impact_data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+    percent_data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+
+    impact_data = clean_impact_data(impact_data)
+    tfce_data = impact_data[['City', 'Building', 'PM_id', 'alpha_CHP', 'beta_ABC', 'NG_int', 'TFCE']].copy()
+    ng_data = percent_data[['City', 'Building', 'PM_id', 'alpha_CHP', 'beta_ABC', 'technology', 'CHP_efficiency', 'percent_change_NG_int']].copy()
+
+    df = pd.merge(ng_data, tfce_data, 
+        left_on=['City', 'Building', 'PM_id', 'alpha_CHP', 'beta_ABC'],
+        right_on=['City', 'Building', 'PM_id', 'alpha_CHP', 'beta_ABC'])
+
+    df.drop_duplicates(inplace=True)
+    df['log_TFCE'] = np.log10(df.TFCE)
+
+    df.to_csv(r'model_outputs\testing\tfce_ng.csv')
+
+    model = LinearRegression(fit_intercept=True)
+    x = df.percent_change_NG_int
+    X = x.values.reshape(len(x.index), 1)
+
+    y = df.TFCE
+    Y = y.values.reshape(len(y.index), 1)
+
+    model.fit(X,Y)
+
+    print(model.score(X, Y))
+    regression_dict = {'coef': model.coef_[0][0],
+                            'intercept': model.intercept_[0],
+                            'score': model.score(X, Y)}
+    
+    plt.scatter(x, y)
+
+    x_array = np.arange(-20, 200, 2)
+    y_predicted = x_array * regression_dict['coef'] + regression_dict['intercept']
+
+    plt.plot(x_array, y_predicted, color='black')
+
+    plt.show()
+
+# ng_tfce_regression()
