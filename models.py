@@ -547,6 +547,7 @@ def model(Building_, City_,
 def energy_demand_sim(Building_, City_, AC_,
                       ABC_, beta_ABC=0,
                       thermal_distribution_loss_rate=0.1,
+                      thermal_distribution_loss_factor=1.0,
                       memory={}):
     """
     This function simulates the electric, heating, and cooling demands based
@@ -605,7 +606,7 @@ def energy_demand_sim(Building_, City_, AC_,
 
     df['electricity_cooling'] = beta_AC * df.cooling_demand / AC_.COP
     df['heat_cooling'] = beta_ABC * df.cooling_demand / \
-        (ABC_.COP * (1 - thermal_distribution_loss_rate))
+        (ABC_.COP * (1 - (thermal_distribution_loss_rate * thermal_distribution_loss_factor)))
 
     df['total_electricity_demand'] = df.electricity_demand + df.electricity_cooling
     df['total_heat_demand'] = df.heat_demand + df.heat_cooling
@@ -629,6 +630,7 @@ def energy_supply_sim(Building_, City_,
                       BES_=None,
                       alpha_CHP=0, PrimeMover_=None, HPR_CHP=1, efficiency_CHP=0.73,
                       thermal_distribution_loss_rate=0.1,
+                      thermal_distribution_loss_factor=1.0,
                       aggregate='A',
                       memory={}):
 
@@ -670,7 +672,7 @@ def energy_supply_sim(Building_, City_,
         df['electricity_CHP'] = df.alpha_CHP * df.electricity_deficit
         df['heat_CHP_0'] = PrimeMover_.hpr * df.electricity_CHP
         df['heat_CHP'] = df['heat_CHP_0'] * \
-            (1 - thermal_distribution_loss_rate)
+            (1 - (thermal_distribution_loss_rate * thermal_distribution_loss_factor))
         # CHP Intensities
         df['electricity_CHP_int'] = df.electricity_CHP / Building_.floor_area
         df['heat_CHP_int'] = df.heat_CHP / Building_.floor_area
@@ -739,7 +741,7 @@ def energy_supply_sim(Building_, City_,
         df['electricity_CHP'] = df.alpha_CHP * df.electricity_deficit
         df['heat_CHP_0'] = PrimeMover_.hpr * df.electricity_CHP
         df['heat_CHP'] = df['heat_CHP_0'] * \
-            (1 - thermal_distribution_loss_rate)
+            (1 - (thermal_distribution_loss_rate * thermal_distribution_loss_factor))
         # CHP Intensities
         df['electricity_CHP_int'] = df.electricity_CHP / Building_.floor_area
         df['heat_CHP_int'] = df.heat_CHP / Building_.floor_area
@@ -803,8 +805,8 @@ def impacts_sim(data,
                 PrimeMover_=None,
                 Grid_type='NGCC',
                 thermal_distribution_loss_rate=0.1,
-                leakage_factor=1,
-                GWP_factor=1,
+                leakage_factor=1.0,
+                GWP_factor=1.0,
                 GLF=0.049):
 
     # Read the energy demand data
