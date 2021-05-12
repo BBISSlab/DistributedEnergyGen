@@ -635,8 +635,12 @@ def energy_supply_sim(Building_, City_,
                       memory={}):
 
     # Read the energy demand data
-    file_path = r'model_outputs\energy_demands'
-    file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem.feather'
+    if thermal_distribution_loss_factor == 1:
+        file_path = r'model_outputs\energy_demands'
+        file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem.feather'
+    else:
+        file_path = r'model_outputs\distribution_sensitivity'
+        file_name = F'Hourly_{City_.name}_{Building_.building_type}_energy_dem_dist_sens.feather'
     df = pd.read_feather(F'{file_path}\\{file_name}')
 
     # Initialize Energy Supply Columns
