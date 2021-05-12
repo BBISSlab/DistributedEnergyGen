@@ -20,17 +20,6 @@ import inspect
 import os
 
 
-'''
-TO DO:
-- Run simulations for energy demand
-    - All CHPs
-    - Alpha_CHP = [0, 0.25, 0.5, 1.0] 
-    - Beta_ABC = [0, 1]
-    - Boiler 'B2'
-- Run simulations for energy supply
-    - 
-'''
-
 def execute_energy_demand_sim():
     all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
     '''
@@ -211,12 +200,13 @@ def execute_energy_supply_sim():
     print('\nCompleted Simulation')
 
 
-def execute_impacts_sim(data):
-    impacts = impacts_sim(data)
+def execute_impacts_sim(data, leakage_factor=1):
+    impacts = impacts_sim(data, leakage_factor)
     impacts.to_feather(r'model_outputs\impacts\All_impacts.feather')
 
     impacts.to_csv(r'model_outputs\testing\All_impacts.csv')
     print("Impacts Sim Complete")
+    return impacts
 
 def compile_data(all_cities=True, file_type='supply'):
     if all_cities is True:
