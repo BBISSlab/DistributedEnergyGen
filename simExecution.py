@@ -20,7 +20,7 @@ import inspect
 import os
 
 
-def execute_energy_demand_sim():
+def execute_energy_demand_sim(thermal_distribution_loss_factor=1.0):
     all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
     '''
     OBJECT GENERATOR
@@ -89,7 +89,8 @@ def execute_energy_demand_sim():
                                                City_=City_,
                                                AC_=AC_,
                                                beta_ABC=beta,
-                                               ABC_=ABC_)
+                                               ABC_=ABC_,
+                                               thermal_distribution_loss_factor=thermal_distribution_loss_factor)
 
                         df.reset_index(inplace=True)
 
@@ -102,15 +103,20 @@ def execute_energy_demand_sim():
                 # Beta loop
             # Building Loop
             building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
-            building_agg.to_feather(
-                r'model_outputs\energy_demands\Hourly_'+city+'_'+building+'_energy_dem.feather')
+            
+            if thermal_distribution_loss_factor == 1.0:
+                building_agg.to_feather(
+                    r'model_outputs\energy_demands\Hourly_'+city+'_'+building+'_energy_dem.feather')
+            else:
+                building_agg.to_feather(
+                    r'model_outputs\distribution_sensitivity\Hourly_'+city+'_'+building+'_energy_dem_dist_sens.feather')
             building_number += 1
         # City Loop
         city_number += 1
     print('\nCompleted Simulation')
 
 
-def execute_energy_supply_sim():
+def execute_energy_supply_sim(thermal_distribution_loss_factor=1.0):
     all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
     '''
     OBJECT GENERATOR
@@ -178,7 +184,8 @@ def execute_energy_supply_sim():
                                            City_=City_,
                                            Furnace_=Furnace_,
                                            PrimeMover_=PrimeMover_,
-                                           alpha_CHP=alpha)
+                                           alpha_CHP=alpha,
+                                           thermal_distribution_loss_factor=thermal_distribution_loss_factor)
 
                         df.reset_index(inplace=True)
 
@@ -193,18 +200,30 @@ def execute_energy_supply_sim():
             # Building Loop
             building_number += 1
             building_agg = pd.concat(dataframes_ls, axis=0).reset_index(drop=True)
-            building_agg.to_feather(
-                r'model_outputs\energy_supply' + F'\Annual_{city}_{building}_energy_sup.feather')
+            if thermal_distribution_loss_factor == 1:
+                building_agg.to_feather(
+                    r'model_outputs\energy_supply' + F'\Annual_{city}_{building}_energy_sup.feather')
+            else:
+                building_agg.to_feather(
+                    r'model_outputs\distribution_sensitivity' + F'\Annual_{city}_{building}_energy_sup_dist_sens.feather')
         # City Loop
         city_number += 1
     print('\nCompleted Simulation')
 
 
-def execute_impacts_sim(data, leakage_factor=1):
+def execute_impacts_sim(data, leakage_factor=1,
+                        sensitivity=None):
     impacts = impacts_sim(data, leakage_factor)
-    impacts.to_feather(r'model_outputs\impacts\All_impacts.feather')
+    
+    if sensitivity is None:
+        impacts.to_feather(r'model_outputs\impacts\All_impacts.feather')
 
-    impacts.to_csv(r'model_outputs\testing\All_impacts.csv')
+        impacts.to_csv(r'model_outputs\testing\All_impacts.csv')
+
+    if sensitivity == 'DS':
+        impacts.to_feather(r'model_outputs\distribution_sensitivity\All_impacts_DS.feather')
+
+        impacts.to_csv(r'model_outputs\testing\All_impacts_DS.csv')
     print("Impacts Sim Complete")
     return impacts
 
@@ -224,15 +243,27 @@ def compile_data(all_cities=True, file_type='supply'):
     
     City_dict = system_dict['City_dict']
 
-    if file_type == 'supply':
-        filepath = 'model_outputs\energy_supply'
 
-    dataframes = []
-    for city in City_dict:
-        for building in building_type_list:
-            filename = F'Annual_{city}_{building}_energy_sup.feather'
-            df = pd.read_feather(F'{filepath}\{filename}')
-            dataframes.append(df)
+    if file_type == 'supply':
+        filepath = r'model_outputs\energy_supply'
+
+        dataframes = []
+        for city in City_dict:
+            for building in building_type_list:
+                filename = F'Annual_{city}_{building}_energy_sup.feather'
+                df = pd.read_feather(F'{filepath}\{filename}')
+                dataframes.append(df)
+
+    if file_type == 'distribution_sensitivity':
+        filepath = r'model_outputs\distribution_sensitivity'
+        
+        dataframes = []
+        for city in City_dict:
+            for building in building_type_list:
+                filename = F'Annual_{city}_{building}_energy_sup_dist_sens.feather'
+                df = pd.read_feather(F'{filepath}\{filename}')
+                dataframes.append(df)
+    
 
     compiled_df = pd.concat(dataframes, axis=0).reset_index(drop=True)
 
@@ -244,15 +275,15 @@ def compile_data(all_cities=True, file_type='supply'):
 
 
 
-# execute_energy_demand_sim()
-# execute_energy_supply_sim()
-# df = compile_data()
-# df.to_feather(r'model_outputs\energy_supply\All_supply_data.feather')
-# df.to_csv(r'model_outputs\testing\All_supply_data.csv')
+# execute_energy_demand_sim(thermal_distribution_loss_factor=1.1)
+# execute_energy_supply_sim(thermal_distribution_loss_factor=1.1)
+# df = compile_data(file_type='distribution_sensitivity')
+# df.to_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
+# df.to_csv(r'model_outputs\testing\All_supply_data_DS.csv')
 
-data = pd.read_feather(r'model_outputs\energy_supply\All_supply_data.feather')
+data = pd.read_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
 # print(data.head())
-execute_impacts_sim(data=data)
+execute_impacts_sim(data=data, sensitivity='DS')
 
 def test_supply():
 
