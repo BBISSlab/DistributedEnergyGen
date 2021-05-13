@@ -1,6 +1,8 @@
 # Data Plotting
 # My modules
 import csv
+
+from pandas.core.indexes import base
 from sysClasses import *
 import models
 # 3rd Party Modules
@@ -24,7 +26,7 @@ def clean_impact_data(data, fit_intercept=True):
     # Drop from the data
     data.drop(data[(data.Building == 'outpatient_healthcare') &
                    (data.City == 'duluth')].index, inplace=True)
-
+    data.drop_duplicates(inplace=True)
     if 'percent_change_GHG_int_100' in data.columns:
         pass
     else:
@@ -313,41 +315,6 @@ def percentage_stats(data=pd.read_feather(r'model_outputs\impacts\percent_change
         return reductions_df
 
 
-def GWP_sensitivity(data):
-    # Load CHP Dataframe
-    pm_df = pd.read_csv('data\\Tech_specs\\PrimeMover_specs.csv', header=2)
-
-    # Copy only relevant data
-    GHG_df = data[['PM_id', 'alpha_CHP', 'beta_ABC',
-                   'co2_int', 'ch4_int', 'n2o_int']].copy()
-
-    GHG_df = pd.merge(
-        GHG_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
-
-    GHG_df['GHG_int_100'] = models.calculate_GHG(
-        co2=GHG_df.co2_int,
-        ch4=GHG_df.ch4_int,
-        n2o=GHG_df.n2o_int,
-        GWP_factor=1)
-    GHG_df['GHG_int_10%'] = models.calculate_GHG(
-        co2=GHG_df.co2_int,
-        ch4=GHG_df.ch4_int,
-        n2o=GHG_df.n2o_int,
-        GWP_factor=1.1)
-
-    GHG_df['delta_GHG'] = GHG_df['GHG_int_10%'] - GHG_df.GHG_int_100
-    GHG_df['percent_change'] = GHG_df.delta_GHG / GHG_df.GHG_int_100 * 100
-
-    GHG_df.drop(['co2_int', 'ch4_int', 'n2o_int'], inplace=True, axis=1)
-
-    GHG_df = GHG_df.groupby(['technology', 'alpha_CHP', 'beta_ABC']).agg({
-        'GHG_int_100': ['mean', 'std'],
-        'GHG_int_10%': ['mean', 'std'],
-        'delta_GHG': ['mean', 'std'],
-        'percent_change': ['mean', 'std']})
-
-    return GHG_df
-
 ##########################
 # Generate CES Reference #
 ##########################
@@ -367,11 +334,6 @@ def GWP_sensitivity(data):
 
 # run_perc_change()
 
-df = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
-
-df = df.groupby(['PM_id', 'alpha_CHP', 'beta_ABC']).mean()
-print(df)
-df.to_csv(r'model_outputs\impacts\pm_trends.csv')
 
 #######################
 # Leakage Sensitivity #
@@ -591,9 +553,145 @@ def no_leakage_scenario():
     return no_leakage_df
 
 
+############################
+# Distribution Sensitivity #
+############################
+def distribution_sensitivity():
+    import models
+
+    # Read the original file
+    baseline_df = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+    baseline_df = clean_impact_data(baseline_df)
+
+    # Read the sensitivity file
+    sensitivity_df = pd.read_feather(r'model_outputs\distribution_sensitivity\All_impacts_DS.feather')
+    sensitivity_df = clean_impact_data(sensitivity_df)
+    
+    columns_to_copy = ['City', 'Building', 'PM_id',
+                       'alpha_CHP', 'beta_ABC',
+                       'NG_int',
+                       'electricity_Grid_int', 'electricity_CHP_int', 'heat_CHP_int', 'heat_Furnace_int']
+    baseline_df = baseline_df[columns_to_copy].copy()
+    sensitivity_df = sensitivity_df[columns_to_copy].copy()
+
+    ###########
+    # REINDEX #
+    ###########
+    pm_df = pd.read_csv(r'data\\Tech_specs\\PrimeMover_specs.csv', header=2)
+    baseline_df = pd.merge(baseline_df, pm_df[['PM_id', 'technology']],
+                              on='PM_id', how='left').fillna('None')
+    sensitivity_df = pd.merge(sensitivity_df, pm_df[['PM_id', 'technology']],
+                              on='PM_id', how='left').fillna('None')
+
+    index_columns = ['City', 'Building', 'PM_id',
+                       'alpha_CHP', 'beta_ABC', 'technology']
+    baseline_df.set_index(index_columns, inplace=True, drop=True)
+    sensitivity_df.set_index(index_columns, inplace=True, drop=True)
+
+    #########################
+    # CALCULATE DIFFERENCES #
+    #########################
+
+    difference_df = np.abs(sensitivity_df - baseline_df) / baseline_df *100
+    difference_df.reset_index(inplace=True)
+    difference_df = difference_df.groupby(['alpha_CHP', 'beta_ABC', 'technology']).agg({'NG_int':['mean', 'std']})
+    
+    print(difference_df)
+    
+    difference_df.to_csv(r'model_outputs\impacts\distributed_loss_sensitivity.csv')
+
+    baseline_df = baseline_df.groupby(['alpha_CHP', 'beta_ABC', 'technology']).agg({'NG_int':['mean', 'std']})
+
+    print(baseline_df)
+    return difference_df
+
+
+distribution_sensitivity()
+
+def leakage_stats():
+    data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+    data = clean_impact_data(data)
+    data.drop_duplicates(inplace=True)
+
+    columns_to_copy = ['City', 'Building', 'PM_id',
+                       'alpha_CHP', 'beta_ABC',
+                       'ch4_leak_int', 'energy_demand_int']
+    leakage_df = data[columns_to_copy].copy()
+
+    pm_df = pd.read_csv(r'data\Tech_specs\PrimeMover_specs.csv', header=2)
+    leakage_df = pd.merge(
+        leakage_df, pm_df[['PM_id', 'technology']], 
+        on='PM_id', how='left').fillna('None')
+
+    leakage_df['GHG_leak'] = models.calculate_GHG(ch4=leakage_df.ch4_leak_int)
+
+    super_x = []
+    for city in city_list:
+        for building in building_type_list:
+            subset = leakage_df[(leakage_df.City == city) 
+                & (leakage_df.Building == building)].copy()
+
+            ces_df = subset[(subset.alpha_CHP == 0) 
+                        & (subset.beta_ABC == 0)]
+            ces_ghg = ces_df.GHG_leak.mean()
+            subset['GHG_leak_ces'] = ces_ghg
+
+            subset['percent_change_GHG_leak'] = calculate_percent_change(subset.GHG_leak, subset.GHG_leak_ces)
+            super_x.append(subset)
+
+    leakage_df = pd.concat(super_x, axis=0)
+
+    leakage_df = leakage_df[['technology', 'alpha_CHP', 'beta_ABC', 
+                            'GHG_leak', 'percent_change_GHG_leak']].copy()
+    leakage_df['GHG_leak'] = leakage_df['GHG_leak'] / 1000
+
+    stats_df = leakage_df.groupby(['technology', 'alpha_CHP', 'beta_ABC'
+        ]).agg({'GHG_leak':['mean', 'std'],
+                'percent_change_GHG_leak':['mean', 'std']})
+    print(stats_df)
+    return stats_df
+
+
 ###################
 # GWP Sensitivity #
 ###################
+
+def GWP_sensitivity(data):
+    # Load CHP Dataframe
+    pm_df = pd.read_csv('data\\Tech_specs\\PrimeMover_specs.csv', header=2)
+
+    # Copy only relevant data
+    GHG_df = data[['PM_id', 'alpha_CHP', 'beta_ABC',
+                   'co2_int', 'ch4_int', 'n2o_int']].copy()
+
+    GHG_df = pd.merge(
+        GHG_df, pm_df[['PM_id', 'technology']], on='PM_id', how='left').fillna('None')
+
+    GHG_df['GHG_int_100'] = models.calculate_GHG(
+        co2=GHG_df.co2_int,
+        ch4=GHG_df.ch4_int,
+        n2o=GHG_df.n2o_int,
+        GWP_factor=1)
+    GHG_df['GHG_int_10%'] = models.calculate_GHG(
+        co2=GHG_df.co2_int,
+        ch4=GHG_df.ch4_int,
+        n2o=GHG_df.n2o_int,
+        GWP_factor=1.1)
+
+    GHG_df['delta_GHG'] = GHG_df['GHG_int_10%'] - GHG_df.GHG_int_100
+    GHG_df['percent_change'] = GHG_df.delta_GHG / GHG_df.GHG_int_100 * 100
+
+    GHG_df.drop(['co2_int', 'ch4_int', 'n2o_int'], inplace=True, axis=1)
+
+    GHG_df = GHG_df.groupby(['technology', 'alpha_CHP', 'beta_ABC']).agg({
+        'GHG_int_100': ['mean', 'std'],
+        'GHG_int_10%': ['mean', 'std'],
+        'delta_GHG': ['mean', 'std'],
+        'percent_change': ['mean', 'std']})
+
+    return GHG_df
+
+
 def run_gwp_sensitivity():
     data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
     GWP_df = GWP_sensitivity(data)
