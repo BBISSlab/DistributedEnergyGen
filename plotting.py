@@ -112,7 +112,7 @@ def plot_all_impacts(data, impact,
         tfce_params = log_reg_dict[building]
         trendline = (tfce_params[0] * np.log(X) + tfce_params[1]) * 100
     else:
-        regression_dict = lin_reg(ces_df, impact)
+        regression_dict = lin_reg(ces_df, impact, fit_intercept=False)
         trendline = regression_dict['coef'] * X + regression_dict['intercept']
 
     ############
@@ -130,14 +130,14 @@ def plot_all_impacts(data, impact,
     # Tick Marks
     tick_dict = {
         # Emissions
-        'co2_int': np.arange(0, 1800, 200),
+        'co2_int': np.arange(-200, 1800, 200),
         'ch4_int': np.arange(0, 11000, 1000),
-        'n2o_int': np.arange(0, 11, 1),
-        'co_int': np.arange(-20, 320, 20),
-        'nox_int': np.arange(-10, 140, 10),
-        'pm_int': np.arange(0, 32, 2),
-        'so2_int': np.arange(0, 6.5, 0.5),
-        'voc_int': np.arange(0, 110, 10),
+        'n2o_int': np.arange(-2, 11, 1),
+        'co_int': np.arange(-250, 350, 50),
+        'nox_int': np.arange(-400, 500, 100),
+        'pm_int': np.arange(-25, 35, 5),
+        'so2_int': np.arange(-2, 12, 2),
+        'voc_int': np.arange(-10, 90, 10),
         'GHG_int_100': np.arange(0, 2200, 200),
         'GHG_int_20': np.arange(0, 2600, 200),
         'NG_int': np.arange(0, 4500, 500),
@@ -145,16 +145,16 @@ def plot_all_impacts(data, impact,
         'TFCE': np.arange(50, 105, 5),
         'trigen_efficiency': np.arange(50, 105, 5),
         # Relative Change
-        'percent_change_co2_int': np.arange(-200, 1200, 200),
+        'percent_change_co2_int': np.arange(-150, 400, 50),
         'percent_change_ch4_int': np.arange(-20, 150, 10),
-        'percent_change_n2o_int': np.arange(-100, 10, 10),
-        'percent_change_co_int': np.arange(-100, 500, 50),
-        'percent_change_nox_int': np.arange(-100, 600, 100),
-        'percent_change_pm_int': np.arange(-100, 10, 10),
-        'percent_change_so2_int': np.arange(-100, 10, 10),
-        'percent_change_voc_int': np.arange(-100, 1600, 200),
-        'percent_change_GHG_int_100': np.arange(-100, 550, 50),
-        'percent_change_GHG_int_20': np.arange(-50, 450, 50),
+        'percent_change_n2o_int': np.arange(-130, 10, 10),
+        'percent_change_co_int': np.arange(-400, 500, 50),
+        'percent_change_nox_int': np.arange(-800, 1400, 200),
+        'percent_change_pm_int': np.arange(-250, 200, 50),
+        'percent_change_so2_int': np.arange(-120, 10, 10),
+        'percent_change_voc_int': np.arange(-400, 1600, 200),
+        'percent_change_GHG_int_100': np.arange(-100, 350, 50),
+        'percent_change_GHG_int_20': np.arange(-50, 300, 50),
         'percent_change_NG_int': np.arange(-20, 140, 20)}
 
     minorticks_dict = {
@@ -166,21 +166,21 @@ def plot_all_impacts(data, impact,
         'ch4_int': 500,
         'n2o_int': 0.5,
         'co_int': 10.,
-        'nox_int': 5.,
+        'nox_int': 20.,
         'pm_int': 1,
-        'so2_int': 0.1,
+        'so2_int': 0.5,
         'voc_int': 5,
         'GHG_int_100': 100,
         'GHG_int_20': 100,
         'NG_int': 250,
         'TFCE': 5,
         # Relative Change
-        'percent_change_co2_int': 50,
+        'percent_change_co2_int': 10,
         'percent_change_ch4_int': 5,
         'percent_change_n2o_int': 5,
         'percent_change_co_int': 10,
         'percent_change_nox_int': 50,
-        'percent_change_pm_int': 5,
+        'percent_change_pm_int': 10,
         'percent_change_so2_int': 5,
         'percent_change_voc_int': 50,
         'percent_change_GHG_int_100': 10,
@@ -674,10 +674,8 @@ def TOC_art():
     data = pd.read_feather(
         r'model_outputs\impacts\percent_change.feather')
 
-    pm_df = pd.read_csv(r'data\Tech_specs\PrimeMover_specs.csv', header=2)
+    df = data.replace(to_replace=['None'], value=['ABC Only'])
 
-    df = data.merge(pm_df[['PM_id', 'technology']],
-                    on='PM_id', how='left').fillna('AbsCh Only')
 
     rcParams['font.family'] = 'Helvetica'
     plt.rc('font', family='sans-serif')
@@ -709,10 +707,11 @@ def TOC_art():
     ax.legend([], frameon=False)
 
     # Ticks
-    ax.set_yticks(np.arange(-100, 500, 100))
-    ax.set_yticklabels(['' for i in np.arange(-100, 500, 100)])
+    ax.set_yticks(np.arange(-100, 150, 50))
+    ax.set_yticklabels(['' for i in np.arange(-100, 150, 50)])
     ax.set_xticklabels(['', '', '', '', ''])
-    ax.yaxis.set_minor_locator(MultipleLocator(50))
+    ax.yaxis.set_minor_locator(MultipleLocator(10))
+    sns.despine()
     # ax.set_xticklabels(['Fuel\nCells', 'Gas\nTurbine',
     # 'Micro-\n-turbine', 'Reciproc. \nEngine'])
 
@@ -901,18 +900,25 @@ def plot_fraction_contribution(impact):
     plt.show()
 
     return
-#########################
-# Running Plot Programs #
-#########################
+
+
 def plot_percent(impact):
     data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
     plot_all_impacts(data=data, impact=impact,
                 save=True, show=True, building=None)
+#########################
+# Running Plot Programs #
+#########################
+
+# Plotting Regular Emissions
+data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+
+plot_all_impacts(data=data, impact='nox_int', save=True, show=True)
 # execute_impact_plot(type='impact')
 # TOC_art()
 # energy_demand_violin_plots()
 # energy_demand_plots()
-# data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
-plot_percent('percent_change_ch4_int')
+
+# plot_percent('percent_change_so2_int')
 
 # plot_fraction_contribution('ch4')

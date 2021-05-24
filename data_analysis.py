@@ -37,7 +37,7 @@ def clean_impact_data(data, fit_intercept=True):
     return data
 
 
-def lin_reg(data, impact, fit_intercept):
+def lin_reg(data, impact, fit_intercept=True):
     from sklearn.linear_model import LinearRegression
     from sklearn.linear_model import Ridge
 
@@ -106,7 +106,7 @@ def get_regression_results(data, fit_intercept=True):
     savefile = F'Regression_results_interc_{fit_intercept}.csv'
 
     df.to_csv(F'{savepath}\{savefile}')
-    print(df)
+    # print(df)
 
 
 def calculate_building_relative_change(data, city, building, impact):
@@ -218,10 +218,8 @@ def calculate_ces_reference(data):
 
 def sim_statistics(raw_data):
     '''
-    Need:
-    Number of cases in which tech is shown
-    Average results and standard dev
-    How many reduce the impact relative to the baseline
+    This function calculates the average change by technology type and the
+    standard deviation.
     '''
     raw_data = clean_impact_data(raw_data)
 
@@ -253,7 +251,8 @@ def sim_statistics(raw_data):
                              suffixes=['_mean', '_std'],
                              sort=True)
 
-    return statistics_df
+    statistics_df.to_csv(r'model_outputs\impacts\statistics.csv')
+    return 
 
 
 def percentage_stats(data=pd.read_feather(r'model_outputs\impacts\percent_change.feather'),
@@ -283,10 +282,10 @@ def percentage_stats(data=pd.read_feather(r'model_outputs\impacts\percent_change
                                suffixes=['_mean', '_std'],
                                sort=True)
 
-    # Saving file
-    '''savepath = r'model_outputs\impacts'
-    savefile = F'avg_percents_{method}.csv'
-    stats_df.to_csv(F'{savepath}\{savefile}')'''
+    if reductions is False:
+        savepath = r'model_outputs\impacts'
+        savefile = F'avg_percents_{method}.csv'
+        stats_df.to_csv(F'{savepath}\{savefile}')
 
     if reductions is True:
         impacts = ['percent_change_co2_int',
@@ -309,8 +308,10 @@ def percentage_stats(data=pd.read_feather(r'model_outputs\impacts\percent_change
 
         reductions_df = pd.concat(super_y, axis=1)
         reductions_df.fillna(value=0, inplace=True)
-        # print(reductions_df)
-        return reductions_df
+        
+        reductions_df.to_csv(r'model_outputs\impacts\reductions.csv')
+
+        return
 
 
 def GWP_sensitivity(data):
@@ -359,24 +360,41 @@ def GWP_sensitivity(data):
 # Average and Standard Deviation
 # raw_data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 
-# stats = sim_statistics(raw_data)
-# stats.to_csv(r'model_outputs\impacts\statistics.csv')
+# sim_statistics(raw_data)
+
 
 # Percent stats
-# percentage_stats(method='PM_id')
-
+# Count reductions by technology
+# percentage_stats(method='technology', reductions=True))
+# Average change by technology
+# percentage_stats(method='PM_id', reductions=False)
 # run_perc_change()
 
-df = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+def table_2():
+    
+    df = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
 
-df = df.groupby(['PM_id', 'alpha_CHP', 'beta_ABC']).mean()
-print(df)
-df.to_csv(r'model_outputs\impacts\pm_trends.csv')
+    df = df.groupby(['technology', 'alpha_CHP', 'beta_ABC']).mean()
+    print(df)
+    df.to_csv(r'model_outputs\impacts\tech_trends.csv')
 
+def table_s11():
+
+    df = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
+
+    df = df.groupby(['PM_id', 'alpha_CHP', 'beta_ABC']).mean()
+    print(df)
+    df.to_csv(r'model_outputs\impacts\pm_trends.csv')
+
+# table_s11()
 #######################
 # Leakage Sensitivity #
 #######################
 def leakage_sensitivity():
+    '''
+    This function calculates the sensitivity to leakage.
+    '''
+    
     import models
 
     # Load Energy Supply and Baseline Impacts
@@ -460,6 +478,8 @@ def leakage_sensitivity():
                 'percent_change_leak_to_base_case':['mean', 'std']})
 
     print(stats_df)
+    sensitivity_df.to_csv(r'model_outputs\impacts\sensitivity_leakage.csv')
+    stats_df.to_csv(r'model_outputs\impacts\leakage_contributions.csv')
     return sensitivity_df, stats_df
 
 
@@ -505,6 +525,10 @@ def merge_leakage_dataframes(
 
 
 def leakage_stats():
+    '''
+    This function calculates the leakage statistics. These follow
+    the values for Table 1
+    '''
     data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
     data = clean_impact_data(data)
     data.drop_duplicates(inplace=True)
@@ -588,6 +612,7 @@ def no_leakage_scenario():
 
     no_leakage_df = pd.concat(super_x, axis=0)
 
+    no_leakage_df.to_csv(r'model_outputs\impacts\no_leakage.csv')
     return no_leakage_df
 
 
