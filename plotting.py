@@ -901,6 +901,7 @@ def plot_fraction_contribution(impact):
 
     return
 
+
 def plot_percent(impact):
     data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
     plot_all_impacts(data=data, impact=impact,

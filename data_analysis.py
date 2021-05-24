@@ -615,7 +615,7 @@ def no_leakage_scenario():
     no_leakage_df.to_csv(r'model_outputs\impacts\no_leakage.csv')
     return no_leakage_df
 
-no_leakage_scenario()
+
 ###################
 # GWP Sensitivity #
 ###################
