@@ -842,14 +842,18 @@ def impacts_sim(data,
     pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
     # Create Grid Dataframe
-    NGCC_dict = {'ch4': 2.5 * 10**-2,
-                 'co': 8.71 * 10**-2,
-                 'co2': 336.65,
+    # Ou, L., & Cai, H. (2020). ANL-20/41: Update of Emission Factors of 
+    # Greenhouse Gases and Criteria Air Pollutants, and Generation 
+    # Efficiencies of the U.S. Electricity Generation Sector Energy 
+    # Systems Division. www.anl.gov.
+    NGCC_dict = {'ch4': 9. * 10**-3,
+                 'co': 3.4 * 10**-2,
+                 'co2': 340.,
                  'nox': 5.81 * 10**-2,
-                 'n2o': 8.71 * 10**-3,
-                 'pm': 1.92 * 10**-2,
+                 'n2o': 1. * 10**-3,
+                 'pm': 1.7 * 10**-2,
                  'so2': 9.58 * 10**-3,
-                 'voc': 6.10 * 10**-3,
+                 'voc': 4.0 * 10**-3,
                  'efficiency': 0.533}
 
     # Merge the emission factors of each
