@@ -332,7 +332,7 @@ def percentage_stats(data=pd.read_feather(r'model_outputs\impacts\percent_change
 
 # Percent stats
 # Count reductions by technology
-# percentage_stats(method='technology', reductions=True))
+percentage_stats(method='technology', reductions=True)
 # Average change by technology
 # percentage_stats(method='PM_id', reductions=False)
 # run_perc_change()

@@ -259,7 +259,7 @@ def plot_all_impacts(data, impact,
                     marker='.',
                     s=50,
                     color='royalblue',
-                    alpha=0.05)
+                    alpha=0.5)
 
     # Plot CES Baseline
     sns.lineplot(x=X, y=trendline, color='black')
