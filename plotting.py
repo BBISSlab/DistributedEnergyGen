@@ -130,7 +130,7 @@ def plot_all_impacts(data, impact,
     # Tick Marks
     tick_dict = {
         # Emissions
-        'co2_int': np.arange(-200, 1800, 200),
+        'co2_int': np.arange(0, 1800, 200),
         'ch4_int': np.arange(0, 11000, 1000),
         'n2o_int': np.arange(-2, 11, 1),
         'co_int': np.arange(-250, 350, 50),
@@ -145,7 +145,7 @@ def plot_all_impacts(data, impact,
         'TFCE': np.arange(50, 105, 5),
         'trigen_efficiency': np.arange(50, 105, 5),
         # Relative Change
-        'percent_change_co2_int': np.arange(-150, 400, 50),
+        'percent_change_co2_int': np.arange(-50, 400, 50),
         'percent_change_ch4_int': np.arange(-20, 150, 10),
         'percent_change_n2o_int': np.arange(-130, 10, 10),
         'percent_change_co_int': np.arange(-400, 500, 50),
@@ -153,7 +153,7 @@ def plot_all_impacts(data, impact,
         'percent_change_pm_int': np.arange(-250, 200, 50),
         'percent_change_so2_int': np.arange(-120, 10, 10),
         'percent_change_voc_int': np.arange(-400, 1600, 200),
-        'percent_change_GHG_int_100': np.arange(-100, 350, 50),
+        'percent_change_GHG_int_100': np.arange(-50, 350, 50),
         'percent_change_GHG_int_20': np.arange(-50, 300, 50),
         'percent_change_NG_int': np.arange(-20, 140, 20)}
 
@@ -913,12 +913,12 @@ def plot_percent(impact):
 # Plotting Regular Emissions
 data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 
-plot_all_impacts(data=data, impact='nox_int', save=True, show=True)
+# plot_all_impacts(data=data, impact='co2_int', save=True, show=True)
 # execute_impact_plot(type='impact')
 # TOC_art()
 # energy_demand_violin_plots()
 # energy_demand_plots()
 
-# plot_percent('percent_change_so2_int')
+plot_percent('percent_change_GHG_int_20')
 
 # plot_fraction_contribution('ch4')
