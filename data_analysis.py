@@ -332,7 +332,7 @@ def percentage_stats(data=pd.read_feather(r'model_outputs\impacts\percent_change
 
 # Percent stats
 # Count reductions by technology
-percentage_stats(method='technology', reductions=True)
+# percentage_stats(method='technology', reductions=False)
 # Average change by technology
 # percentage_stats(method='PM_id', reductions=False)
 # run_perc_change()
@@ -582,6 +582,8 @@ def no_leakage_scenario():
     no_leakage_df.to_csv(r'model_outputs\impacts\no_leakage.csv')
     return no_leakage_df
 
+# leakage_sensitivity()
+leakage_stats()
 
 ############################
 # Distribution Sensitivity #
@@ -636,7 +638,7 @@ def distribution_sensitivity():
     return difference_df
 
 
-distribution_sensitivity()
+# distribution_sensitivity()
 
 def leakage_stats():
     data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')

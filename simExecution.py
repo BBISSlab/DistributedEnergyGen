@@ -283,7 +283,7 @@ def compile_data(all_cities=True, file_type='supply'):
 
 data = pd.read_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
 # print(data.head())
-execute_impacts_sim(data=data, sensitivity='DS')
+execute_impacts_sim(data=data, sensitivity=None)
 
 def test_supply():
 
