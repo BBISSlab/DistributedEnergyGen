@@ -707,8 +707,8 @@ def TOC_art():
     ax.legend([], frameon=False)
 
     # Ticks
-    ax.set_yticks(np.arange(-100, 150, 50))
-    ax.set_yticklabels(['' for i in np.arange(-100, 150, 50)])
+    ax.set_yticks(np.arange(-50, 150, 50))
+    ax.set_yticklabels(['' for i in np.arange(-50, 150, 50)])
     ax.set_xticklabels(['', '', '', '', ''])
     ax.yaxis.set_minor_locator(MultipleLocator(10))
     sns.despine()
@@ -906,12 +906,120 @@ def plot_percent(impact):
     data = pd.read_feather(r'model_outputs\impacts\percent_change.feather')
     plot_all_impacts(data=data, impact=impact,
                 save=True, show=True, building=None)
+
+
+def plot_Figure_S17():
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    import seaborn as sns
+
+    data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+    data.drop_duplicates(inplace=True)
+
+    climate_zone_dict = {'City': ['miami', 'houston', 'phoenix', 'atlanta', 
+                             'las_vegas', 'los_angeles', 'san_francisco', 'baltimore', 
+                             'albuquerque', 'seattle', 'chicago', 'denver',
+                             'minneapolis', 'helena', 'duluth', 'fairbanks'],
+                    'climate_zone':['1A', '2A', '2B', '3A', 
+                                    '3B', '3B-CA', '3C', '4A',
+                                    '4B', '4C', '5A', '5B',
+                                    '6A', '6B', '7', '8']}
+    climate_zones = pd.DataFrame.from_dict(climate_zone_dict)    
+
+    df = data.merge(climate_zones, left_on='City', right_on='City') 
+
+    df['GHG_int_100'] = df.GHG_int_100 / 1000
+
+    rcParams['font.family'] = 'Times New Roman'
+    plt.rc('font', family='serif')
+
+    sns.set_context('paper', rc={"lines.linewidth": 1.2})
+
+    fig, ax = plt.subplots(4, 4, sharey=True, figsize=(10, 15))
+
+    i = 1
+    building_order = ['primary_school', 'secondary_school',
+                      'hospital', 'outpatient_healthcare',
+                      'large_hotel', 'small_hotel',
+                      'warehouse',
+                      'midrise_apartment',
+                      'large_office', 'medium_office', 'small_office',
+                      'full_service_restaurant', 'quick_service_restaurant',
+                      'stand_alone_retail', 'strip_mall', 'supermarket']
+    for building in building_order:
+        ax = plt.subplot(4, 4, i)
+
+        subset = df[df.Building == building]
+        subset.sort_values(by='climate_zone', inplace=True)
+
+        sns.boxplot(x='climate_zone', y='GHG_int_100',
+                       hue='beta_ABC', data=subset,
+                       palette='RdBu_r',
+                       saturation=1,
+                       showfliers=False)
+
+
+        ######################
+        # Subplot Formatting #
+        ######################
+
+        # Text
+        ax.set_title(plot_building_dict[building])
+        ax.set_xlabel('')
+        ax.set_ylabel('')
+        ax.legend([], frameon=False)
+
+        # Ticks #
+        #########
+        if i in [16, 15, 14, 13]:
+            plt.xticks(rotation=90)
+        else:
+            ax.set_xticklabels('')
+
+        y_tick_dict = {'primary_school': np.arange(0, 180, 20),
+                       'secondary_school': np.arange(0, 400, 50),
+                       'hospital': np.arange(0, 550, 50),
+                       'outpatient_healthcare': np.arange(0, 450, 50),
+                       'large_hotel': np.arange(0, 350, 50),
+                       'small_hotel': np.arange(0, 180, 20),
+                       'warehouse': np.arange(0, 110, 10),
+                       'midrise_apartment': np.arange(0, 110, 10),
+                       'large_office': np.arange(0, 160, 10),
+                       'medium_office': np.arange(0, 160, 10),
+                       'small_office': np.arange(0, 160, 10),
+                       'full_service_restaurant': np.arange(0, 800, 100),
+                       'quick_service_restaurant': np.arange(0, 1100, 100),
+                       'stand_alone_retail': np.arange(0, 220, 20),
+                       'strip_mall': np.arange(0, 220, 20),
+                       'supermarket': np.arange(0, 450, 50)
+                       }
+
+        ax.set_yticks(y_tick_dict[building])
+        ax.set_yticklabels(y_tick_dict[building])
+
+        i += 1
+
+
+    fig.text(0.05, 0.5, r'Annual Energy GHG Emissions Intensity, $tCO_2 eq m^2$',
+             ha='center', va='center', rotation='vertical', fontsize=14)
+
+    plt.subplots_adjust(wspace=0.3, hspace=0.2)
+
+    # Save Figure
+    save_path = r'model_outputs\plots'
+    save_file = F'{save_path}\\GHG_boxplots.png'
+    # plt.savefig(save_file, dpi=300)
+    print(F'Saved {save_file}')
+
+    plt.show()
+
+plot_Figure_S17()
 #########################
 # Running Plot Programs #
 #########################
 
 # Plotting Regular Emissions
-data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
+# data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 
 # plot_all_impacts(data=data, impact='co2_int', save=True, show=True)
 # execute_impact_plot(type='impact')
@@ -919,6 +1027,6 @@ data = pd.read_feather(r'model_outputs\impacts\All_impacts.feather')
 # energy_demand_violin_plots()
 # energy_demand_plots()
 
-plot_percent('percent_change_GHG_int_20')
+# plot_percent('percent_change_GHG_int_20')
 
 # plot_fraction_contribution('ch4')

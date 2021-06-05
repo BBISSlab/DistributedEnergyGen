@@ -583,7 +583,8 @@ def no_leakage_scenario():
     return no_leakage_df
 
 # leakage_sensitivity()
-leakage_stats()
+# leakage_stats()
+no_leakage_scenario()
 
 ############################
 # Distribution Sensitivity #
