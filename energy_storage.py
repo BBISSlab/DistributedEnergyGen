@@ -321,12 +321,70 @@ def _generate_BatteryStorage(csv_file, sheet_name=None, header=1):
 # Thermal Energy Storage Class #
 ################################
 
-class HotWaterTank():
+class WaterTank:
+    
+    def __init__(self, TES_id, model='', manufacturer='',
+                 nom_capacity=0, power=0,
+                 degradation_rate=0, roundtripEfficiency=1,
+                 lifetime=10, age=0, cycling_times=0, end_of_life_capacity=1, warranty=0,
+                 volt_nom=0, battery_cost=0, install_cost=0, total_cost=0, specific_cost=0,
+                 stateOfCharge=0, num_units=1):
+        # BASIC INFORMATION
+        self.BES_id = BES_id
+        self.model = model
+        self.manufacturer = manufacturer
+        # PERFORMANCE METRICS
+        # Capacity, DoD in kWh
+        self.nom_capacity = nom_capacity
+        # Power in kW
+        self.power = power
+        # Degradation rate in fraction of capacity loss
+        self.degradation_rate = degradation_rate
+        # RTE is a % but set here as a fraction
+        self.RTE = roundtripEfficiency
+        # Voltage
+        self.volt_nom = volt_nom
+        # End of Life is a fraction of total capacity
+        self.EoL_cap = end_of_life_capacity
+        # LIFECYCLE METRICS
+        # Lifetime, warranty, and age in years, cycling times in cycles
+        self.lifetime = lifetime
+        self.warranty = warranty
+        self.cycling_times = cycling_times
+        self.age = age
+        # COSTS
+        # Battery, install, and capital costs in $. Specific cost in $/kWh
+        self.battery_cost = battery_cost
+        self.install_cost = install_cost
+        self.total_cost = total_cost
+        # OPERATIONAL PARAMETERS
+        # SoC and all other parameters in kWh; number of units is integer
+        self.temperature = temperature
+        self.num_units = num_units
+        self.sysCapacity = self.nom_capacity * self.num_units
+        self.sysDoD = self.DoD * self.num_units
+        self.sysSoC = self.SoC * self.num_units
+        self.sysPower = self.power_cont * self.num_units
+        # rejectedElectricityIn
+        # self.rejectedElectricityIn = 0
+
+    def __repr__(self):
+        attrs = ['BES_id', ' model', 'manufacturer', 'chemistry', 'application',
+                 'nom_capacity', 'DoD', 'peak_power', 'power_cont',
+                 'degradation_rate', 'RTE', 'volt_nom', 'EoL_cap',
+                 'lifetime', 'warranty', 'cycling_times', 'age',
+                 'battery_cost', 'install_cost', 'total_cost', 'specific_cost',
+                 'SoC', 'num_units', 'sysCapacity', 'sysDoD', 'sysSoC', 'sysPower']
+        return ('Battery Storage: \n ' + ' \n '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in attrs))
+ 
+
+    def size_WaterTank():
+        pass
+
+
+class ThermalBattery:
     pass
 
 
-class ThermalBattery():
-    pass
-
-class ColdWaterTank():
+class ChemicalStorage:
     pass

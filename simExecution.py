@@ -281,9 +281,9 @@ def compile_data(all_cities=True, file_type='supply'):
 # df.to_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
 # df.to_csv(r'model_outputs\testing\All_supply_data_DS.csv')
 
-data = pd.read_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
+# data = pd.read_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
 # print(data.head())
-execute_impacts_sim(data=data, sensitivity=None)
+# execute_impacts_sim(data=data, sensitivity=None)
 
 def test_supply():
 
@@ -315,3 +315,26 @@ def test_supply():
     print('DONE')
 
 # test_supply()
+
+def test_pv():
+    import pv_system
+    City_ = City(name='atlanta',
+                nerc_region=nerc_region_dictionary['atlanta'],
+                tmy3_file=tmy3_city_dictionary['atlanta'])
+    City_._get_data(City_.tmy3_file)
+    
+    Building_ = Building(name='medium_office', building_type='medium_office', City_=City_)
+
+    sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
+    sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
+ 
+    module = sandia_modules['Silevo_Triex_U300_Black__2014_']
+    inverter = sapm_inverters['iPower__SHO_1_1__120V_']
+
+
+    PVSystem_ = select_PVSystem(module='Silevo_Triex_U300_Black__2014_', 
+                                inverter='iPower__SHO_1_1__120V_', surface_azimuth=180)
+    
+    building_pv(Building_=Building_, City_=City_, PVSystem_=PVSystem_)
+
+test_pv()

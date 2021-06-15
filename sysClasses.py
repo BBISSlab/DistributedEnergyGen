@@ -1156,6 +1156,10 @@ class Building:
             # ax3 = sns.lineplot(x = 'Time', y = 'thermalDemand_kW', data = df)
             pass
 
+    def thermal_to_electricity(self, thermal_energy_demand, efficiency=1):
+        '''Returns the equivalent electricity required to supply the input energy demand'''
+        return thermal_energy_demand / efficiency
+
 ####################################
 # End Building Class and Functions #
 ####################################
