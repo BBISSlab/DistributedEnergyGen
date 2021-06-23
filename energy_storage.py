@@ -28,7 +28,7 @@ class BatteryStorage:
     discharging are equal.        
     """
 
-    def __init__(self, BES_id, model='', manufacturer='', chemistry='', application='any',
+    def __init__(self, BES_id, model='', chemistry='', application='any',
                  nom_capacity=0, depth_of_discharge=0, peak_power=0, power_cont=0,
                  degradation_rate=0, roundtripEfficiency=1,
                  lifetime=10, age=0, cycling_times=0, end_of_life_capacity=1, warranty=0,
@@ -37,7 +37,6 @@ class BatteryStorage:
         # BASIC INFORMATION
         self.BES_id = BES_id
         self.model = model
-        self.manufacturer = manufacturer
         self.chemistry = chemistry
         self.application = application
         # PERFORMANCE METRICS
@@ -78,13 +77,15 @@ class BatteryStorage:
         # rejectedElectricityIn
         # self.rejectedElectricityIn = 0
 
+        self = self._get_data()
+
     def __repr__(self):
-        attrs = ['BES_id', ' model', 'manufacturer', 'chemistry', 'application',
-                 'nom_capacity', 'DoD', 'peak_power', 'power_cont',
-                 'degradation_rate', 'RTE', 'volt_nom', 'EoL_cap',
-                 'lifetime', 'warranty', 'cycling_times', 'age',
+        attrs = ['BES_id', 'model', 'chemistry', 'application',
+                 'nom_capacity', 'depth_of_discharge', 'peak_power', 'power_cont',
+                 'degradation_rate', 'rt_efficiency', 'volt_nom', 'endoflife_capacity',
+                 'lifetime', 'warranty', 'cycling_times',
                  'battery_cost', 'install_cost', 'total_cost', 'specific_cost',
-                 'SoC', 'num_units', 'sysCapacity', 'sysDoD', 'sysSoC', 'sysPower']
+                  'age', 'SoC', 'num_units', 'sysCapacity', 'sysDoD', 'sysSoC', 'sysPower']
         return ('Battery Storage: \n ' + ' \n '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in attrs))
 
     def charge(self, surplus_electricity=0, time=1):
@@ -236,31 +237,46 @@ class BatteryStorage:
 
         return storage_capacity, num_units, capital_cost_BES
 
-    def _get_data(self, dataframe, index=0):
+    def _get_data(self):
         """
         This method extracts data from a dataframe or an csv file to populate the attributes of each BES.
         """
-        self.BES_id = dataframe.iloc[index]['BES_id']
-        self.model = dataframe.iloc[index]['model']
-        self.manufacturer = dataframe.iloc[index]['manufacturer']
-        self.chemistry = dataframe.iloc[index]['chemistry']
-        self.application = dataframe.iloc[index]['application']
-        self.nom_capacity = dataframe.iloc[index]['capacity_kWh']
-        self.DoD = dataframe.iloc[index]['depth_of_discharge_kWh']
-        self.peak_power = dataframe.iloc[index]['peak_power_kW']
-        self.power_cont = dataframe.iloc[index]['power_continuous_kW']
-        self.degradation_rate = dataframe.iloc[index]['degradation_rate']
-        self.RTE = dataframe.iloc[index]['roundtrip_efficiency']
-        self.volt_nom = dataframe.iloc[index]['volt_nominal_V']
-        self.EoL_cap = dataframe.iloc[index]['end_of_life_capacity']
-        self.lifetime = dataframe.iloc[index]['lifetime_yr']
-        self.warranty = dataframe.iloc[index]['warranty']
-        self.cycling_times = dataframe.iloc[index]['cycling_times']
-        self.battery_cost = dataframe.iloc[index]['battery_cost']
-        self.install_cost = dataframe.iloc[index]['install_cost']
-        self.total_cost = dataframe.iloc[index]['total_cost']
-        self.specific_cost = dataframe.iloc[index]['specific_cost']
-        return dataframe
+        batteries = retrieve_battery_specs()
+        battery = batteries[self.BES_id]
+        # GENERAL INFO
+        self.model = f"{battery['manufacturer']}_{battery['model']}"
+        self.chemistry = battery['chemistry']
+        self.application = battery['application']
+
+        # TECHNOLOGICAL METRICS
+        self.nom_capacity = battery['capacity_kWh']
+        self.depth_of_discharge = battery['depth_of_discharge_kWh']
+        self.peak_power = battery['peak_power_kW']
+        self.power_cont = battery['power_continuous_kW']
+        self.degradation_rate = battery['degradation_rate']
+        self.rt_efficiency = battery['roundtrip_efficiency']
+        self.volt_nom = battery['volt_nominal_V']
+        self.endoflife_capacity = battery['end_of_life_capacity']
+        self.lifetime = battery['lifetime_yr']
+        self.warranty = battery['warranty']
+        self.cycling_times = battery['cycling_times']
+
+        # ECONOMIC METRICS
+        self.battery_cost = battery['battery_cost']
+        self.install_cost = battery['install_cost']
+        self.total_cost = battery['total_cost']
+        self.specific_cost = battery['specific_cost']
+        
+        return self
+
+    def _infer_Battery_operational_params(self):
+        # Try to infer battery specification parameters
+        battery = retrieve_battery_specs()[self.BES_id]
+        operational_params = {}
+        pass 
+
+    def _infer_Battery_cost_parameters(self):
+        pass
 
 
 def _generate_BES_dataframe(csv_file, sheet_name=None, header=1):
@@ -289,6 +305,25 @@ def _generate_BES_dataframe(csv_file, sheet_name=None, header=1):
     dataframe.fillna(value=0.)
     return dataframe
 
+
+def retrieve_battery_specs():
+    csvdata = 'data\\Tech_specs\\Battery_specs.csv'
+    return _parse_raw_BES_df(csvdata)
+
+
+def _parse_raw_BES_df(csvdata):
+    df = pd.read_csv(csvdata, index_col=0, skiprows=1)
+    df.columns = df.columns.str.replace(' ', '_')
+    df = df.transpose()
+    return df
+
+
+########
+# TEST #
+########
+
+battery = BatteryStorage(BES_id='Li3')
+print(battery)
 
 # End BatteryStorage Methods #
 ##############################

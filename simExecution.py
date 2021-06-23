@@ -334,7 +334,14 @@ def test_pv():
 
     PVSystem_ = select_PVSystem(module='Silevo_Triex_U300_Black__2014_', 
                                 inverter='iPower__SHO_1_1__120V_', surface_azimuth=180)
+
+    airconditioners = retrieve_AirConditioners()
+    furnaces = retrieve_Furnaces()
     
-    building_pv(Building_=Building_, City_=City_, PVSystem_=PVSystem_)
+    # Temporarily, make the ac and the furnace a dictionary object, rather than an object.
+    Furnace_ = furnaces['B1']
+    AC_ = airconditioners['CH2']
+
+    print(building_pv(Building_=Building_, City_=City_, PVSystem_=PVSystem_, Furnace_=Furnace_, AC_=AC_))
 
 test_pv()

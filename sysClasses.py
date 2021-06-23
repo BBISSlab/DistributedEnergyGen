@@ -38,12 +38,13 @@ import seaborn as sns  # To install: pip install seaborn
 import pvlib  # [1] To install: pip install pvlib
 from pvlib.location import Location
 from pvlib.pvsystem import PVSystem
-############################################################################################
+##########################################################################
 
 ##########################
 # DICTIONARIES AND LISTS #
 ##########################
-# Below are lists and dictionaries used in the code. For a description of each. See Table 1.
+# Below are lists and dictionaries used in the code. For a description of
+# each. See Table 1.
 
 '''
 Table 1. Description of dictionaries and lists used by each of the classes. The data contained in each of these lists is used in class specific modules or functions
@@ -59,7 +60,7 @@ climate_zone_dictionary             Dictionary linking data for the climate zone
 emm_region_dictionary               Dictionary linking each of the representative cities to their corresponding Electric Market Module (EMM) region. The projected energy-mix, fuel and
                                     electricity prices, levelized costs or electricity, and emissions are simulated for each EMM region by the Energy Information Administration (EIA),
                                     see [4]. While there is much overlap between the NERC subregions and the EMM regions, they do not always encompass the same geographic region.
-floor_area_dictionary               Dictionary linking each of the representative buildings to their corresponging floor area, see [2]. Floor area is in square meters.                                    
+floor_area_dictionary               Dictionary linking each of the representative buildings to their corresponging floor area, see [2]. Floor area is in square meters.
 nerc_region_dictionary              Dictionary linking each of the representative cities to their corresponding North American Electric Reliability Council (NERC) subregion. The
                                     grid-level emissions factors and grid-level losses are modeled by the Environmental Protection Agency (EPA) for each NERC subregion, see [5]
 processed_tmy3_dictionary           Processed TMY3 files for use in pvlib. These files have been modified separately to avoid errors in reading data when using pvlib functions.
@@ -100,44 +101,44 @@ roof_area_dictionary = {'midrise_apartment': 784.66, 'small_office': 598.8,
                         'primary_school': 6871, 'single_family_residential': 2271}
 
 # City dictionaries and attributes
-city_list = ['albuquerque', 'atlanta',  'baltimore',
+city_list = ['albuquerque', 'atlanta', 'baltimore',
              'chicago',
              'denver', 'duluth', 'fairbanks', 'helena',
              'houston', 'las_vegas', 'los_angeles', 'miami',
              'minneapolis', 'phoenix', 'san_francisco', 'seattle']
 # Typical Meteorological Year 3 CSV files (Climate)
-tmy3_city_dictionary = {'albuquerque': ['data\Tmy3_files\TMY3Albuquerque.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723650TYA.CSV'],
-                        'atlanta': ['data\Tmy3_files\TMY3Atlanta.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722190TYA.CSV'],
-                        'baltimore': ['data\Tmy3_files\TMY3Baltimore.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724060TYA.CSV'],
-                        'chicago': ['data\Tmy3_files\TMY3Chicago.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725300TYA.CSV'],
-                        'denver': ['data\Tmy3_files\TMY3Denver.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725650TYA.CSV'],
-                        'duluth': ['data\Tmy3_files\TMY3Duluth.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727450TYA.CSV'],
-                        'fairbanks': ['data\Tmy3_files\TMY3Fairbanks.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/702610TYA.CSV'],
-                        'helena': ['data\Tmy3_files\TMY3Helena.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727720TYA.CSV'],
-                        'houston': ['data\Tmy3_files\TMY3Houston.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722430TYA.CSV'],
-                        'las_vegas': ['data\Tmy3_files\TMY3LasVegas.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723860TYA.CSV'],
-                        'los_angeles': ['data\Tmy3_files\TMY3LosAngeles.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722950TYA.CSV'],
-                        'miami': ['data\Tmy3_files\TMY3Miami.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722020TYA.CSV'],
-                        'minneapolis': ['data\Tmy3_files\TMY3Minneapolis.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/726580TYA.CSV'],
-                        'phoenix': ['data\Tmy3_files\TMY3Phoenix.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722780TYA.CSV'],
-                        'san_francisco': ['data\Tmy3_files\TMY3SanFrancisco.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724940TYA.CSV'],
-                        'seattle': ['data\Tmy3_files\TMY3Seattle.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727930TYA.CSV']}
-processed_tmy3_dictionary = {'albuquerque': 'data\Tmy3_files\TMY3Albuquerque_Processed.csv',
-                             'atlanta': 'data\Tmy3_files\TMY3Atlanta_Processed.csv',
-                             'baltimore': 'data\Tmy3_files\TMY3Baltimore_Processed.csv',
-                             'chicago': 'data\Tmy3_files\TMY3Chicago_Processed.csv',
-                             'denver': 'data\Tmy3_files\TMY3Denver_Processed.csv',
-                             'duluth': 'data\Tmy3_files\TMY3Duluth_Processed.csv',
-                             'fairbanks': 'data\Tmy3_files\TMY3Fairbanks_Processed.csv',
-                             'helena': 'data\Tmy3_files\TMY3Helena_Processed.csv',
-                             'houston': 'data\Tmy3_files\TMY3Houston_Processed.csv',
-                             'las_vegas': 'data\Tmy3_files\TMY3LasVegas_Processed.csv',
-                             'los_angeles': 'data\Tmy3_files\TMY3LosAngeles_Processed.csv',
-                             'miami': 'data\Tmy3_files\TMY3Miami_Processed.csv',
-                             'minneapolis': 'data\Tmy3_files\TMY3Minneapolis_Processed.csv',
-                             'phoenix': 'data\Tmy3_files\TMY3Phoenix_Processed.csv',
-                             'san_francisco': 'data\Tmy3_files\TMY3SanFrancisco_Processed.csv',
-                             'seattle': 'data\Tmy3_files\TMY3Seattle_Processed.csv'}
+tmy3_city_dictionary = {'albuquerque': ['data\\Tmy3_files\\TMY3Albuquerque.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723650TYA.CSV'],
+                        'atlanta': ['data\\Tmy3_files\\TMY3Atlanta.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722190TYA.CSV'],
+                        'baltimore': ['data\\Tmy3_files\\TMY3Baltimore.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724060TYA.CSV'],
+                        'chicago': ['data\\Tmy3_files\\TMY3Chicago.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725300TYA.CSV'],
+                        'denver': ['data\\Tmy3_files\\TMY3Denver.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/725650TYA.CSV'],
+                        'duluth': ['data\\Tmy3_files\\TMY3Duluth.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727450TYA.CSV'],
+                        'fairbanks': ['data\\Tmy3_files\\TMY3Fairbanks.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/702610TYA.CSV'],
+                        'helena': ['data\\Tmy3_files\\TMY3Helena.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727720TYA.CSV'],
+                        'houston': ['data\\Tmy3_files\\TMY3Houston.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722430TYA.CSV'],
+                        'las_vegas': ['data\\Tmy3_files\\TMY3LasVegas.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/723860TYA.CSV'],
+                        'los_angeles': ['data\\Tmy3_files\\TMY3LosAngeles.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722950TYA.CSV'],
+                        'miami': ['data\\Tmy3_files\\TMY3Miami.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722020TYA.CSV'],
+                        'minneapolis': ['data\\Tmy3_files\\TMY3Minneapolis.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/726580TYA.CSV'],
+                        'phoenix': ['data\\Tmy3_files\\TMY3Phoenix.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/722780TYA.CSV'],
+                        'san_francisco': ['data\\Tmy3_files\\TMY3SanFrancisco.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/724940TYA.CSV'],
+                        'seattle': ['data\\Tmy3_files\\TMY3Seattle.csv', 'https://rredc.nrel.gov/solar/old_data/nsrdb/1991-2005/data/tmy3/727930TYA.CSV']}
+processed_tmy3_dictionary = {'albuquerque': 'data\\Tmy3_files\\TMY3Albuquerque_Processed.csv',
+                             'atlanta': 'data\\Tmy3_files\\TMY3Atlanta_Processed.csv',
+                             'baltimore': 'data\\Tmy3_files\\TMY3Baltimore_Processed.csv',
+                             'chicago': 'data\\Tmy3_files\\TMY3Chicago_Processed.csv',
+                             'denver': 'data\\Tmy3_files\\TMY3Denver_Processed.csv',
+                             'duluth': 'data\\Tmy3_files\\TMY3Duluth_Processed.csv',
+                             'fairbanks': 'data\\Tmy3_files\\TMY3Fairbanks_Processed.csv',
+                             'helena': 'data\\Tmy3_files\\TMY3Helena_Processed.csv',
+                             'houston': 'data\\Tmy3_files\\TMY3Houston_Processed.csv',
+                             'las_vegas': 'data\\Tmy3_files\\TMY3LasVegas_Processed.csv',
+                             'los_angeles': 'data\\Tmy3_files\\TMY3LosAngeles_Processed.csv',
+                             'miami': 'data\\Tmy3_files\\TMY3Miami_Processed.csv',
+                             'minneapolis': 'data\\Tmy3_files\\TMY3Minneapolis_Processed.csv',
+                             'phoenix': 'data\\Tmy3_files\\TMY3Phoenix_Processed.csv',
+                             'san_francisco': 'data\\Tmy3_files\\TMY3SanFrancisco_Processed.csv',
+                             'seattle': 'data\\Tmy3_files\\TMY3Seattle_Processed.csv'}
 climate_zone_dictionary = {'albuquerque': '4B',
                            'atlanta': '3A',
                            'baltimore': '4A',
@@ -534,20 +535,20 @@ CLASSES AND CLASS SPECIFIC FUNCTIONS
 =============================       ===================================================================
 Classes                             description
 =============================       ===================================================================
-City                                The City class is a subclass of pvlib's Location class. It contains 
-                                    weather and location data and uses functions that are built into 
+City                                The City class is a subclass of pvlib's Location class. It contains
+                                    weather and location data and uses functions that are built into
                                     pvlib.
 Building                            The Building class contains general building attributes (e.g., floor
-                                    area) and energy demand data. Each building object contains the 
-                                    energy demands simulated for the DoE's reference buildings. These 
-                                    demands are not simulated within this program.  
-PrimeMover                          
+                                    area) and energy demand data. Each building object contains the
+                                    energy demands simulated for the DoE's reference buildings. These
+                                    demands are not simulated within this program.
+PrimeMover
 AbsorptionChiller
 AirConditioner
 BatteryStorage
-Grid                                This panel contains the Grid class. Each Grid object is meant to represent the electric grid of each city. 
-Furnace                             The emission factors were gathered from the US EPA AP-42: Compilation of Air Emissions Factors. 
-                                    The NOx, CO, and N2O emissions factors are dependent on existing NOx controls and/or system size. 
+Grid                                This panel contains the Grid class. Each Grid object is meant to represent the electric grid of each city.
+Furnace                             The emission factors were gathered from the US EPA AP-42: Compilation of Air Emissions Factors.
+                                    The NOx, CO, and N2O emissions factors are dependent on existing NOx controls and/or system size.
                                     By default, the system has NOx control systems.
 ===============================     ======================================================================================================================================================
 
@@ -586,6 +587,7 @@ size_Furnace
 ################
 # Functions for Photovoltaic systems are not currently used in this model
 
+
 def list_pv_modules():
     """
     This function lists pv modules in an interactive selction system.
@@ -610,7 +612,8 @@ def list_inverters():
         print('Power, W: {:f}'.format(inverter['Vdcmax'] * inverter['Idcmax']))
 
 
-def select_pv_system(module=None, inverter=None, surface_azimuth=180, name=None):
+def select_pv_system(module=None, inverter=None,
+                     surface_azimuth=180, name=None):
     """This function allows you to select a module and inverter for your system."""
     sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
     sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
@@ -683,7 +686,8 @@ def pv_simulation(PVSystem_, City_, tmy_filename=None):
     print('Running PV Simulation for {}'.format(location.name.upper()))
 
     # The surface_type_list is for a future iteration.
-    # It will be used to calculate the ground albedo and subsequent reflected radiation.
+    # It will be used to calculate the ground albedo and subsequent reflected
+    # radiation.
     surface_type_list = ['urban', 'grass', 'fresh grass',
                          'snow', 'fresh snow', 'asphalt', 'concrete',
                          'aluminum', 'copper', 'fresh steel', 'dirty steel', 'sea']
@@ -756,7 +760,8 @@ def pv_simulation(PVSystem_, City_, tmy_filename=None):
                                                                     pv_system.module)
 
     # SAPM = Sandia PV Array Performance Model, generates a dataframe with short-circuit current,
-    # current at the maximum-power point, open-circuit voltage, maximum-power point voltage and power
+    # current at the maximum-power point, open-circuit voltage, maximum-power
+    # point voltage and power
     dc_out = pvlib.pvsystem.sapm(effective_irradiance,
                                  pvtemps.temp_cell,
                                  pv_system.module)  # This will calculate the DC power output for a module
@@ -767,7 +772,7 @@ def pv_simulation(PVSystem_, City_, tmy_filename=None):
         dc_out.v_mp, dc_out.p_mp, pv_system.inverter)
 
     # p_ac/sqm is the AC power generated per square meter of module (W/m^2)
-    ac_out['p_ac/sqm'] = ac_out.p_ac.apply(lambda x: x/pv_system.module.Area)
+    ac_out['p_ac/sqm'] = ac_out.p_ac.apply(lambda x: x / pv_system.module.Area)
 
     print('PV simulation completed for {}'.format(location.name.upper()))
 
@@ -783,7 +788,7 @@ def size_pv(Building_, City_, PVSystem_,
     """
     module_area = PVSystem_.module['Area']
     # print('Module area: {}'.format(module_area))
-    covered_roof_area = Building_.roof_area * percent_roof_cover/100
+    covered_roof_area = Building_.roof_area * percent_roof_cover / 100
 
     num_modules = covered_roof_area // module_area
     # print('number of modules: {}'.format(num_modules))
@@ -815,9 +820,9 @@ def size_pv(Building_, City_, PVSystem_,
         annual_om_cost = 18
 
     # Capital Cost in $
-    capital_cost_PV = CAPEX * nominal_P_out/1000
+    capital_cost_PV = CAPEX * nominal_P_out / 1000
     # O&M cost in $/kWh
-    om_cost_PV = annual_om_cost/(24*365)
+    om_cost_PV = annual_om_cost / (24 * 365)
 
     return PVSystem_, num_inverter, capital_cost_PV, om_cost_PV
 
@@ -850,7 +855,8 @@ class City(Location):
 
     # Location class comes from pvlib and takes in (
     # latitude, longitude, tz ='UTC', altitude = 0, name = Non, **kwargs)
-    def __init__(self, name, HDD=0, CDD=0, avg_RHum=0, nerc_region=None, tmy3_file=None, tmy_data=None, metadata=None):
+    def __init__(self, name, HDD=0, CDD=0, avg_RHum=0, nerc_region=None,
+                 tmy3_file=None, tmy_data=None, metadata=None):
         self.name = name
         self.nerc_region = nerc_region
         self.tmy3_file = tmy3_file
@@ -865,7 +871,7 @@ class City(Location):
             self.tmy_data = pd.read_csv(
                 processed_tmy3_dictionary[self.name], index_col='datetime')
             metadata = pd.read_csv(
-                'data\Tmy3_files\TMY3Metadata.csv', index_col='city')
+                'data\\Tmy3_files\\TMY3Metadata.csv', index_col='city')
             latitude = float(metadata.loc[self.name]['latitude'])
             longitude = float(metadata.loc[self.name]['longitude'])
             timezone = float(metadata.loc[self.name]['TZ'])
@@ -1058,7 +1064,8 @@ class Building:
             self.electricity_demand = (df['Electricity:Facility [kW](Hourly)']
                                        - df['Heating:Electricity [kW](Hourly)']
                                        - df['Cooling:Electricity [kW](Hourly)'])
-            # Strip mall, warehouse, and secondary school do not have a water heater load.
+            # Strip mall, warehouse, and secondary school do not have a water
+            # heater load.
             try:
                 self.heat_demand = (df['Heating:Electricity [kW](Hourly)']
                                     + df['Heating:Gas [kW](Hourly)']
@@ -1067,9 +1074,10 @@ class Building:
                 self.heat_demand = (df['Heating:Electricity [kW](Hourly)']
                                     + df['Heating:Gas [kW](Hourly)'])
 
-        # Multiply the electric cooling demand by the COP of the AC system to get the cooling demand.
+        # Multiply the electric cooling demand by the COP of the AC system to
+        # get the cooling demand.
         self.cooling_demand = (df['Cooling:Electricity [kW](Hourly)'].apply(
-            lambda x: x*3.8))  # need to do some algebra here
+            lambda x: x * 3.8))  # need to do some algebra here
 
         # You cannot calculate the thermal demand until you have a sized abs chiller.
         # self.thermalDemand = self.heat_demand + self.cooling_demand
@@ -1092,15 +1100,15 @@ class Building:
 
     def get_thermal_demand(self, COP_absCh=0, absCh_cap=0):
         """
-        This function checks if we have an absorption chiller to meet the cooling load. If one is present, the cooling 
-        demand (currently electric) is converted into a heating demand. The heat and thermo-cooling demand are then added 
+        This function checks if we have an absorption chiller to meet the cooling load. If one is present, the cooling
+        demand (currently electric) is converted into a heating demand. The heat and thermo-cooling demand are then added
         for a net heating demand.
         """
         if COP_absCh == 0:
             self.thermalDemand = self.heat_demand
             self.electricity_demand = self.electricity_demand + self.cooling_demand
         elif COP_absCh > 0:
-            self.thermalDemand = self.heat_demand + self.cooling_demand/COP_absCh
+            self.thermalDemand = self.heat_demand + self.cooling_demand / COP_absCh
         else:
             raise ValueError
         return self.thermalDemand
@@ -1127,7 +1135,8 @@ class Building:
     def peak_thermal(self):
         return self.thermalDemand.max()
 
-    def graph_demands(self, method=None, electricity=True, heat=True, cooling=True, thermal=False):
+    def graph_demands(self, method=None, electricity=True,
+                      heat=True, cooling=True, thermal=False):
         """
         This method graphs the various demands of the building. Upcoming updates to the method include:
         - total vs the intensity (per sq m)
@@ -1173,7 +1182,7 @@ class PrimeMover:
     def __init__(self, PM_id, model='', technology=None, power_nom=0., heat_nom=0, fuel_nom=0,
                  capital_cost=0., om_cost=0, carbon_monoxide=0, carbon_dioxide=0, nox=0, voc=0, water_for_energy=0,
                  embedded_ch4=0, embedded_co2=0, embedded_n2o=0,
-                 electric_efficiency_LHV=1,  electric_efficiency_HHV=1, thermal_efficiency=1,
+                 electric_efficiency_LHV=1, electric_efficiency_HHV=1, thermal_efficiency=1,
                  chp_efficiency_LHV=1, chp_efficiency_HHV=1, effective_efficiency=1,
                  heat_rate=1, phr=1, exhaust_temperature=20, heat_recovery_type='hot_water', abc_compatibility=0,
                  lifetime=20, age=0):
@@ -1190,7 +1199,7 @@ class PrimeMover:
         self.power_nom = power_nom
         self.fuel_nom = fuel_nom
         self.phr = phr
-        self.hpr = 1/self.phr
+        self.hpr = 1 / self.phr
 
         if heat_nom == 0:
             self.heat_nom = power_nom * self.hpr
@@ -1227,7 +1236,8 @@ class PrimeMover:
         # Exhaust Characteristics
         self.exhaust_temperature = exhaust_temperature  # deg C
         self.heat_recovery_type = heat_recovery_type
-        # 0: Only compatible with single-stage absorption chiller; 1: Compatible with single-stage and two-stage absorption chiller
+        # 0: Only compatible with single-stage absorption chiller; 1:
+        # Compatible with single-stage and two-stage absorption chiller
         self.abc_compatibility = abc_compatibility
 
     def __repr__(self):
@@ -1237,13 +1247,14 @@ class PrimeMover:
                  'electric_efficiency_LHV', 'electric_efficiency_HHV', 'thermal_efficiency', 'chp_efficiency_LHV', 'chp_efficiency_HHV',
                  'heat_rate', 'phr', 'hpr',
                  'exhaust_temperature', 'heat_recovery_type', 'abc_compatibility']
-        return ('Prime Mover: \n ' + ' \n '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in attrs))
+        return ('Prime Mover: \n ' + ' \n '.join('{}: {}'.format(attr,
+                getattr(self, attr)) for attr in attrs))
 
     def _get_data(self, dataframe, sheet_name=None, index=0):
         """
         This method extracts data from a dataframe or an csv file to populate the attributes of each prime mover.
 
-        The Current CSV File has impact units in kg/MWh. 
+        The Current CSV File has impact units in kg/MWh.
         """
 
         self.PM_id = dataframe.iloc[index]['PM_id']
@@ -1264,7 +1275,8 @@ class PrimeMover:
         self.voc = dataframe.iloc[index]['voc']
 
         # Embedded emissions from specs sheet are in g
-        # The embodied emissions for the CHP system were obtained from the Ecoinvent 3 database
+        # The embodied emissions for the CHP system were obtained from the
+        # Ecoinvent 3 database
         self.embedded_ch4 = dataframe.iloc[index]['embedded_ch4']
         self.embedded_co2 = dataframe.iloc[index]['embedded_co2']
         self.embedded_n2o = dataframe.iloc[index]['embedded_n2o']
@@ -1281,28 +1293,31 @@ class PrimeMover:
         self.chp_efficiency_HHV = dataframe.iloc[index]['chp_EFF_HHV']
         self.heat_rate = dataframe.iloc[index]['thermal_out_fuel_in_ratio']
         self.phr = dataframe.iloc[index]['phr']
-        self.hpr = 1/self.phr
+        self.hpr = 1 / self.phr
 
         # converted to kW from mmBtu/hr
-        self.heat_nom = dataframe.iloc[index]['heat_output']*(10**6/3412.14)
-        self.fuel_nom = dataframe.iloc[index]['fuel_input']*(10**6/3412.14)
+        self.heat_nom = dataframe.iloc[index]['heat_output'] * \
+            (10**6 / 3412.14)
+        self.fuel_nom = dataframe.iloc[index]['fuel_input'] * (10**6 / 3412.14)
 
         # Converted to deg C from F
         self.exhaust_temperature = (
-            dataframe.iloc[index]['exhaust_temp'] - 32.)*(5./9.)
+            dataframe.iloc[index]['exhaust_temp'] - 32.) * (5. / 9.)
         # Heat Recovery Characteristics
         self.heat_recovery_type = dataframe.iloc[index]['heat_recovery_type']
         self.abc_compatibility = dataframe.iloc[index]['abc_compatibility']
 
-        # These two are added so other functions are still working even without the derate
+        # These two are added so other functions are still working even without
+        # the derate
         self.min_capacity = self.power_nom.min()
         self.min_heatoutput = self.heat_nom.min()
 
-    def derate(self, City_, altitude=0, dry_bulb_temp=20, pressure=1, relative_humidity=0):
+    def derate(self, City_, altitude=0, dry_bulb_temp=20,
+               pressure=1, relative_humidity=0):
         """
-        This method calculates the capacity and efficiency of the prime mover due to the variation of altitude (air 
-        pressure), temperature, and humidity. The capacity derate from variation in temperature and altitude are based on 
-        linear regression performed by R.E. Best et al (2015). Humidity is incorporated by adjusting the heat released in 
+        This method calculates the capacity and efficiency of the prime mover due to the variation of altitude (air
+        pressure), temperature, and humidity. The capacity derate from variation in temperature and altitude are based on
+        linear regression performed by R.E. Best et al (2015). Humidity is incorporated by adjusting the heat released in
         the combustion process. Humidity portion is pending. According to S.F. Al Fahed et al (2009), the effect of relative
         humidity on cogeneration is negligible.
         """
@@ -1344,17 +1359,18 @@ class PrimeMover:
 
         return minimum_electrical_capacity
 
-    def size_system(self, peak_electricity_demand, peak_thermal_demand, prime_mover, city=None, operation_mode='FTL'):
+    def size_system(self, peak_electricity_demand, peak_thermal_demand,
+                    prime_mover, city=None, operation_mode='FTL'):
         """
-        This method returns the number of CHP units that will be required to meet the peak electric or thermal load. For 
+        This method returns the number of CHP units that will be required to meet the peak electric or thermal load. For
         UPDATE TASK: Make the sizing system able to incorporate different engine size.
         """
         if operation_mode == 'FEL':
-            num_engines = peak_electricity_demand/derated_pm_capacity
+            num_engines = peak_electricity_demand / derated_pm_capacity
 
         else:
             derated_pm_heat = derated_pm_capacity * prime_mover.hpr
-            num_engines = peak_thermal_demand/derated_pm_heat
+            num_engines = peak_thermal_demand / derated_pm_heat
 
     def get_impacts(self, electricity_demand):
         """
@@ -1386,8 +1402,8 @@ class PrimeMover:
 
 def _generate_PrimeMover_dataframe(csv_file, sheet_name=None, header=0):
     """
-    This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data 
-    read (i.e., string, integer, float), and inserts them into a pandas dataframe.    
+    This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data
+    read (i.e., string, integer, float), and inserts them into a pandas dataframe.
     This function is used on the following function which reads the processed data to generate Prime Mover objects.
     """
 
@@ -1424,7 +1440,7 @@ def _generate_PrimeMover_dataframe(csv_file, sheet_name=None, header=0):
 
 def _generate_PrimeMovers(csv_file, sheet_name=None, header=0):
     """
-    This function generates Prime Mover Objects from the CSV file. 
+    This function generates Prime Mover Objects from the CSV file.
     """
 
     dataframe = _generate_PrimeMover_dataframe(csv_file=csv_file,
@@ -1456,15 +1472,16 @@ def size_chp(PrimeMover_,
              operation_mode='FTL',
              alpha=0):
     """
-    The purpose of this function is to size the prime mover system to the building demand. In other words, how many 
-    absportion chillers or air conditioning units do we need to meet the cooling demand; and, subsequently, how many prime 
-    movers do we need to meet the electric or thermal demand?    
-    These systems are sized based on the operation mode (i.e., Follow the Thermal Load, Follow the Electric Load, or 
+    The purpose of this function is to size the prime mover system to the building demand. In other words, how many
+    absportion chillers or air conditioning units do we need to meet the cooling demand; and, subsequently, how many prime
+    movers do we need to meet the electric or thermal demand?
+    These systems are sized based on the operation mode (i.e., Follow the Thermal Load, Follow the Electric Load, or
     Follow the Base Load).
     - 'FTL' = Follow the Thermal Load (sized to match the peak thermal demand)
-    - 'alpha' = The CHP is sized to meet a fraction of the electric load [0-1]. If alpha=1, CHP can meet the full electric load.    
+    - 'alpha' = The CHP is sized to meet a fraction of the electric load [0-1]. If alpha=1, CHP can meet the full electric load.
     """
-    # Because we may modify the Prime Mover, we make a copy, that will be derated for the city.
+    # Because we may modify the Prime Mover, we make a copy, that will be
+    # derated for the city.
     CHP_ = PrimeMover_
 
     if City_ is None:
@@ -1484,7 +1501,7 @@ def size_chp(PrimeMover_,
 
     number_PM = m.ceil(design_peak / design_capacity)
 
-    capital_cost_PM = number_PM*CHP_.power_nom * \
+    capital_cost_PM = number_PM * CHP_.power_nom * \
         CHP_.capital_cost
 
     return CHP_, number_PM, capital_cost_PM
@@ -1526,7 +1543,8 @@ class AbsorptionChiller:
     def __repr__(self):
         attrs = ['ABC_id', 'technology', 'COP', 'capacity',
                  'capital_cost', 'om_cost', 'lifetime']
-        return ('Absorption Chiller: \n ' + ' \n '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in attrs))
+        return ('Absorption Chiller: \n ' + ' \n '.join('{}: {}'.format(attr,
+                getattr(self, attr)) for attr in attrs))
 
     def cooling_output(self, heat_input):
         return heat_input * self.COP
@@ -1559,8 +1577,8 @@ class AbsorptionChiller:
 
 def _generate_AbsorptionChiller_dataframe(csv_file, sheet_name=None, header=0):
     """
-    This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data 
-    read (i.e., string, integer, float), and inserts them into a pandas dataframe. This function is used on the following 
+    This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data
+    read (i.e., string, integer, float), and inserts them into a pandas dataframe. This function is used on the following
     function which reads the processed data to generate Absorption Chiller objects.
     """
 
@@ -1584,7 +1602,7 @@ def _generate_AbsorptionChiller_dataframe(csv_file, sheet_name=None, header=0):
 
 def _generate_AbsorptionChillers(csv_file, sheet_name=None, header=1):
     """
-    This function generates Absorption Chiller Objects from the CSV file. 
+    This function generates Absorption Chiller Objects from the CSV file.
     """
     dataframe = _generate_AbsorptionChiller_dataframe(csv_file=csv_file,
                                                       sheet_name=sheet_name,
@@ -1602,13 +1620,13 @@ def _generate_AbsorptionChillers(csv_file, sheet_name=None, header=1):
 
 def size_ABC(peak_demand=0., AbsorptionChiller_=None, beta=0):
     """
-    The purpose of this function is to size the absorption chiller system to the building demand. In other words, how many 
+    The purpose of this function is to size the absorption chiller system to the building demand. In other words, how many
     absportion chillers do we need to meet the cooling demand? I assume that the system is sized to meet the coling demand.
     """
     design_peak = beta * peak_demand
-    number_ABC = m.ceil(design_peak/AbsorptionChiller_.capacity)
+    number_ABC = m.ceil(design_peak / AbsorptionChiller_.capacity)
     # ABC capital cost given in $/kW
-    capital_cost_ABC = number_ABC*AbsorptionChiller_.capacity * \
+    capital_cost_ABC = number_ABC * AbsorptionChiller_.capacity * \
         AbsorptionChiller_.capital_cost
 
     return number_ABC, capital_cost_ABC
@@ -1657,7 +1675,7 @@ class AirConditioner:
 
     def _get_data(self, dataframe, sheet_name=None, index=0):
         """
-        This method extracts data from a dataframe or an csv file to populate the attributes of each air conditioning or 
+        This method extracts data from a dataframe or an csv file to populate the attributes of each air conditioning or
         chiller system.
         """
         self.AC_id = dataframe.iloc[index]['AC_id']
@@ -1678,8 +1696,8 @@ class AirConditioner:
 
 def _generate_AirConditioner_dataframe(csv_file, sheet_name=None, header=1):
     """
-    This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data 
-    read (i.e., string, integer, float), and inserts them into a pandas dataframe. This function is used on the following 
+    This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data
+    read (i.e., string, integer, float), and inserts them into a pandas dataframe. This function is used on the following
     function which reads the processed data to generate Air Conditioner or Chiller objects.
     """
 
@@ -1706,7 +1724,7 @@ def _generate_AirConditioner_dataframe(csv_file, sheet_name=None, header=1):
 
 def _generate_AirConditioner(csv_file, sheet_name=None, header=1):
     """
-    This function generates Prime Mover Objects from the CSV file. 
+    This function generates Prime Mover Objects from the CSV file.
     """
 
     dataframe = _generate_AirConditioner_dataframe(csv_file=csv_file,
@@ -1726,18 +1744,31 @@ def _generate_AirConditioner(csv_file, sheet_name=None, header=1):
 
 def size_AC(peak_demand=0., AirConditioner_=None, beta=0):
     """
-    The purpose of this function is to size the air chiller system to the building demand. In other words, how many 
+    The purpose of this function is to size the air chiller system to the building demand. In other words, how many
     chillers do we need to meet the cooling demand? I assume that the system is sized to meet the cooling demand.
     """
     design_peak = beta * peak_demand
 
-    number_AC = m.ceil(design_peak/AirConditioner_.capacity)
+    number_AC = m.ceil(design_peak / AirConditioner_.capacity)
     # ABC capital cost given in $/kW
-    capital_cost_AC = number_AC*AirConditioner_.capacity * \
+    capital_cost_AC = number_AC * AirConditioner_.capacity * \
         AirConditioner_.capital_cost
 
     return number_AC, capital_cost_AC
 
+
+def retrieve_AirConditioners():
+    csvdata = 'data\\Tech_specs\\AC_specs.csv'
+    return _parse_raw_AC_df(csvdata)
+
+
+def _parse_raw_AC_df(csvdata):
+    df = pd.read_csv(csvdata, index_col=0, skiprows=1)
+
+    df.columns = df.columns.str.replace(' ', '_')
+    df = df.transpose()
+
+    return df
 ##########################################
 # End AirConditioner Class and Functions #
 ##########################################
@@ -1749,9 +1780,9 @@ def size_AC(peak_demand=0., AirConditioner_=None, beta=0):
 
 class BatteryStorage:
     """
-    Because we are typically given the roundtrip efficiencies, this method assumes that we can store all the electricity 
-    input. The loss of energy is assumed to occur during discharge. This assumption holds if the maximum charging and 
-    discharging are equal.        
+    Because we are typically given the roundtrip efficiencies, this method assumes that we can store all the electricity
+    input. The loss of energy is assumed to occur during discharge. This assumption holds if the maximum charging and
+    discharging are equal.
     """
 
     def __init__(self, BES_id, model='', technology='', manufacturer='', chemistry='', application='any',
@@ -1811,7 +1842,8 @@ class BatteryStorage:
                  'lifetime', 'warranty', 'cycling_times', 'age',
                  'battery_cost', 'install_cost', 'total_cost', 'specific_cost',
                  'SoC', 'num_units', 'sysCapacity', 'sysDoD', 'sysSoC', 'sysPower']
-        return ('Battery Storage: \n ' + ' \n '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in attrs))
+        return ('Battery Storage: \n ' + ' \n '.join('{}: {}'.format(attr,
+                getattr(self, attr)) for attr in attrs))
 
     def charge(self, surplus_electricity=0, time=1):
         """
@@ -1833,10 +1865,10 @@ class BatteryStorage:
         # Cases 2 and 3. We assume the battery is not at capacity
         else:
             """
-            The charging of the battery depends on its power-rating. We cannot force more electricity into the battery 
+            The charging of the battery depends on its power-rating. We cannot force more electricity into the battery
             within a specified timeframe that exceeds the power rating. Accordingly, if we cannot store all of the energy
             within the timeframe, we may still have excess energy. The power-in is the average energy input over the
-            specified timeframe. 
+            specified timeframe.
             """
             power_in = surplus_electricity / time
             if power_in < self.sysPower:
@@ -1887,7 +1919,7 @@ class BatteryStorage:
         # Cases 2 and 3. We assume that the SOC > 0.
         else:
             """
-            The discharging of the battery depends on its power-rating. We cannot force provide more electricity from the 
+            The discharging of the battery depends on its power-rating. We cannot force provide more electricity from the
             battery within a specified timeframe that exceeds the power rating. Therefore, even if we have enough energy to
             meet the demand, we may still have a deficit IF we cannot meet it fast enough. Here, we assume that the
             power_output is the average energy demand over the specified timeframe
@@ -1920,7 +1952,7 @@ class BatteryStorage:
 
     def size_BES(self, Building_, storage_hours=24, method='mean'):
         """
-        This method determines the number of storage units required to supply energy for a consecutive number of 
+        This method determines the number of storage units required to supply energy for a consecutive number of
         'storage_hours' to the Building. This is determined by looking at the minimum, maximum, and mean sum of electricity
         used within the consecutive hours for the time specified.
 
@@ -1930,7 +1962,8 @@ class BatteryStorage:
         """
         electricity_demand = Building_.electricity_demand.tolist()
 
-        # The storage list contains all of the required storage values for a consecutive number of storage hours.
+        # The storage list contains all of the required storage values for a
+        # consecutive number of storage hours.
         storage = []
 
         """
@@ -2072,7 +2105,8 @@ class Grid:
         self.pm25 = pm25  # pm 2.5
         self.pm10 = pm10
 
-        # Currently adding values from furnace to grid. These can be a district system
+        # Currently adding values from furnace to grid. These can be a district
+        # system
         self.heat_co2 = heat_co2
         self.heat_nox = heat_nox
 
@@ -2121,7 +2155,7 @@ class Grid:
             # If the Electricity Market Module is None, the prices will be obtained
             # from a dataframe with averaged prices
             self.projections = pd.read_csv(
-                'data\Tech_specs\Avg_prices.csv', index_col='year')
+                'data\\Tech_specs\\Avg_prices.csv', index_col='year')
             self.co2 = impacts_df.iloc[index]['CO2_kg_MWh-1']
             self.nox = impacts_df.iloc[index]['NOx_kg_MWh-1']
             self.so2 = impacts_df.iloc[index]['SO2_kg_MWh-1']
@@ -2151,7 +2185,8 @@ class Grid:
 ##########################
 
 
-def _generate_Grid_dataframes(impacts_csv_file, projections_csv_file, header=0):
+def _generate_Grid_dataframes(
+        impacts_csv_file, projections_csv_file, header=0):
     impacts_df = pd.read_csv(filepath_or_buffer=impacts_csv_file,
                              header=header,
                              dtype={'Grid_id': 'object',
@@ -2175,7 +2210,7 @@ def _generate_Grid_dataframes(impacts_csv_file, projections_csv_file, header=0):
 
 def _generate_Grid(impacts_csv_file, projections_csv_file, header=0):
     """
-    Similar to the PrimeMover class, this function generaes a series of Grid classes from a CSV file. The CSV file is read 
+    Similar to the PrimeMover class, this function generaes a series of Grid classes from a CSV file. The CSV file is read
     and processed by the generate_storage_dataframe function.
     """
     impacts_df, projections_df = _generate_Grid_dataframes(impacts_csv_file=impacts_csv_file,
@@ -2207,8 +2242,8 @@ class Furnace:
                  capacity=234, efficiency=1, electric_consumption=0, lifetime=20, age=0,
                  retail_equipment_cost=0, total_installed_cost=0, annual_maintenance_cost=0,
                  equipment_cost=0, capital_cost=0, om_cost=0,
-                 co2=182, n2o=9.71*10**-4, pm=2.88**10-3, ch4=3.49*10**-3, so2=9.10*10**-4,
-                 voc=8.35*10**-3, nox=0.152, co=6.07**10-2):
+                 co2=182, n2o=9.71 * 10**-4, pm=2.88**10 - 3, ch4=3.49 * 10**-3, so2=9.10 * 10**-4,
+                 voc=8.35 * 10**-3, nox=0.152, co=6.07**10 - 2):
         self.Furnace_id = Furnace_id
         self.technology = technology
         self.electric = electric  # Boolean
@@ -2218,7 +2253,8 @@ class Furnace:
         self.capacity = capacity
         # Efficiency in spec sheet is as a percentage, so must divide by 100.
         self.efficiency = efficiency
-        # Electric Consumption is in kW. This is the fans and other equipment in the heater
+        # Electric Consumption is in kW. This is the fans and other equipment
+        # in the heater
         self.electric_consumption = electric_consumption
         # Lifetime in years
         self.lifetime = lifetime
@@ -2265,8 +2301,9 @@ class Furnace:
         self.building = dataframe.iloc[index]['building']
         self.climate = dataframe.iloc[index]['climate']
         self.capacity = dataframe.iloc[index]['capacity_kW']
-        # Furnace efficiency must be divided by 100 to make a decimal. Will correct in future iteration
-        self.efficiency = dataframe.iloc[index]['efficiency']/100
+        # Furnace efficiency must be divided by 100 to make a decimal. Will
+        # correct in future iteration
+        self.efficiency = dataframe.iloc[index]['efficiency'] / 100
         self.electric_consumption = dataframe.iloc[index]['electric_consumption']
         self.lifetime = dataframe.iloc[index]['average_life']
         self.retail_equipment_cost = dataframe.iloc[index]['retail_equipment_cost']
@@ -2318,8 +2355,8 @@ def _generate_Furnace_dataframe(csv_file, sheet_name=None, header=1):
 
 def _generate_Furnace(csv_file, sheet_name=None, header=1):
     """
-    Similar to the PrimeMover class, this function generaes a series of 
-    Furnace Storage classes from a CSV file. The CSV file is read and 
+    Similar to the PrimeMover class, this function generaes a series of
+    Furnace Storage classes from a CSV file. The CSV file is read and
     processed by the _generate_Furnace_dataframe function.
     """
     dataframe = _generate_Furnace_dataframe(csv_file=csv_file,
@@ -2340,21 +2377,35 @@ def _generate_Furnace(csv_file, sheet_name=None, header=1):
 
 def size_Furnace(peak_heat_load, Furnace_=None):
     """
-    The purpose of this function is to size the furnace to the building demand. 
+    The purpose of this function is to size the furnace to the building demand.
     In other words, how many absportion chillers do we need to meet the heating demand?
 
     I assume that the system is sized to meet the heating demand.
     """
-    # This may need some reworking because we are assuming that ABC energy wont be in here
+    # This may need some reworking because we are assuming that ABC energy
+    # wont be in here
     design_peak = peak_heat_load
 
     number_Furnace = m.ceil(design_peak / Furnace_.capacity)
     # ABC capital cost given in $/kW
     capital_cost_Furnace = number_Furnace * \
-        Furnace_.capacity*Furnace_.capital_cost
+        Furnace_.capacity * Furnace_.capital_cost
 
     return number_Furnace, capital_cost_Furnace
 
+
+def retrieve_Furnaces():
+    csvdata = 'data\\Tech_specs\\Furnace_specs.csv'
+    return _parse_raw_Furnace_df(csvdata)
+
+
+def _parse_raw_Furnace_df(csvdata):
+    df = pd.read_csv(csvdata, index_col=0, skiprows=1)
+
+    df.columns = df.columns.str.replace(' ', '_')
+    df = df.transpose()
+
+    return df
 ###################################
 # End Furnace Class and Functions #
 ###################################
@@ -2367,27 +2418,27 @@ def generate_objects(all_cities=True, selected_cities=[]):
     print('Cities generated for {}'.format(selected_cities))
 
     Grid_dictionary = _generate_Grid(
-        impacts_csv_file='data\Tech_specs\Grid_emission_factors.csv', projections_csv_file='data\Tech_specs\power_projections.csv')
+        impacts_csv_file='data\\Tech_specs\\Grid_emission_factors.csv', projections_csv_file='data\\Tech_specs\\power_projections.csv')
     print('Grid generated')
 
     PrimeMover_dictionary = _generate_PrimeMovers(
-        csv_file='data\Tech_specs\PrimeMover_specs.csv', header=2)
+        csv_file='data\\Tech_specs\\PrimeMover_specs.csv', header=2)
     print('Prime Movers generated')
 
     BatteryStorage_dictionary = _generate_BatteryStorage(
-        csv_file='data\Tech_specs\Battery_specs.csv')
+        csv_file='data\\Tech_specs\\Battery_specs.csv')
     print('Batteries generated')
 
     Furnace_dictionary = _generate_Furnace(
-        csv_file='data\Tech_specs\Furnace_specs.csv')
+        csv_file='data\\Tech_specs\\Furnace_specs.csv')
     print('Furnaces generated')
 
     AC_dictionary = _generate_AirConditioner(
-        csv_file='data\Tech_specs\AC_specs.csv')
+        csv_file='data\\Tech_specs\\AC_specs.csv')
     print('Air Conditioners generated')
 
     ABC_dictionary = _generate_AbsorptionChillers(
-        csv_file='data\Tech_specs\ABC_specs.csv')
+        csv_file='data\\Tech_specs\\ABC_specs.csv')
     print('Absorption Chillers generated')
 
     system_dict = {'City_dict': City_dictionary,
@@ -2403,15 +2454,15 @@ def generate_objects(all_cities=True, selected_cities=[]):
 """
 REFERENCES
 
-    [1]     William F. Holmgren, Clifford W. Hansen, and Mark A. Mikofski. "pvlib python: a python package 
-            for modeling solar energy systems." Journal of Open Source Software, 3(29), 884, (2018). 
+    [1]     William F. Holmgren, Clifford W. Hansen, and Mark A. Mikofski. "pvlib python: a python package
+            for modeling solar energy systems." Journal of Open Source Software, 3(29), 884, (2018).
             https://doi.org/10.21105/joss.00884
-    [2]     Deru, M.; Field, K.; Studer, D.; Benne, K.; Griffith, B.; Torcellini, P.; Bing, L.; Halverson, 
-            M.; Winiarski, D.; Rosenberg, M.; et al. U.S. Department of Energy Commercial Reference Building 
+    [2]     Deru, M.; Field, K.; Studer, D.; Benne, K.; Griffith, B.; Torcellini, P.; Bing, L.; Halverson,
+            M.; Winiarski, D.; Rosenberg, M.; et al. U.S. Department of Energy Commercial Reference Building
             Models of the National Building Stock; Golden, Colorado, 2011.
-    [3]     Baechler, M. C.; Gilbride, T. L.; Cole, P. C.; Hefty, M. G.; Ruiz, K. Guide to Determining 
+    [3]     Baechler, M. C.; Gilbride, T. L.; Cole, P. C.; Hefty, M. G.; Ruiz, K. Guide to Determining
             Climate Regions by County; Benton County, WA, 2015.
     [4]     U.S. Energy Information Administration. Annual Energy Outlook 2020; Washington D.C., 2020.
-    [5]     U.S. Environmental Protection Agency. eGRID2018 
+    [5]     U.S. Environmental Protection Agency. eGRID2018
             https://www.epa.gov/energy/emissions-generation-resource-integrated-database-egrid (accessed Apr 13, 2020).
 """

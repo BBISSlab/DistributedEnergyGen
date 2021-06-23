@@ -843,9 +843,9 @@ def impacts_sim(data,
     pm_df['CHP_efficiency'] = pm_df[['chp_EFF_LHV', 'chp_EFF_HHV']].max(axis=1)
 
     # Create Grid Dataframe
-    # Ou, L., & Cai, H. (2020). ANL-20/41: Update of Emission Factors of 
-    # Greenhouse Gases and Criteria Air Pollutants, and Generation 
-    # Efficiencies of the U.S. Electricity Generation Sector Energy 
+    # Ou, L., & Cai, H. (2020). ANL-20/41: Update of Emission Factors of
+    # Greenhouse Gases and Criteria Air Pollutants, and Generation
+    # Efficiencies of the U.S. Electricity Generation Sector Energy
     # Systems Division. www.anl.gov.
     NGCC_dict = {'ch4': 9. * 10**-3,
                  'co': 3.4 * 10**-2,
@@ -1032,16 +1032,18 @@ def calculate_leakage(leakage_rate, fuel_consumption):
     return system_leakage
 
 
-def calculate_energy_deficit(energy_demand, energy_supply):
-    deficit = np.where(energy_supply >= energy_demand,
-                       0,
-                       energy_demand - energy_supply)
-    return deficit
+def calculate_energy_deficit(energy_demand, energy_supply, ):
+    net_energy = energy_supply - energy_demand
+    deficit_energy = np.where(net_energy <= 0,
+                              net_energy,
+                              0)
+    return deficit_energy
 
 
 def calculate_energy_surplus(energy_demand, energy_supply):
-    surplus_energy = np.where(energy_supply > energy_demand,
-                              energy_supply - energy_demand, 0)
+    net_energy = energy_supply - energy_demand
+    surplus_energy = np.where(net_energy > 0,
+                              net_energy, 0)
     return surplus_energy
 
 
@@ -1100,13 +1102,13 @@ def calculate_GHG(co2=0, ch4=0, n2o=0, GWP_year=100, GWP_factor=1,
 def aggregate_impacts(dataframe, impact):
     if impact == 'GHG':
         GHG_100 = calculate_GHG(co2=dataframe.co2_int,
-                ch4=dataframe.ch4_int,
-                n2o=dataframe.n2o_int,
-                GWP_year=100)
+                                ch4=dataframe.ch4_int,
+                                n2o=dataframe.n2o_int,
+                                GWP_year=100)
         GHG_20 = calculate_GHG(co2=dataframe.co2_int,
-                ch4=dataframe.ch4_int,
-                n2o=dataframe.n2o_int,
-                GWP_year=20)
+                               ch4=dataframe.ch4_int,
+                               n2o=dataframe.n2o_int,
+                               GWP_year=20)
         return GHG_100, GHG_20
     else:
         if impact in ['n2o', 'pm', 'so2']:
@@ -1198,39 +1200,85 @@ REFERENCES
         Intergovernmental Panel on Climate Change: Geneva, Switzerland, 2014.
 
 """
+#####################################################
+# Functions and Models for PV-Energy Storage Models #
+#####################################################
+
+def building_pv_energy_sim(Building_,
+                           City_,
+                           Furnace_=None,
+                           AC_=None):
+
+    df = electrify_building_demands(Building_, Furnace_, AC_)
+
+    PVSystem_ = design_building_PV(Building_, Furnace_, AC_, df, method='peak')
+
+    # Run PV supply
+    pv_energy_output = pv_simulation(PVSystem_=PVSystem_, City_=City_)
+    df.index = pv_energy_output.index
+    # Convert PV outputs into kW
+    df['pv_dc'] = pv_energy_output['power_dc'] / 1000
+    df['pv_ac'] = pv_energy_output['power_ac'] / 1000
+
+    df['electricity_surplus'] = calculate_energy_surplus(
+        df['net_electricity_demand'], df['pv_ac'])
+    df['electricity_deficit'] = calculate_energy_deficit(
+        df['net_electricity_demand'], df['pv_ac'])
+
+    return df
 
 
-def building_pv(Building_, 
-                City_, 
-                PVSystem_, pv_deg_rate=0,
-                Furnace_=None,
-                AC_=None,
-                year=0):
+def electrify_building_demands(Building_, Furnace_=None, AC_=None):
     df = pd.DataFrame()
-    
+
     # Read building demands. All demands are in kWh
     df['electricity_demand'] = Building_.electricity_demand
     df['heat_demand'] = Building_.heat_demand
     df['cooling_demand'] = Building_.cooling_demand
 
     # Electrify building loads
-    # df['heat_electricity'] = Building_.thermal_to_electricity(df.heat_demand, efficiency=Furnace_.efficiency)
-    # df['cooling_electricity'] = Building_.thermal_to_electricity(df.cooling_demand, efficiency=AC_.efficiency)
+    if Furnace_ is not None:
+        df['heat_electricity'] = Building_.thermal_to_electricity(
+            df.heat_demand, efficiency=Furnace_['efficiency'])
+    else:
+        df['heat_electricity'] = 0
+
+    if AC_ is not None:
+        df['cooling_electricity'] = Building_.thermal_to_electricity(
+            df.cooling_demand, efficiency=AC_['COP_full_load'])
+    else:
+        df['cooling_electricity'] = 0
 
     # Calculate Net electricity demand
-    # df['net_electricity_demand'] = df.electricity_demand + df.heat_electricity + df.cooling_electricity
-    
-    # Design PV system for Peak Load
-    PVSystem_ = size_pv(PVSystem_, 
-                        peak_electricity=df.electricity_demand.max(),
+    df['net_electricity_demand'] = df.electricity_demand + \
+        df.heat_electricity + df.cooling_electricity
+
+    return df
+
+
+def design_building_PV(Building_, Furnace_=None, AC_=None,
+                       energy_demands_df=None, method='peak'):
+    City_ = Building_.City_
+    City_._get_data(City_.tmy3_file)
+
+    # Will put this as a seperate function later
+    sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
+    sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
+
+    module = sandia_modules['Silevo_Triex_U300_Black__2014_']
+    inverter = sapm_inverters['iPower__SHO_1_1__120V_']
+
+    PVSystem_ = select_PVSystem(module='Silevo_Triex_U300_Black__2014_',
+                                inverter='iPower__SHO_1_1__120V_', surface_azimuth=180)
+
+    if energy_demands_df is None:
+        energy_demands_df = electrify_building_demands(
+            Building_, Furnace_, AC_)
+
+    peak_electricity_demand = energy_demands_df.net_electricity_demand.max() * 1000
+
+    PVSystem_ = size_pv(PVSystem_,
+                        peak_electricity=peak_electricity_demand,
                         method='peak')
 
-    # Run PV supply
-    pv_energy_output = pv_simulation(PVSystem_=PVSystem_, City_=City_) 
-    df.index = pv_energy_output.index
-    pv_energy_output['electricity_demand'] = df.electricity_demand
-    pv_energy_output.to_csv(r'model_outputs\testing\pv_energy_output.csv')
-    # Move to following year
-    # Works up to here
-
-    return pv_energy_output
+    return PVSystem_
