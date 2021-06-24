@@ -1,3 +1,4 @@
+from math import sqrt
 import os
 import inspect
 import datetime
@@ -1263,19 +1264,20 @@ def design_building_PV(Building_, Furnace_=None, AC_=None,
 
     # Will put this as a seperate function later
     sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
-    sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
 
+    # Current default PV module
     module = sandia_modules['Silevo_Triex_U300_Black__2014_']
-    inverter = sapm_inverters['iPower__SHO_1_1__120V_']
 
-    PVSystem_ = select_PVSystem(module='Silevo_Triex_U300_Black__2014_',
-                                inverter='iPower__SHO_1_1__120V_', surface_azimuth=180)
+    # The Inverter must be the size of the largest AC load 
+    peak_electricity_demand = energy_demands_df.net_electricity_demand.max() * 1000 # in W
+    inverter = size_inverter(max_AC_load=peak_electricity_demand)
 
+    
     if energy_demands_df is None:
         energy_demands_df = electrify_building_demands(
             Building_, Furnace_, AC_)
 
-    peak_electricity_demand = energy_demands_df.net_electricity_demand.max() * 1000
+    PVSystem_ = select_PVSystem(module, inverter, surface_azimuth=180)
 
     PVSystem_ = size_pv(PVSystem_,
                         peak_electricity=peak_electricity_demand,

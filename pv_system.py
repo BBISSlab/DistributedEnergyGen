@@ -54,6 +54,29 @@ def list_inverters():
         print('Power, W: {:f}'.format(inverter['Vdcmax'] * inverter['Idcmax']))
 
 
+def size_inverter(max_AC_load, units='W'):
+    # max_AC_load is the maximum power draw
+    if units == 'kW':
+        max_AC_load = max_AC_load * 1000
+    elif units == 'W':
+        pass
+    else:
+        max_AC_load = input('Input the maximum AC load in W')
+
+    sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
+
+    df = sapm_inverters.transpose().reset_index().rename(columns={'index':'inverter'})
+
+    df['distance'] = np.abs(df['Paco'] - max_AC_load)
+    
+    # Select only Utility Interactive Inverters
+    chosen_inverter = df[(df['CEC_Type'] == 'Utility Interactive') & (df['distance'] == df['distance'].min())]['inverter']
+
+    inverter = sapm_inverters[chosen_inverter]
+    
+    return inverter
+
+
 def select_PVSystem(
         module=None,
         inverter=None,
@@ -90,9 +113,9 @@ def select_PVSystem(
             input('Enter surface azimuth (degrees from N): '))
 
     module_parameters = {'a': module['A'],
-                         'b': module['B'],
-                         'deltaT': module['DTC']}
-
+                                    'b': module['B'],
+                                    'deltaT': module['DTC']}
+    
     PVSystem_ = pvlib.pvsystem.PVSystem(module=module, inverter=inverter,
                                         surface_azimuth=surface_azimuth, name=name,
                                         module_type='glass_polymer',
@@ -102,10 +125,11 @@ def select_PVSystem(
 
 
 def size_pv(PVSystem_,
-            peak_electricity=0,
+            peak_electricity=0, 
             roof_area=0,
             percent_roof_cover=100,
-            method='peak'):
+            method='peak',
+            oversize_factor=1):
 
     # Nominal Power Output in W
     nominal_P_out = PVSystem_.module.Vmpo * PVSystem_.module.Impo
@@ -189,7 +213,7 @@ def pv_simulation(PVSystem_, City_):
         pressure=weather_data.Pressure,
         temperature=weather_data.DryBulb)
 
-    # For some reason,
+    # For some reason, 
     weather_data.index = solar_pos.index
 
     # Calculate Airmass
@@ -205,7 +229,7 @@ def pv_simulation(PVSystem_, City_):
                                solar_pos['azimuth'])
 
     # Calculate the POA Sky Diffuse
-    # Using isotropic model, since all other models output only NAN. Appears to be an issue with the
+    # Using isotropic model, since all other models output only NAN. Appears to be an issue with the 
     # surface tilt calculation. Possibly an index mismatch.
     sky_diffuse = pvlib.irradiance.get_sky_diffuse(surface_tilt=PVSystem_.surface_tilt,
                                                    surface_azimuth=PVSystem_.surface_azimuth,
@@ -228,9 +252,9 @@ def pv_simulation(PVSystem_, City_):
 
     # POA Components needs AOI, DNI, POA SKY DIFFUSE, POA GROUND DIFFUSE
     poa_irradiance = pvlib.irradiance.poa_components(aoi=aoi,
-                                                     dni=weather_data.DNI,
-                                                     poa_sky_diffuse=sky_diffuse,
-                                                     poa_ground_diffuse=ground_diffuse)
+                                                      dni=weather_data.DNI,
+                                                      poa_sky_diffuse=sky_diffuse,
+                                                      poa_ground_diffuse=ground_diffuse)
 
     """
     3) ENERGY SIMULATION
@@ -239,17 +263,17 @@ def pv_simulation(PVSystem_, City_):
     from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
     """
 
-    # Calculate the PV cell and module temperature
-    pvtemps = PVSystem_.sapm_celltemp(poa_global=poa_irradiance['poa_global'],
-                                      wind_speed=weather_data.Wspd,
-                                      temp_air=weather_data.DryBulb)
+    # Calculate the PV cell and module temperature    
+    pvtemps = PVSystem_.sapm_celltemp(poa_global = poa_irradiance['poa_global'],
+                                    wind_speed=weather_data.Wspd,
+                                    temp_air=weather_data.DryBulb)
 
     # DC power generation
     effective_irradiance = pvlib.pvsystem.sapm_effective_irradiance(poa_irradiance.poa_direct,
-                                                                    poa_irradiance.poa_diffuse,
-                                                                    airmass.airmass_absolute,
-                                                                    aoi,
-                                                                    PVSystem_.module)
+                                                               poa_irradiance.poa_diffuse,
+                                                               airmass.airmass_absolute,
+                                                               aoi,
+                                                               PVSystem_.module)
 
     # SAPM = Sandia PV Array Performance Model, generates a dataframe with short-circuit current,
     # current at the maximum-power point, open-circuit voltage, maximum-power
@@ -301,10 +325,6 @@ def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
     fixed_cost = fixed_om_cost * pv_system_power_rating
 
     return capital_cost_PV, fixed_cost, variable_om_cost
-
-
-def calculate_surplus(energy_supply, energy_demand):
-    pass
 
 
 def run_pv_output():
