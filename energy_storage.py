@@ -325,6 +325,8 @@ def _parse_raw_BES_df(csvdata):
 battery = BatteryStorage(BES_id='Li3')
 print(battery)
 
+
+
 # End BatteryStorage Methods #
 ##############################
 

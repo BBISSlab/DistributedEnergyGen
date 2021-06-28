@@ -4,6 +4,7 @@ import os
 import io
 import re
 from pvlib import temperature
+from pvlib.inverter import sandia
 from pvlib.location import Location
 from pvlib.pvsystem import PVSystem
 from pvlib.spa import solar_position
@@ -54,27 +55,145 @@ def list_inverters():
         print('Power, W: {:f}'.format(inverter['Vdcmax'] * inverter['Idcmax']))
 
 
-def size_inverter(max_AC_load, units='W'):
-    # max_AC_load is the maximum power draw
+def get_module_parameters(module):
+    sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
+    return sandia_modules[module]
+
+
+def get_inverter_parameters(inverter):
+    cec_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
+    inverter_parameters = cec_inverters[inverter].transpose()
+    return inverter_parameters
+
+
+def size_pv_modules(design_load, module, oversize_factor=1):
+    module_parameters = get_module_parameters(module)
+
+    # Nominal power rating
+    v_mpo = module_parameters['Vmpo']  # Volts
+    i_mpo = module_parameters['Impo']  # Ampere
+    power_rating = v_mpo * i_mpo  # Watts
+
+    # Open circuit power
+    v_oco = module_parameters['Voco']  # V
+    i_sco = module_parameters['Isco']  # A
+    surge_power = v_oco * i_sco
+
+    # Minimum number of modules
+    minimum_number_of_modules = m.ceil(design_load / power_rating)
+    minimum_number_of_modules = m.ceil(
+        minimum_number_of_modules * oversize_factor)
+    return minimum_number_of_modules
+
+
+def calculate_power_rating(module, number_of_modules):
+    module_parameters = get_module_parameters(module)
+    # Nominal power rating
+    v_mpo = module_parameters['Vmpo']  # Volts
+    i_mpo = module_parameters['Impo']  # Ampere
+    power_rating = v_mpo * i_mpo  # Watts
+
+    return power_rating * number_of_modules
+
+
+def size_inverter(design_load, units='W', grid_tied=True):
+    # Check units of design load
     if units == 'kW':
-        max_AC_load = max_AC_load * 1000
+        design_load = design_load * 1000
     elif units == 'W':
         pass
     else:
-        max_AC_load = input('Input the maximum AC load in W')
+        design_load = input('Input the maximum AC load in W')
 
-    sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
+    # max_AC_load is the maximum power draw
+    if grid_tied is True:
+        # Design according to PV rating
+        sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
 
-    df = sapm_inverters.transpose().reset_index().rename(columns={'index':'inverter'})
+        df = sapm_inverters.transpose().reset_index().rename(
+            columns={'index': 'inverter'})
 
-    df['distance'] = np.abs(df['Paco'] - max_AC_load)
-    
-    # Select only Utility Interactive Inverters
-    chosen_inverter = df[(df['CEC_Type'] == 'Utility Interactive') & (df['distance'] == df['distance'].min())]['inverter']
+        # Filter for inverters that fit the design load
+        df = df[(df['CEC_Type'] == 'Utility Interactive') &
+                (df['Pdco']) < design_load]
 
-    inverter = sapm_inverters[chosen_inverter]
-    
-    return inverter
+        df['power_difference'] = np.abs(df['Pdco'] - design_load)
+
+        # Select only Utility Interactive Inverters
+        chosen_inverter = df[(df['power_difference'] ==
+                              df['power_difference'].min())]['inverter']
+
+        if len(chosen_inverter.index) > 1:
+            chosen_inverter.reset_index(inplace=True, drop=True)
+            return chosen_inverter[0]
+
+    else:
+        # Design for building load
+        pass
+
+    return chosen_inverter
+
+
+def size_pv_array(number_of_modules,
+                  module,
+                  inverter,
+                  module_parameters=None,
+                  inverter_parameters=None):
+
+    if module_parameters is None:
+        module_parameters = get_module_parameters(module)
+
+    if inverter_parameters is None:
+        inverter_parameters = get_inverter_parameters(inverter)
+
+    modules_per_string = m.ceil(inverter_parameters['Vdcmax']
+                                / module_parameters['Vmpo'])
+
+    strings = m.ceil(number_of_modules / modules_per_string)
+
+    # Check
+    array_size = modules_per_string * strings
+    array_power_rating = calculate_power_rating(module, array_size)
+
+    check = array_power_rating > inverter_parameters['Pdco']
+
+    if check is False:
+        raise Exception('Your PV Array is Too Small')
+    else:
+        return modules_per_string, strings
+
+
+def design_PVSystem(design_load,
+                    module,
+                    surface_azimuth=180,
+                    surface_tilt=0,
+                    oversize_factor=1,
+                    name=''):
+    # Design Load should be in W
+    # Get minimum module size
+    number_of_modules = size_pv_modules(design_load, module, oversize_factor)
+    pv_power_rating = calculate_power_rating(module, number_of_modules)
+    module_parameters = get_module_parameters(module)
+
+    # Size Inverter
+    inverter = size_inverter(design_load=pv_power_rating)
+    inverter_parameters = get_inverter_parameters(inverter)
+
+    # Size Array
+    modules_per_string, strings_per_inverter = size_pv_array(number_of_modules,
+                                                             module,
+                                                             inverter,
+                                                             module_parameters,
+                                                             inverter_parameters)
+
+    PVSystem_ = pvlib.pvsystem.PVSystem(name=name,
+                                        module=module, module_parameters=module_parameters,
+                                        inverter=inverter, inverter_parameters=inverter_parameters,
+                                        modules_per_string=modules_per_string, strings_per_inverter=strings_per_inverter,
+                                        surface_azimuth=surface_azimuth, surface_tilt=surface_tilt,
+                                        module_type='glass_polymer', racking_model='open_rack')
+
+    return PVSystem_
 
 
 def select_PVSystem(
@@ -82,7 +201,9 @@ def select_PVSystem(
         inverter=None,
         surface_azimuth=None,
         name=None):
-    """This function allows you to select a module and inverter for your system."""
+    r'''DEPRACATED'''
+
+    r"""This function allows you to select a module and inverter for your system."""
     sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
     sapm_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
 
@@ -95,7 +216,8 @@ def select_PVSystem(
             # selected_module = input('Select module: ')
             module = sandia_modules[input('Select module: ')]
     else:
-        module = sandia_modules[module]
+        module = module
+        module_parameters = sandia_modules[module]
 
     if inverter is None:
         see_inverters = input('Do you want to see a list of inverters?: y/n')
@@ -106,51 +228,18 @@ def select_PVSystem(
             # selected_inverter = input('Select inverter: ')
             inverter = sapm_inverters[input('Select inverter: ')]
     else:
-        inverter = sapm_inverters[inverter]
+        inverter = inverter
+        inverter_parameters = sapm_inverters[inverter].squeeze()
 
     if surface_azimuth is None:
         surface_azimuth = float(
             input('Enter surface azimuth (degrees from N): '))
 
-    module_parameters = {'a': module['A'],
-                                    'b': module['B'],
-                                    'deltaT': module['DTC']}
-    
-    PVSystem_ = pvlib.pvsystem.PVSystem(module=module, inverter=inverter,
+    PVSystem_ = pvlib.pvsystem.PVSystem(module=module, module_parameters=module_parameters,
+                                        inverter=inverter, inverter_parameters=inverter_parameters,
                                         surface_azimuth=surface_azimuth, name=name,
                                         module_type='glass_polymer',
                                         racking_model='open_rack')
-
-    return PVSystem_
-
-
-def size_pv(PVSystem_,
-            peak_electricity=0, 
-            roof_area=0,
-            percent_roof_cover=100,
-            method='peak',
-            oversize_factor=1):
-
-    # Nominal Power Output in W
-    nominal_P_out = PVSystem_.module.Vmpo * PVSystem_.module.Impo
-
-    if method == 'peak':
-        num_modules = m.ceil(peak_electricity / nominal_P_out)
-
-    if method == 'roof':
-        module_area = PVSystem_.module['Area']
-        # print('Module area: {}'.format(module_area))
-        covered_roof_area = Building_.roof_area * percent_roof_cover / 100
-
-        num_modules = covered_roof_area // module_area
-
-    modules_per_string = m.ceil(PVSystem_.inverter.Vdcmax
-                                / PVSystem_.module.Vmpo)
-
-    strings = m.ceil(num_modules / modules_per_string)
-
-    PVSystem_.modules_per_string = modules_per_string
-    PVSystem_.strings_per_inverter = strings
 
     return PVSystem_
 
@@ -175,7 +264,8 @@ def pv_simulation(PVSystem_, City_):
     print('Running PV Simulation for {}'.format(City_.name.upper()))
 
     # the PVSystem_ contains data on the module, inverter, and azimuth.
-    PVSystem_.surface_tilt = City_.latitude  # Tilt angle of array
+    if PVSystem_.surface_tilt is None:
+        PVSystem_.surface_tilt = City_.latitude  # Tilt angle of array
 
     location = Location(latitude=City_.latitude, longitude=City_.longitude,
                         tz=City_.tz, altitude=City_.altitude, name=City_.name)
@@ -213,7 +303,7 @@ def pv_simulation(PVSystem_, City_):
         pressure=weather_data.Pressure,
         temperature=weather_data.DryBulb)
 
-    # For some reason, 
+    # For some reason,
     weather_data.index = solar_pos.index
 
     # Calculate Airmass
@@ -229,7 +319,7 @@ def pv_simulation(PVSystem_, City_):
                                solar_pos['azimuth'])
 
     # Calculate the POA Sky Diffuse
-    # Using isotropic model, since all other models output only NAN. Appears to be an issue with the 
+    # Using isotropic model, since all other models output only NAN. Appears to be an issue with the
     # surface tilt calculation. Possibly an index mismatch.
     sky_diffuse = pvlib.irradiance.get_sky_diffuse(surface_tilt=PVSystem_.surface_tilt,
                                                    surface_azimuth=PVSystem_.surface_azimuth,
@@ -252,9 +342,9 @@ def pv_simulation(PVSystem_, City_):
 
     # POA Components needs AOI, DNI, POA SKY DIFFUSE, POA GROUND DIFFUSE
     poa_irradiance = pvlib.irradiance.poa_components(aoi=aoi,
-                                                      dni=weather_data.DNI,
-                                                      poa_sky_diffuse=sky_diffuse,
-                                                      poa_ground_diffuse=ground_diffuse)
+                                                     dni=weather_data.DNI,
+                                                     poa_sky_diffuse=sky_diffuse,
+                                                     poa_ground_diffuse=ground_diffuse)
 
     """
     3) ENERGY SIMULATION
@@ -263,17 +353,17 @@ def pv_simulation(PVSystem_, City_):
     from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
     """
 
-    # Calculate the PV cell and module temperature    
-    pvtemps = PVSystem_.sapm_celltemp(poa_global = poa_irradiance['poa_global'],
-                                    wind_speed=weather_data.Wspd,
-                                    temp_air=weather_data.DryBulb)
+    # Calculate the PV cell and module temperature
+    pvtemps = PVSystem_.sapm_celltemp(poa_global=poa_irradiance['poa_global'],
+                                      wind_speed=weather_data.Wspd,
+                                      temp_air=weather_data.DryBulb)
 
     # DC power generation
     effective_irradiance = pvlib.pvsystem.sapm_effective_irradiance(poa_irradiance.poa_direct,
-                                                               poa_irradiance.poa_diffuse,
-                                                               airmass.airmass_absolute,
-                                                               aoi,
-                                                               PVSystem_.module)
+                                                                    poa_irradiance.poa_diffuse,
+                                                                    airmass.airmass_absolute,
+                                                                    aoi,
+                                                                    PVSystem_.module_parameters)
 
     # SAPM = Sandia PV Array Performance Model, generates a dataframe with short-circuit current,
     # current at the maximum-power point, open-circuit voltage, maximum-power
@@ -281,26 +371,35 @@ def pv_simulation(PVSystem_, City_):
     dc_out = pvlib.pvsystem.sapm(
         effective_irradiance,
         pvtemps,
-        PVSystem_.module)  # This will calculate the DC power output for a module
+        PVSystem_.module_parameters)  # This will calculate the DC power output for a module
 
     ac_out = pd.DataFrame()
+
     # ac_out['p_ac'] is the AC power output in W from the DC power input.
-    ac_out['p_ac'] = pvlib.pvsystem.snlinverter(
-        dc_out.v_mp, dc_out.p_mp, PVSystem_.inverter)
+    ac_out['p_ac'] = pvlib.inverter.sandia(
+        dc_out.v_mp, dc_out.p_mp, PVSystem_.inverter_parameters)
 
     # p_ac/sqm is the AC power generated per square meter of module (W/m^2)
     # ac_out['p_ac/sqm'] = ac_out.p_ac.apply(lambda x: x / PVSystem_.module.Area)
 
     energy_output = pd.DataFrame(index=ac_out.index)
-    energy_output['voltage_dc'] = dc_out['v_mp']
-    energy_output['power_dc'] = dc_out['p_mp']
-    energy_output['power_ac'] = ac_out['p_ac']
+    energy_output['v_dc'] = dc_out['v_mp']
+    energy_output['p_dc'] = dc_out['p_mp']
+    energy_output['p_ac'] = ac_out['p_ac']
 
-    print('PV simulation completed for {}'.format(City_.name.upper()))
+    # Calculate the clipped energy
+    clipped_energy = calculate_clipped_energy(v_dc=energy_output['v_dc'],
+                                              p_dc=energy_output['p_dc'],
+                                              inverter=PVSystem_.inverter_parameters)
+
+    energy_output['clipped_p_dc'] = clipped_energy['clipped_p_dc']
+    energy_output['clipped_p_ac'] = clipped_energy['clipped_p_ac']
+    energy_output['inverter_efficiency'] = clipped_energy['inverter_efficiency']
 
     return energy_output
 
 
+# Pending
 def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
     # Solar PV Prices from:
     # NREL (National Renewable Energy Laboratory). 2020. 2020 Annual Technology
@@ -327,6 +426,111 @@ def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
     return capital_cost_PV, fixed_cost, variable_om_cost
 
 
+def calculate_clipped_energy(v_dc, p_dc, inverter):
+    r'''
+    Calculate the AC power clipped using Sandia's
+    Grid-Connected PV Inverter model.
+
+    Parameters
+    ----------
+    v_dc : numeric
+        DC voltage input to the inverter. [V]
+
+    p_dc : numeric
+        DC power input to the inverter. [W]
+
+    inverter : dict-like
+        Defines parameters for the inverter model in [1]_.
+
+    Returns
+    -------
+    clipped_power : pandas dataframe
+        AC power output. [W]
+
+     Notes
+    -----
+
+    Determines the AC power output of an inverter given the DC voltage and DC
+    power. Output AC power is bounded above by the parameter ``Paco``, to
+    represent inverter "clipping".  When `power_ac` would be less than
+    parameter ``Pso`` (startup power required), then `power_ac` is set to
+    ``-Pnt``, representing self-consumption. `power_ac` is not adjusted for
+    maximum power point tracking (MPPT) voltage windows or maximum current
+    limits of the inverter.
+
+    Required model parameters are:
+
+    ======   ============================================================
+    Column   Description
+    ======   ============================================================
+    Paco     AC power rating of the inverter. [W]
+    Pdco     DC power input that results in Paco output at reference
+             voltage Vdco. [W]
+    Vdco     DC voltage at which the AC power rating is achieved
+             with Pdco power input. [V]
+    Pso      DC power required to start the inversion process, or
+             self-consumption by inverter, strongly influences inverter
+             efficiency at low power levels. [W]
+    C0       Parameter defining the curvature (parabolic) of the
+             relationship between AC power and DC power at the reference
+             operating condition. [1/W]
+    C1       Empirical coefficient allowing ``Pdco`` to vary linearly
+             with DC voltage input. [1/V]
+    C2       Empirical coefficient allowing ``Pso`` to vary linearly with
+             DC voltage input. [1/V]
+    C3       Empirical coefficient allowing ``C0`` to vary linearly with
+             DC voltage input. [1/V]
+    Pnt      AC power consumed by the inverter at night (night tare). [W]
+    ======   ============================================================
+
+    A copy of the parameter database from the System Advisor Model (SAM) [2]_
+    is provided with pvlib and may be read  using
+    :py:func:`pvlib.pvsystem.retrieve_sam`.
+
+    References
+    ----------
+    .. [1] D. King, S. Gonzalez, G. Galbraith, W. Boyson, "Performance Model
+       for Grid-Connected Photovoltaic Inverters", SAND2007-5036, Sandia
+       National Laboratories.
+
+    .. [2] System Advisor Model web page. https://sam.nrel.gov.
+
+    See also
+    --------
+    pvlib.pvsystem.retrieve_sam
+    '''
+    Paco = inverter['Paco']
+    Pnt = inverter['Pnt']
+    Pso = inverter['Pso']
+
+    # _sandia_eff calculates the inverter AC power without clipping
+    power_ac = pvlib.inverter._sandia_eff(v_dc, p_dc, inverter)
+    # _sandia_limits applies the minimum and maximum power limits to 'power_ac)
+    power_ac_limit = pvlib.inverter._sandia_limits(
+        power_ac, p_dc, Paco, Pnt, Pso)
+
+    clipped_power_ac = power_ac - power_ac_limit
+
+    inverter_efficiency = power_ac / p_dc
+    clipped_power_dc = clipped_power_ac / inverter_efficiency
+
+    clipped_power = pd.concat([clipped_power_ac, clipped_power_dc, inverter_efficiency, power_ac, p_dc],
+                              axis=1)
+
+    clipped_power.rename(columns={0: 'clipped_p_ac',
+                                  1: 'clipped_p_dc',
+                                  2: 'inverter_efficiency',
+                                  3: 'unclipped_p_ac',
+                                  4: 'unclipped_p_dc'},
+                         inplace=True)
+
+    return clipped_power
+
+
+def calculate_surplus_dc_power():
+    pass
+
+
 def run_pv_output():
     pass
 #####################
@@ -349,12 +553,12 @@ def test():
     nominal_P_out = pvsystem.module.Vmpo * pvsystem.module.Impo
     peak_electricity = 1000
 
-    num_modules = m.ceil(peak_electricity / nominal_P_out)
+    number_of_modules = m.ceil(peak_electricity / nominal_P_out)
 
     modules_per_string = m.ceil(pvsystem.inverter.Vdcmax
                                 / pvsystem.module.Vmpo)
 
-    strings = m.ceil(num_modules / modules_per_string)
+    strings = m.ceil(number_of_modules / modules_per_string)
 
     pvsystem.modules_per_string = modules_per_string
     pvsystem.strings_per_inverter = strings
