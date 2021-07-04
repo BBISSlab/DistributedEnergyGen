@@ -62,9 +62,31 @@ def get_module_parameters(module):
 
 def get_inverter_parameters(inverter):
     cec_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
-    inverter_parameters = cec_inverters[inverter].transpose()
-    return inverter_parameters
+    inverter_parameters = cec_inverters[inverter]
 
+    if isinstance(inverter_parameters, pd.Series) or isinstance(inverter_parameters, pd.DataFrame):
+
+        inverter_parameters = inverter_parameters.transpose()
+        inverter_dict = inverter_parameters.to_dict()
+        inverter_dict = {'Model':inverter,
+                         'Vac':inverter_dict['Vac'],
+                         'Pso':inverter_dict['Pso'],
+                         'Paco':inverter_dict['Paco'],
+                         'Pdco':inverter_dict['Pdco'],
+                         'Vdco':inverter_dict['Vdco'],
+                         'C0':inverter_dict['C0'],
+                         'C1':inverter_dict['C1'],
+                         'C2':inverter_dict['C2'],
+                         'C3':inverter_dict['C3'],
+                         'Pnt':inverter_dict['Pnt'],
+                         'Vdcmax':inverter_dict['Vdcmax'],
+                         'Idcmax':inverter_dict['Idcmax'],
+                         'Mppt_low':inverter_dict['Mppt_low'],
+                         'Mppt_high':inverter_dict['Mppt_high'],
+                         'CEC_Date':inverter_dict['CEC_Date'],
+                         'CEC_Type':inverter_dict['CEC_Type']}
+    
+    return inverter_dict
 
 def size_pv_modules(design_load, module, oversize_factor=1):
     module_parameters = get_module_parameters(module)
@@ -123,7 +145,8 @@ def size_inverter(design_load, units='W', grid_tied=True):
         chosen_inverter = df[(df['power_difference'] ==
                               df['power_difference'].min())]['inverter']
 
-        if len(chosen_inverter.index) > 1:
+
+        if (len(chosen_inverter.index) > 1) or isinstance(chosen_inverter, pd.Series):
             chosen_inverter.reset_index(inplace=True, drop=True)
             return chosen_inverter[0]
 
@@ -146,8 +169,7 @@ def size_pv_array(number_of_modules,
     if inverter_parameters is None:
         inverter_parameters = get_inverter_parameters(inverter)
 
-    modules_per_string = m.ceil(inverter_parameters['Vdcmax']
-                                / module_parameters['Vmpo'])
+    modules_per_string = m.ceil(inverter_parameters['Vdcmax'] / module_parameters['Vmpo'])
 
     strings = m.ceil(number_of_modules / modules_per_string)
 
@@ -243,189 +265,6 @@ def select_PVSystem(
 
     return PVSystem_
 
-
-def pv_simulation(PVSystem_, City_):
-    '''
-    To Do
-    - Modify pv simulation to match your model
-    - Calculate poa global
-    -
-    '''
-
-    '''
-    This function runs the simulation for the energy produced from a PV system.
-
-    1) SET UP PV SYSTEM
-    ===================
-    The following functions set up the PV system. The functions take a PVSystem_ which contains the module
-    parameters, inverter parameters, and the surface azimuth.
-    Other parameters (e.g., albedo and surface type) are not currently functional.
-    '''
-    print('Running PV Simulation for {}'.format(City_.name.upper()))
-
-    # the PVSystem_ contains data on the module, inverter, and azimuth.
-    if PVSystem_.surface_tilt is None:
-        PVSystem_.surface_tilt = City_.latitude  # Tilt angle of array
-
-    location = Location(latitude=City_.latitude, longitude=City_.longitude,
-                        tz=City_.tz, altitude=City_.altitude, name=City_.name)
-
-    weather_data = City_.tmy_data
-
-    # The surface_type_list is for a future iteration.
-    # It will be used to calculate the ground albedo and subsequent reflected
-    # radiation.
-    surface_type_list = ['urban',
-                         'grass',
-                         'fresh grass',
-                         'snow',
-                         'fresh snow',
-                         'asphalt',
-                         'concrete',
-                         'aluminum',
-                         'copper',
-                         'fresh steel',
-                         'dirty steel',
-                         'sea']
-
-    # system['albedo'] = input('Input albedo (default is 0.25; typically 0.1-0.4 for surfaces on Earth)')
-    # system['surface_type'] = input('To overwrite albedo, input surface type from {}'.format(surface_type_list))
-
-    """
-    2) IRRADIANCE CALCULATIONS
-    ====================
-    The following functions calculate the energy output of the PV system. The simulation incorporates the efficiency losses
-    from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
-    """
-    # Calculate Solar Position
-    solar_pos = location.get_solarposition(
-        times=weather_data.index,
-        pressure=weather_data.Pressure,
-        temperature=weather_data.DryBulb)
-
-    # For some reason,
-    weather_data.index = solar_pos.index
-
-    # Calculate Airmass
-    airmass = location.get_airmass(
-        times=weather_data.index,
-        solar_position=solar_pos,
-        model='pickering2002')
-
-    # Calculate the AOI
-    aoi = pvlib.irradiance.aoi(PVSystem_.surface_tilt,
-                               PVSystem_.surface_azimuth,
-                               solar_pos['apparent_zenith'],
-                               solar_pos['azimuth'])
-
-    # Calculate the POA Sky Diffuse
-    # Using isotropic model, since all other models output only NAN. Appears to be an issue with the
-    # surface tilt calculation. Possibly an index mismatch.
-    sky_diffuse = pvlib.irradiance.get_sky_diffuse(surface_tilt=PVSystem_.surface_tilt,
-                                                   surface_azimuth=PVSystem_.surface_azimuth,
-                                                   solar_zenith=solar_pos['apparent_zenith'],
-                                                   solar_azimuth=solar_pos['azimuth'],
-                                                   dni=weather_data.DNI,
-                                                   ghi=weather_data.GHI,
-                                                   dhi=weather_data.DHI,
-                                                   dni_extra=weather_data.ETRN,
-                                                   airmass=airmass,
-                                                   model='king')
-
-    # Calculate POA Ground Diffuse
-    # Set albedo if data exists. Else albedo is none.
-    PVSystem_.albedo = weather_data['Alb']
-
-    ground_diffuse = pvlib.irradiance.get_ground_diffuse(surface_tilt=PVSystem_.surface_tilt,
-                                                         ghi=weather_data['GHI'],
-                                                         albedo=PVSystem_.albedo)
-
-    # POA Components needs AOI, DNI, POA SKY DIFFUSE, POA GROUND DIFFUSE
-    poa_irradiance = pvlib.irradiance.poa_components(aoi=aoi,
-                                                     dni=weather_data.DNI,
-                                                     poa_sky_diffuse=sky_diffuse,
-                                                     poa_ground_diffuse=ground_diffuse)
-
-    """
-    3) ENERGY SIMULATION
-    ====================
-    The following functions calculate the energy output of the PV system. The simulation incorporates the efficiency losses
-    from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
-    """
-
-    # Calculate the PV cell and module temperature
-    pvtemps = PVSystem_.sapm_celltemp(poa_global=poa_irradiance['poa_global'],
-                                      wind_speed=weather_data.Wspd,
-                                      temp_air=weather_data.DryBulb)
-
-    # DC power generation
-    effective_irradiance = pvlib.pvsystem.sapm_effective_irradiance(poa_irradiance.poa_direct,
-                                                                    poa_irradiance.poa_diffuse,
-                                                                    airmass.airmass_absolute,
-                                                                    aoi,
-                                                                    PVSystem_.module_parameters)
-
-    # SAPM = Sandia PV Array Performance Model, generates a dataframe with short-circuit current,
-    # current at the maximum-power point, open-circuit voltage, maximum-power
-    # point voltage and power
-    dc_out = pvlib.pvsystem.sapm(
-        effective_irradiance,
-        pvtemps,
-        PVSystem_.module_parameters)  # This will calculate the DC power output for a module
-
-    ac_out = pd.DataFrame()
-
-    # ac_out['p_ac'] is the AC power output in W from the DC power input.
-    ac_out['p_ac'] = pvlib.inverter.sandia(
-        dc_out.v_mp, dc_out.p_mp, PVSystem_.inverter_parameters)
-
-    # p_ac/sqm is the AC power generated per square meter of module (W/m^2)
-    # ac_out['p_ac/sqm'] = ac_out.p_ac.apply(lambda x: x / PVSystem_.module.Area)
-
-    energy_output = pd.DataFrame(index=ac_out.index)
-    energy_output['v_dc'] = dc_out['v_mp']
-    energy_output['p_dc'] = dc_out['p_mp']
-    energy_output['p_ac'] = ac_out['p_ac']
-
-    # Calculate the clipped energy
-    clipped_energy = calculate_clipped_energy(v_dc=energy_output['v_dc'],
-                                              p_dc=energy_output['p_dc'],
-                                              inverter=PVSystem_.inverter_parameters)
-
-    energy_output['clipped_p_dc'] = clipped_energy['clipped_p_dc']
-    energy_output['clipped_p_ac'] = clipped_energy['clipped_p_ac']
-    energy_output['inverter_efficiency'] = clipped_energy['inverter_efficiency']
-
-    return energy_output
-
-
-# Pending
-def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
-    # Solar PV Prices from:
-    # NREL (National Renewable Energy Laboratory). 2020. 2020 Annual Technology
-    # Baseline. Golden, CO: National Renewable Energy Laboratory.
-    # https://atb.nrel.gov/
-    if Building_.building_type == 'single_family_residential':
-        # CAPEX includes construction and overnight capital cost in $/kW
-        CAPEX = 3054
-        # OM Costs
-        fixed_om_cost = 22  # $/kW/yr
-        variable_om_cost = 0  # $/MWh
-    else:
-        # CAPEX includes construction and overnight capital cost in $/kW
-        CAPEX = 2052
-        # OM Costs
-        fixed_om_cost = 18  # $/kW/yr
-        variable_om_cost = 0  # $/MWh
-
-    # Capital Cost in $
-    capital_cost_PV = CAPEX * pv_system_power_rating / 1000
-    # O&M cost in $/yr
-    fixed_cost = fixed_om_cost * pv_system_power_rating
-
-    return capital_cost_PV, fixed_cost, variable_om_cost
-
-
 def calculate_clipped_energy(v_dc, p_dc, inverter):
     r'''
     Calculate the AC power clipped using Sandia's
@@ -504,27 +343,220 @@ def calculate_clipped_energy(v_dc, p_dc, inverter):
     Pso = inverter['Pso']
 
     # _sandia_eff calculates the inverter AC power without clipping
-    power_ac = pvlib.inverter._sandia_eff(v_dc, p_dc, inverter)
+    p_ac = pvlib.inverter._sandia_eff(v_dc, p_dc, inverter)
     # _sandia_limits applies the minimum and maximum power limits to 'power_ac)
-    power_ac_limit = pvlib.inverter._sandia_limits(
-        power_ac, p_dc, Paco, Pnt, Pso)
+    p_ac_limit = pvlib.inverter._sandia_limits(
+        p_ac, p_dc, Paco, Pnt, Pso)
 
-    clipped_power_ac = power_ac - power_ac_limit
+    clipped_p_ac = p_ac - p_ac_limit
 
-    inverter_efficiency = power_ac / p_dc
-    clipped_power_dc = clipped_power_ac / inverter_efficiency
+    inverter_efficiency = p_ac / p_dc
 
-    clipped_power = pd.concat([clipped_power_ac, clipped_power_dc, inverter_efficiency, power_ac, p_dc],
+    clipped_p_dc = clipped_p_ac / inverter_efficiency
+
+    clipped_power = pd.concat([p_ac, clipped_p_ac, p_dc, clipped_p_dc, inverter_efficiency],
                               axis=1)
 
-    clipped_power.rename(columns={0: 'clipped_p_ac',
-                                  1: 'clipped_p_dc',
-                                  2: 'inverter_efficiency',
-                                  3: 'unclipped_p_ac',
-                                  4: 'unclipped_p_dc'},
+    clipped_power.rename(columns={0:'p_ac', 
+                                  1:'clipped_p_ac',
+                                  'p_mp':'p_dc',
+                                  2:'clipped_p_dc',
+                                  3:'inverter_efficiency'},
                          inplace=True)
 
+    # Clean Dataset
+    clipped_power['clipped_p_ac'] = np.where(clipped_power.p_dc <= 0, 0., clipped_p_ac)
+    clipped_power['inverter_efficiency'].replace(np.inf, 0, inplace=True)
+
     return clipped_power
+
+
+def pv_simulation(PVSystem_, City_):
+    '''
+    To Do
+    - Modify pv simulation to match your model
+    - Calculate poa global
+    -
+    '''
+
+    '''
+    This function runs the simulation for the energy produced from a PV system.
+
+    1) SET UP PV SYSTEM
+    ===================
+    The following functions set up the PV system. The functions take a PVSystem_ which contains the module
+    parameters, inverter parameters, and the surface azimuth.
+    Other parameters (e.g., albedo and surface type) are not currently functional.
+    '''
+    print('Running PV Simulation for {}'.format(City_.name.upper()))
+
+    # the PVSystem_ contains data on the module, inverter, and azimuth.
+    if PVSystem_.surface_tilt is None:
+        PVSystem_.surface_tilt = City_.latitude  # Tilt angle of array
+
+    location = Location(latitude=City_.latitude, longitude=City_.longitude,
+                        tz=City_.tz, altitude=City_.altitude, name=City_.name)
+
+    weather_data = City_.tmy_data
+
+    # The surface_type_list is for a future iteration.
+    # It will be used to calculate the ground albedo and subsequent reflected
+    # radiation.
+    surface_type_list = ['urban',
+                         'grass',
+                         'fresh grass',
+                         'snow',
+                         'fresh snow',
+                         'asphalt',
+                         'concrete',
+                         'aluminum',
+                         'copper',
+                         'fresh steel',
+                         'dirty steel',
+                         'sea']
+
+    # system['albedo'] = input('Input albedo (default is 0.25; typically 0.1-0.4 for surfaces on Earth)')
+    # system['surface_type'] = input('To overwrite albedo, input surface type from {}'.format(surface_type_list))
+
+    """
+    2) IRRADIANCE CALCULATIONS
+    ====================
+    The following functions calculate the energy output of the PV system. The simulation incorporates the efficiency losses
+    from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
+    """
+
+
+    # Calculate Solar Position
+    solar_pos = location.get_solarposition(
+        times=weather_data.index,
+        pressure=weather_data.Pressure,
+        temperature=weather_data.DryBulb)
+
+    # For some reason,
+    weather_data.index = solar_pos.index
+
+    # Calculate Airmass
+    airmass = location.get_airmass(
+        times=weather_data.index,
+        solar_position=solar_pos,
+        model='pickering2002')
+
+    # Calculate the AOI
+    aoi = pvlib.irradiance.aoi(PVSystem_.surface_tilt,
+                               PVSystem_.surface_azimuth,
+                               solar_pos['apparent_zenith'],
+                               solar_pos['azimuth'])
+
+    # Calculate the POA Sky Diffuse
+    # Using isotropic model, since all other models output only NAN. Appears to be an issue with the
+    # surface tilt calculation. Possibly an index mismatch.
+    sky_diffuse = pvlib.irradiance.get_sky_diffuse(surface_tilt=PVSystem_.surface_tilt,
+                                                   surface_azimuth=PVSystem_.surface_azimuth,
+                                                   solar_zenith=solar_pos['apparent_zenith'],
+                                                   solar_azimuth=solar_pos['azimuth'],
+                                                   dni=weather_data.DNI,
+                                                   ghi=weather_data.GHI,
+                                                   dhi=weather_data.DHI,
+                                                   dni_extra=weather_data.ETRN,
+                                                   airmass=airmass,
+                                                   model='king')
+
+    # Calculate POA Ground Diffuse
+    # Set albedo if data exists. Else albedo is none.
+    PVSystem_.albedo = weather_data['Alb']
+
+    ground_diffuse = pvlib.irradiance.get_ground_diffuse(surface_tilt=PVSystem_.surface_tilt,
+                                                         ghi=weather_data['GHI'],
+                                                         albedo=PVSystem_.albedo)
+
+    # POA Components needs AOI, DNI, POA SKY DIFFUSE, POA GROUND DIFFUSE
+    poa_irradiance = pvlib.irradiance.poa_components(aoi=aoi,
+                                                     dni=weather_data.DNI,
+                                                     poa_sky_diffuse=sky_diffuse,
+                                                     poa_ground_diffuse=ground_diffuse)
+
+    """
+    3) ENERGY SIMULATION
+    ====================
+    The following functions calculate the energy output of the PV system. The simulation incorporates the efficiency losses
+    from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
+    """
+
+    # Calculate the PV cell and module temperature
+    pvtemps = PVSystem_.sapm_celltemp(poa_global=poa_irradiance['poa_global'],
+                                      wind_speed=weather_data.Wspd,
+                                      temp_air=weather_data.DryBulb)
+
+    # DC power generation
+    effective_irradiance = pvlib.pvsystem.sapm_effective_irradiance(poa_irradiance.poa_direct,
+                                                                    poa_irradiance.poa_diffuse,
+                                                                    airmass.airmass_absolute,
+                                                                    aoi,
+                                                                    PVSystem_.module_parameters)
+
+    # SAPM = Sandia PV Array Performance Model, generates a dataframe with short-circuit current,
+    # current at the maximum-power point, open-circuit voltage, maximum-power
+    # point voltage and power
+    dc_out = pvlib.pvsystem.sapm(
+        effective_irradiance,
+        pvtemps,
+        PVSystem_.module_parameters)  # This will calculate the DC power output for a module
+
+    ac_out = pd.DataFrame()
+
+    array_v_mp = dc_out.v_mp * PVSystem_.strings_per_inverter
+    array_p_dc = dc_out.p_mp * (PVSystem_.strings_per_inverter * PVSystem_.modules_per_string)
+    # ac_out['p_ac'] is the AC power output in W from the DC power input.
+    ac_out['p_ac'] = pvlib.inverter.sandia(
+        array_v_mp, array_p_dc, PVSystem_.inverter_parameters)
+
+    # p_ac/sqm is the AC power generated per square meter of module (W/m^2)
+
+    energy_output = pd.DataFrame(index=ac_out.index)
+    energy_output['v_dc'] = array_v_mp
+    energy_output['p_dc'] = array_p_dc
+    energy_output['p_ac'] = ac_out['p_ac']
+
+    # Calculate the clipped energy
+    clipped_energy = calculate_clipped_energy(v_dc=array_v_mp, # energy_output['v_dc'],
+                                              p_dc=array_p_dc, # energy_output['p_dc'],
+                                              inverter=PVSystem_.inverter_parameters)
+
+    energy_output['clipped_p_dc'] = clipped_energy['clipped_p_dc']
+    energy_output['clipped_p_ac'] = clipped_energy['clipped_p_ac']
+    energy_output['inverter_efficiency'] = clipped_energy['inverter_efficiency']
+
+    energy_output.to_csv(r'model_outputs\testing\pv_output.csv')
+
+    return energy_output
+
+
+# Pending
+def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
+    # Solar PV Prices from:
+    # NREL (National Renewable Energy Laboratory). 2020. 2020 Annual Technology
+    # Baseline. Golden, CO: National Renewable Energy Laboratory.
+    # https://atb.nrel.gov/
+    if Building_.building_type == 'single_family_residential':
+        # CAPEX includes construction and overnight capital cost in $/kW
+        CAPEX = 3054
+        # OM Costs
+        fixed_om_cost = 22  # $/kW/yr
+        variable_om_cost = 0  # $/MWh
+    else:
+        # CAPEX includes construction and overnight capital cost in $/kW
+        CAPEX = 2052
+        # OM Costs
+        fixed_om_cost = 18  # $/kW/yr
+        variable_om_cost = 0  # $/MWh
+
+    # Capital Cost in $
+    capital_cost_PV = CAPEX * pv_system_power_rating / 1000
+    # O&M cost in $/yr
+    fixed_cost = fixed_om_cost * pv_system_power_rating
+
+    return capital_cost_PV, fixed_cost, variable_om_cost
+
 
 
 def calculate_surplus_dc_power():

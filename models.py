@@ -257,18 +257,18 @@ def model(Building_, City_,
             df['electricityInt_PV'] = df.electricity_PV / \
                 Building_.floor_area
 
-        df.alpha_PV = df.electricity_PV / df.electricity_demand
+        df['alpha_PV'] = df.electricity_PV / df.electricity_demand
 
         # For now assume no net metering
-        df.alpha_PV = np.where((df.alpha_PV > 1),
+        df['alpha_PV'] = np.where((df.alpha_PV > 1),
                                1, (df.alpha_PV))
 
-        df.electricity_deficit = df.electricity_deficit - \
+        df['electricity_deficit'] = df.electricity_deficit - \
             (df.alpha_PV * df.electricity_demand)
 
-        df.max_alpha_CHP = 1 - df.alpha_PV
+        df['max_alpha_chp'] = 1 - df.alpha_PV
 
-        df.alpha_CHP = np.where((df.alpha_CHP <= df.max_alpha_CHP),
+        df['alpha_chp'] = np.where((df.alpha_CHP <= df.max_alpha_CHP),
                                 (df.alpha_CHP),
                                 (df.max_alpha_CHP))
     else:

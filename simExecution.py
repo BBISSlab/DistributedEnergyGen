@@ -354,19 +354,51 @@ def test_pv():
                                              PVSystem_=PVSystem_,
                                              Furnace_=Furnace_,
                                              AC_=AC_,
-                                             oversize_factor=1.2)
+                                             oversize_factor=1.3)
 
-    # print(PVSystem_)
+    '''print(PVSystem_.module)
     print(PVSystem_.module_parameters)
+    print(PVSystem_.inverter)
     print(PVSystem_.inverter_parameters)
     print(PVSystem_.modules_per_string)
     print(PVSystem_.strings_per_inverter)
+    '''
     building_pv_sim.to_csv(r'model_outputs\testing\building_pv.csv')
 
 
 test_pv()
 
 
-def building_pv_sim(Building_, City_, PVSystem_, AC_, Furnace_):
+def building_pv_sim(building_type, city_name,
+                    AC_model, Furnace_model,
+                    PVSystem_=None, oversize_factor=1,
+                    ):
+    # ToDo:
+    # Generate city and building objects
+    City_ = City(name=city_name,
+                 nerc_region=nerc_region_dictionary[city_name],
+                 tmy3_file=tmy3_city_dictionary[city_name])
+    City_._get_data(City_.tmy3_file)
+
+    Building_ = Building(
+        name=building_type,
+        building_type=building_type,
+        City_=City_)
+
+    # ToDo: Convert AC and Furnace into objects rather than dictionaries
+    airconditioners = retrieve_AirConditioners()
+    furnaces = retrieve_Furnaces()
+    Furnace_ = furnaces[Furnace_model]
+    AC_ = airconditioners[AC_model]
+
+    PVSystem_ = design_building_PV(Building_, Furnace_, AC_, oversize_factor)
+
+    building_pv_sim = building_pv_energy_sim(Building_=Building_,
+                                             City_=City_,
+                                             PVSystem_=PVSystem_,
+                                             Furnace_=Furnace_,
+                                             AC_=AC_,
+                                             oversize_factor=oversize_factor)
+
 
     pass
