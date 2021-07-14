@@ -2,6 +2,7 @@
 # LIBRARIES NEEDED TO RUN THE TOOL #
 ####################################
 import pathlib
+from simExecution import test_pv
 from openpyxl import load_workbook
 import math as m
 import time
@@ -28,10 +29,10 @@ class BatteryStorage:
     discharging are equal.
     """
 
-    def __init__(self, BES_id, name=None, battery_type=None, 
-                module_parameters=None, cost_parameters=None, 
-                batteries_per_string=1, parallel_battery_strings=1,
-                interface='dc', age=0):
+    def __init__(self, BES_id, name=None, battery_type=None,
+                 module_parameters=None, cost_parameters=None,
+                 batteries_per_string=1, parallel_battery_strings=1,
+                 interface='dc', age=0):
         # BASIC INFORMATION
         self.BES_id = BES_id
         self.name = name
@@ -55,15 +56,13 @@ class BatteryStorage:
             except KeyError:
                 self.cost_parameters = {}
 
-
     def __repr__(self):
-        attrs = ['BES_id', 'name', 'battery_type', 
-                'module_parameters', 'cost_parameters', 
-                'batteries_per_string', 'parallel_battery_strings',
-                'interface', 'age']
+        attrs = ['BES_id', 'name', 'battery_type',
+                 'module_parameters', 'cost_parameters',
+                 'batteries_per_string', 'parallel_battery_strings',
+                 'interface', 'age']
         return ('BES: \n ' + ' \n '.join('{}: {}'.format(attr,
                 getattr(self, attr)) for attr in attrs))
-
 
     def _get_data(self):
         """
@@ -82,17 +81,17 @@ class BatteryStorage:
     def _infer_battery_module_params(self):
         battery = retrieve_battery_specs()[self.BES_id]
         module_params = {'capacity_kWh': battery['capacity_kWh'],
-                              'depth_of_discharge_kWh': battery['depth_of_discharge_kWh'],
-                              'peak_power_kW': battery['peak_power_kW'],
-                              'power_cont_kW': battery['power_continuous_kW'],
-                              'degradation_rate': battery['degradation_rate'],
-                              'roundtrip_efficiency': battery['roundtrip_efficiency'],
-                              'voltage_nom': battery['volt_nominal_V'],
-                              'endoflife_capacity_kWh': battery['end_of_life_capacity'],
-                              'lifetime_yr': battery['lifetime_yr'],
-                              'warranty': battery['warranty'],
-                              'cycling_times': battery['cycling_times']
-                              }
+                         'allowable_depth_of_discharge_kWh': battery['depth_of_discharge_kWh'],
+                         'peak_power_kW': battery['peak_power_kW'],
+                         'power_cont_kW': battery['power_continuous_kW'],
+                         'degradation_rate': battery['degradation_rate'],
+                         'roundtrip_efficiency': battery['roundtrip_efficiency'],
+                         'voltage_nom': battery['volt_nominal_V'],
+                         'endoflife_capacity_kWh': battery['end_of_life_capacity'],
+                         'lifetime_yr': battery['lifetime_yr'],
+                         'warranty': battery['warranty'],
+                         'cycling_times': battery['cycling_times']
+                         }
         return module_params
 
     def _infer_battery_cost_parameters(self):
@@ -104,38 +103,95 @@ class BatteryStorage:
                        }
         return cost_params
 
-
     ##########################
     # BES Operational Params #
     ##########################
 
-    def BES_capacity(self):
+    def nominal_capacity(self):
         battery_capacity = self.module_parameters['capacity_kWh']
         return battery_capacity * self.number_of_batteries()
-    
-    def BES_voltage(self):
+
+    def voltage(self):
         battery_voltage = self.module_parameters['voltage_nom']
         return battery_voltage * self.batteries_per_string
 
     def number_of_batteries(self):
         return self.parallel_battery_strings * self.batteries_per_string
 
-    def BES_power(self):
+    def power(self):
         unit_nominal_power = self.module_parameters['power_cont_kW']
         return unit_nominal_power * self.number_of_batteries()
+
+    def depth_of_discharge(self, age=0):
+        r'''
+        Returns the depth of discharge of the battery corrected by the state
+        of health.
+
+        Parameters
+        ----------
+
+        '''
+        unit_depth_of_discharge = self.module_parameters['depth_of_discharge_kWh']
+        nominal_depth_of_discharge = self.number_of_batteries() * unit_depth_of_discharge
+        return nominal_depth_of_discharge * self.state_of_health(age)
+
+    def state_of_charge(self, BES_current_capacity, age=0):
+        r'''
+        Calculate the state of charge, relative to system capacity.
+
+        Parameters
+        ----------
+
+        '''
+        SoC = BES_current_capacity / self.state_of_health_capacity(age)
+        if SoC > 1:
+            SoC = 1
+        else:
+            return SoC
+
+    def state_of_health(self, age=0):
+        r'''
+        Calculate the state of health of the BES, relative to the initial
+        system capacity.
+
+        Parameters
+        ----------
+
+        '''
+        degradation_factor = age * self.module_parameters['degradation_rate']
+        return (1 - degradation_factor)
+
+    def state_of_health_capacity(self, age=0):
+        r'''
+        Calculate the SoH capacity, considering the maximum capacity with aging.
+
+        Parameters
+        ----------
+
+        '''
+        return self.nominal_capacity() * self.state_of_health(age)
+
+    def min_capacity(self, age=0):
+        return (self.state_of_health_capacity(
+            age) - self.depth_of_discharge(age)) / self.state_of_health_capacity(age)
+
+    def min_state_of_charge(self, age=0):
+        minimum_capacity = self.min_capacity(age)
+        return self.state_of_charge(minimum_capacity, age)
 
     ######################
     # BES Sizing Methods #
     ######################
 
-    def required_BES_capacity(self, electricity_demand, 
-                            hours_of_autonomy=72, how = 'mean'):
+    def required_BES_capacity(self, electricity_demand,
+                              hours_of_autonomy=72, how='mean'):
         """
         This method determines the BES required to supply energy for a consecutive number of
         storage hours. This is determined by looking at the minimum, maximum, and mean sum of electricity
         used within the consecutive hours for the time specified.
         """
-
+        # To Do:
+        # how: peak shaving and other methods
         # The storage list contains all of the required storage values for a
         # consecutive number of storage hours.
         storage = []
@@ -147,10 +203,11 @@ class BatteryStorage:
         """
         for i in range(0, len(electricity_demand), hours_of_autonomy):
             if (i + hours_of_autonomy) < len(electricity_demand):
-                storage.append(sum(electricity_demand[i:i + hours_of_autonomy]))
+                storage.append(
+                    sum(electricity_demand[i:i + hours_of_autonomy]))
 
         storage = np.array(storage)
-        
+
         if how == 'mean':
             return storage.mean()
         if how == 'max':
@@ -174,23 +231,31 @@ class BatteryStorage:
     #################
     # BES Operation #
     #################
-
-    def charge(self, surplus_electricity=0, time=1):
+    '''
+    To Do:
+    x Charging function
+    x Discharging fcn
+    X update the soc of the BES
+    x check uppper and lower bounds of the BES
+    x limit power input/output of BES
+    - self discharge of the system
+    - BES algorithm
+    '''
+    def charge(self, SoC, electricity_input=0, age=0, time_step=1):
         """
         Three cases exist for charging your battery:
         1) The battery is at capacity and cannot hold charge;
         2) The battery can hold all of the energy input;
         3) The battery can hold a portion of the energy input, but not all.
-
         """
+
         # Null Case
-        if surplus_electricity == 0:
-            electricity_stored = 0
+        if electricity_input == 0:
+            return 0
 
         # Case 1
-        elif (self.sysSoC) == (self.sysCapacity):
-            rejectedEnergyIn = surplus_electricity * self.num_units
-            electricity_stored = 0
+        elif (SoC) == 1:
+            return 0
 
         # Cases 2 and 3. We assume the battery is not at capacity
         else:
@@ -200,53 +265,32 @@ class BatteryStorage:
             within the timeframe, we may still have excess energy. The power-in is the average energy input over the
             specified timeframe.
             """
-            power_in = surplus_electricity / time
-            if power_in < self.sysPower:
-                delta_electricity_in = power_in * time
-            if power_in > self.sysPower:
-                delta_electricity_in = self.sysPower * time
-                rejectedElectricityIn = (power_in - self.sysPower) * time
+            electricity_stored = self.taper_power(electricity_input, time_step)
 
-            # Corrected for rountrip efficiency HERE, rather than in discharge
-            delta_electricity_in = delta_electricity_in * self.RTE
-            potential_sysSOC = self.sysSoC + delta_electricity_in
+            electricity_stored = self.storage_limitation(SoC, electricity_stored, age)
+            
+            # Roundtrip efficiency considered here instead of at discharge
+            return electricity_stored * self.module_parameters['roundtrip_efficiency']
 
-            # Case 2
-            if (potential_sysSOC) < self.sysCapacity:
-                self.sysSoC = potential_sysSOC
-                electricity_stored = delta_electricity_in
-
-            # Case 3
-            else:
-                self.sysSoC = self.sysCapacity
-                rejectedElectricityIn = potential_sysSOC - self.sysCapacity
-                electricity_stored = surplus_electricity - rejectedElectricityIn
-
-        self.SoC = self.sysSoC / self.num_units
-        self.sysDoD = self.DoD * \
-            (self.sysSoC / self.sysCapacity) * self.num_units
-
-        return electricity_stored
-
-    def discharge(self, demanded_electricity=0, time=1):
-        # NEED TO INCLUDE RT EFF
+    def discharge(self, SoC, electricity_output=0, age=0, time_step=1):
         """
         Three cases exist for discharging your battery:
         1) The battery is depleted;
         2) The battery can meet all of the energy demand for a time period;
         3) The battery can meet a portion of the energy demand, but not all.
-
         """
-        power_out = demanded_electricity / time
-
+        
         # Null Case
-        if demanded_electricity == 0:
-            electricity_supplied = 0
+        if electricity_output == 0:
+            return 0
+        
         # Case 1
-        if self.sysSoC == 0:
-            electricity_supplied = 0
+        # BES is at or below minimum SoC
+        if SoC <= self.min_state_of_charge(age):
+            return 0
 
-        # Cases 2 and 3. We assume that the SOC > 0.
+        # Case 2: The BES has enough energy to meet the demand for time t 
+        # Case 3: The BES can satisfy some of the demand, but not all, for time t
         else:
             """
             The discharging of the battery depends on its power-rating. We cannot force provide more electricity from the
@@ -254,31 +298,99 @@ class BatteryStorage:
             meet the demand, we may still have a deficit IF we cannot meet it fast enough. Here, we assume that the
             power_output is the average energy demand over the specified timeframe
             """
-            if power_out < self.sysPower:
-                delta_electricity_out = (power_out * time)
+            electricity_discharged = self.taper_power(electricity_output, time_step)
+
+            electricity_discharged = electricity_discharged * -1.
+            electricity_discharged = self.storage_limitation(SoC, electricity_discharged, age)
+
+            # Roundtrip efficiency losses considered at the charging point
+            return electricity_discharged
+
+    def update_BES_energy(self, initial_SoC, energy_input_output, age=0):
+        initial_energy = initial_SoC * self.state_of_health_capacity(age)
+        updated_energy = initial_energy + energy_input_output
+        return self.state_of_charge(updated_energy, age)
+
+    def storage_limitation(self, SoC_initial, energy_change, age=0):
+        r'''
+        Checks that the energy change to the BES stays within the bounds of the 
+        maximum capacity and depth of discharge, with respect to the system's age
+
+        Parameters
+        ----------
+
+        '''
+        # Check that the SOC is less than or equal to 1
+        # Check that the Energy is above the DoD
+        maximum_capacity = self.state_of_health_capacity(age)
+        minimum_capacity = self.min_capacity(age)
+
+        energy_level_initial = SoC_initial * maximum_capacity
+        energy_level_new = energy_level_initial + energy_change
+
+        # Check lower bound
+        if energy_level_new < minimum_capacity:
+            allowable_energy_change = energy_level_initial - minimum_capacity
+        # Check upper bound
+        elif energy_level_new > maximum_capacity:
+            allowable_energy_change = maximum_capacity - energy_level_initial
+        else:
+            allowable_energy_change = energy_change
+        
+        return allowable_energy_change
+     
+    def taper_power(self, electricity_input_output=0, time_step=1):
+        # Ensure that the power input/output is positive to avoid errors
+        power_input_output = np.abs(electricity_input_output / time_step)
+        
+        if power_input_output < self.power():
+            return power_input_output * time_step
+        elif power_input_output > self.power():
+            # Any power greater than the power capacity of the BES is curtailed
+            return self.power() * time_step
+        else:
+            return 0
+
+    def self_discharge(self):
+        pass
+    
+    def BES_storage_simulation(self, energy_io, age=0,
+                               initial_state_of_charge=1):
+        # Make sure that input_output is a list
+        if isinstance(energy_io, pd.Series) or isinstance(
+                energy_io, pd.DataFrame):
+            energy_input_output = energy_io.to_list()
+        else:
+            energy_input_output = energy_io
+
+        SoC = initial_state_of_charge
+        # Initialize battery capacity
+        BES_SoC = [initial_state_of_charge]
+        BES_io = [0]
+        # you will go by index
+        for i in energy_input_output:
+            if i > 0:
+                # Charge
+                energy_charged = self.charge(SoC, i, age)
+                BES_io.append(energy_charged )
+                SoC = self.update_BES_energy(SoC, BES_io, age)
+                BES_SoC.append(SoC)
+            elif i < 0:
+                # Discharge
+                energy_discharged = self.discharge(SoC, i, age) # discharge returns negative value
+                BES_io.append(energy_discharged)
+                SoC = self.update_BES_energy(SoC, energy_discharged, age)
+                BES_SoC.append(SoC)
             else:
-                # This assumes power_out > maximum discharge power
-                delta_electricity_out = (self.sysPower * time)
-
-            potential_sysSOC = self.sysSoC - delta_electricity_out
-
-            # Case 2
-            if potential_sysSOC >= self.sysDoD:  # If our battery has enough charge. DoD should be updated when charging the battery
-                self.sysSoC = potential_sysSOC
-                electricity_supplied = delta_electricity_out
-
-                self.sysDoD -= electricity_supplied
-            # Case 3
-            else:  # We don't have enough (potential_SOC is negative)
-                electricity_supplied = self.sysDoD  # Fully discharge
-                self.sysSoC = 0
-                self.sysDoD = 0
-
-            electricity_deficit = demanded_electricity - electricity_supplied
-            self.SoC = self.sysSoC / self.num_units
-            electricity_supplied = electricity_supplied
-
-        return electricity_supplied
+                BES_io.append(0)
+                # Add a function for self discharge here
+                SoC - self.update_BES_energy(SoC, i, age)
+                BES_SoC.append(SoC)
+            # Add a case for self discharge
+            # Maybe some self discharge
+        
+        BES_power = pd.DataFrame([BES_io, BES_SoC], index=energy_io.index, columns=['BES_energy_io', 'BES_SoC']) 
+        return BES_power
 
 def retrieve_battery_specs():
     csvdata = 'data\\Tech_specs\\Battery_specs.csv'
@@ -367,6 +479,18 @@ def size_by_autonomous_days(electricity_demand, battery, storage_hours=72):
     capital_cost_BES = self.sysCapacity * self.specific_cost
 
     return storage_capacity, num_units, capital_cost_BES
+
+# Sample PV output
+def run_test():
+    # Load PV output
+    try:
+        df = pd.read_csv(r'model_outputs\testing\building_pv.csv')
+    except KeyError:
+        df = test_pv()
+
+    print(df)
+    
+run_test()
 
 # End BatteryStorage Methods #
 ##############################
