@@ -365,6 +365,8 @@ def test_pv():
     '''
     building_pv_sim.to_csv(r'model_outputs\testing\building_pv.csv')
 
+    return building_pv_sim
+
 
 test_pv()
 
@@ -402,3 +404,4 @@ def building_pv_sim(building_type, city_name,
 
 
     pass
+

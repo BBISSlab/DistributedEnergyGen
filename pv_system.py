@@ -4,6 +4,7 @@ import os
 import io
 import re
 from pvlib import temperature
+from pvlib import pvsystem
 from pvlib.inverter import sandia
 from pvlib.location import Location
 from pvlib.pvsystem import PVSystem
@@ -371,6 +372,10 @@ def calculate_clipped_energy(v_dc, p_dc, inverter):
     return clipped_power
 
 
+def nominal_voltage(PVSystem_):
+    return PVSystem_.modules_per_string * PVSystem_.module_parameters['Vmpo']
+
+
 def pv_simulation(PVSystem_, City_):
     '''
     To Do
@@ -531,6 +536,10 @@ def pv_simulation(PVSystem_, City_):
     return energy_output
 
 
+def calculate_pv_losses(PVSystem_):
+    losses = pvlib.pvsystem.pvwatts_losses()
+    return losses
+
 # Pending
 def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
     # Solar PV Prices from:
@@ -560,6 +569,10 @@ def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
 
 
 def calculate_surplus_dc_power():
+    pass
+
+def lifetime_electricity_output(PVSystem_, lifetime, degradation_rate):
+    
     pass
 
 
@@ -596,7 +609,6 @@ def test():
     pvsystem.strings_per_inverter = strings
 
     print(pvsystem.modules_per_string, pvsystem.strings_per_inverter)
-
 
 ####################################
 # DISCONTINUED, FOR REFERENCE ONLY #

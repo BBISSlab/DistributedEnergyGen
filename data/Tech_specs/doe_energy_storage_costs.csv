@@ -1,0 +1,114 @@
+ess_id,technology,type,chemistry,storage_type,storage_duration_hr,system_size_MW,installed_sys_cost_USD_per_kWh,om_cost_USD_per_kWh,installed_sys_cost_USD_per_kW,om_cost_USD_per_kW,A0,A1,B0,B1,description
+1,PHS,pumped hydro storage,NAN,mechanical,,100,1633.2,16.3,1633.2,16.3,NAN,NAN,NAN,NAN,pumped hydro storage
+2,CAES,compressed air energy storage,NAN,mechanical,,100,1614.3,16.1,1614.3,16.1,NAN,NAN,NAN,NAN,compressed air energy storage
+3,Na,solid state,unk,electrochemical,6,100,378.5,7.6,63.1,1.3,461,-13.33,437,-13,sodium
+4,Na,solid state,unk,electrochemical,6,10,400.7,8,66.8,1.3,461,-13.33,437,-13,sodium
+5,Na,solid state,unk,electrochemical,6,1,439.9,8.8,73.3,1.5,461,-13.33,437,-13,sodium
+6,Zn,solid state,unk,electrochemical,4,100,252.1,5,63,1.3,342,-17,318,-17,zinc
+7,Zn,solid state,unk,electrochemical,4,10,268,5.4,67,1.3,342,-17,318,-17,zinc
+8,Zn,solid state,unk,electrochemical,4,1,310.7,6.2,77.7,1.6,342,-17,318,-17,zinc
+9,Zn,solid state,unk,electrochemical,4,0.1,366.1,7.3,91.5,1.8,342,-17,318,-17,zinc
+10,FWLD,flywheel,NAN,mechanical,4,10,676,13.5,169,3.4,800,-34,753,-34,fly wheel - long duration
+11,FWLD,flywheel,NAN,mechanical,4,1,753.3,15.1,188.3,3.8,800,-34,753,-34,fly wheel - long duration
+12,FWSD,flywheel,NAN,mechanical,,10,,,880,17.6,NAN,NAN,NAN,NAN,fly wheel - short duration
+13,FWSD,flywheel,NAN,mechanical,,1,,,1146.5,22.9,NAN,NAN,NAN,NAN,fly wheel - short duration
+14,FWSD,flywheel,NAN,mechanical,,0.1,,,1250,25,NAN,NAN,NAN,NAN,fly wheel - short duration
+15,VRFB,flow battery,Vn,electrochemical,4,100,409.9,12.3,102.5,3.1,517,-29,567,-23,vanadium redox flow battery
+16,VRFB,flow battery,Vn,electrochemical,6,100,345.5,10.4,57.6,1.7,517,-29,449,-25,vanadium redox flow battery
+17,VRFB,flow battery,Vn,electrochemical,8,100,304.6,9.1,38.1,1.1,517,-29,415,-26,vanadium redox flow battery
+18,VRFB,flow battery,Vn,electrochemical,4,10,424.2,12.7,106.1,3.2,517,-29,567,-23,vanadium redox flow battery
+19,VRFB,flow battery,Vn,electrochemical,6,10,379.1,11.4,63.2,1.9,517,-29,449,-25,vanadium redox flow battery
+20,VRFB,flow battery,Vn,electrochemical,8,10,343.1,10.3,42.9,1.3,517,-29,415,-26,vanadium redox flow battery
+21,VRFB,flow battery,Vn,electrochemical,4,1,520.1,15.6,130,3.9,517,-29,567,-23,vanadium redox flow battery
+22,VRFB,flow battery,Vn,electrochemical,6,1,432.1,13,72,2.2,517,-29,449,-25,vanadium redox flow battery
+23,VRFB,flow battery,Vn,electrochemical,8,1,402.4,12.1,50.3,1.5,517,-29,415,-26,vanadium redox flow battery
+24,VRFB,flow battery,Vn,electrochemical,4,0.1,617.3,18.5,154.3,4.6,517,-29,567,-23,vanadium redox flow battery
+25,VRFB,flow battery,Vn,electrochemical,6,0.1,522.5,15.7,87.1,2.6,517,-29,449,-25,vanadium redox flow battery
+26,VRFB,flow battery,Vn,electrochemical,8,0.1,487.2,14.6,60.9,1.8,517,-29,415,-26,vanadium redox flow battery
+27,ZBFB,flow battery,ZnBr,electrochemical,4,100,472.2,14.2,118.1,3.5,488,-24,518,-23,zinc bromide flow battery
+28,ZBFB,flow battery,ZnBr,electrochemical,5,100,417.2,12.5,83.4,2.5,488,-24,461,-11,zinc bromide flow battery
+29,ZBFB,flow battery,ZnBr,electrochemical,6,100,413.5,12.4,68.9,2.1,488,-24,452,-18,zinc bromide flow battery
+30,ZBFB,flow battery,ZnBr,electrochemical,4,10,506,15.2,126.5,3.8,488,-24,518,-23,zinc bromide flow battery
+31,ZBFB,flow battery,ZnBr,electrochemical,5,10,429.5,12.9,85.9,2.6,488,-24,461,-11,zinc bromide flow battery
+32,ZBFB,flow battery,ZnBr,electrochemical,6,10,425.7,12.8,71,2.1,488,-24,452,-18,zinc bromide flow battery
+33,ZBFB,flow battery,ZnBr,electrochemical,4,1,555.3,16.7,138.8,4.2,488,-24,518,-23,zinc bromide flow battery
+34,ZBFB,flow battery,ZnBr,electrochemical,5,1,452,13.6,90.4,2.7,488,-24,461,-11,zinc bromide flow battery
+35,ZBFB,flow battery,ZnBr,electrochemical,6,1,447.3,13.4,74.6,2.2,488,-24,452,-18,zinc bromide flow battery
+36,ZBFB,flow battery,ZnBr,electrochemical,3,0.1,746.5,22.4,248.8,7.5,488,-24,NAN,NAN,zinc bromide flow battery
+37,ZBFB,flow battery,ZnBr,electrochemical,4,0.1,630.3,18.9,157.6,4.7,488,-24,518,-23,zinc bromide flow battery
+38,ZBFB,flow battery,ZnBr,electrochemical,5,0.1,493.9,14.8,98.8,3,488,-24,461,-11,zinc bromide flow battery
+39,ZBFB,flow battery,ZnBr,electrochemical,6,0.1,485.9,14.6,81,2.4,488,-24,452,-18,zinc bromide flow battery
+40,FeFB,flow battery,Fe,electrochemical,4,100,404.5,12.1,101.1,3,479,-14,567,-23,iron flow battery
+41,FeFB,flow battery,Fe,electrochemical,4,10,416.4,12.5,104.1,3.1,479,-14,567,-23,iron flow battery
+42,FeFB,flow battery,Fe,electrochemical,4,1,443.8,13.3,111,3.3,479,-14,567,-23,iron flow battery
+43,FeFB,flow battery,Fe,electrochemical,4,0.1,505.1,15.2,126.3,3.8,479,-14,567,-23,iron flow battery
+44,Ni,solid state,unk,electrochemical,2,1,339.6,6.8,169.8,3.4,390,-94,299,-108,nickel
+45,Ni,solid state,unk,electrochemical,3,1,320.5,6.4,106.8,2.1,390,-94,288,-91,nickel
+46,Ni,solid state,unk,electrochemical,4,1,311,6.2,77.8,1.6,390,-94,283,-83,nickel
+47,Ni,solid state,unk,electrochemical,2,0.1,466.4,9.3,233.2,4.7,390,-94,299,-108,nickel
+48,Ni,solid state,unk,electrochemical,3,0.1,434.4,8.7,144.8,2.9,390,-94,288,-91,nickel
+49,Ni,solid state,unk,electrochemical,4,0.1,418.5,8.4,104.6,2.1,390,-94,283,-83,nickel
+50,Ni,solid state,unk,electrochemical,2,0.01,835.2,16.7,417.6,8.4,390,-94,299,-108,nickel
+51,Ni,solid state,unk,electrochemical,3,0.01,741.6,14.8,247.2,4.9,390,-94,288,-91,nickel
+52,Ni,solid state,unk,electrochemical,4,0.01,694.8,13.9,173.7,3.5,390,-94,283,-83,nickel
+53,Li-Ion,solid state,unk,electrochemical,2,100,451.8,9,225.9,4.5,651,-48,653,-63,lithium ion
+54,Li-Ion,solid state,unk,electrochemical,3,100,429.3,8.6,143.1,2.9,651,-48,605,-54,lithium ion
+55,Li-Ion,solid state,unk,electrochemical,4,100,420.1,8.4,105,2.1,651,-48,582,-48,lithium ion
+56,Li-Ion,solid state,unk,electrochemical,5,100,410.5,8.2,82.1,1.6,651,-48,568,-46,lithium ion
+57,Li-Ion,solid state,unk,electrochemical,6,100,406.8,8.1,67.8,1.4,651,-48,559,-44,lithium ion
+58,Li-Ion,solid state,unk,electrochemical,7,100,404.2,8.1,57.7,1.2,651,-48,552,-42,lithium ion
+59,Li-Ion,solid state,unk,electrochemical,8,100,402.2,8,50.3,1,651,-48,547,-41,lithium ion
+60,Li-Ion,solid state,unk,electrochemical,2,10,474.6,9.5,237.3,4.7,651,-48,653,-63,lithium ion
+61,Li-Ion,solid state,unk,electrochemical,3,10,449.9,9,150,3,651,-48,605,-54,lithium ion
+62,Li-Ion,solid state,unk,electrochemical,4,10,440.6,8.8,110.2,2.2,651,-48,582,-48,lithium ion
+63,Li-Ion,solid state,unk,electrochemical,5,10,435,8.7,87,1.7,651,-48,568,-46,lithium ion
+64,Li-Ion,solid state,unk,electrochemical,6,10,431.2,8.6,71.9,1.4,651,-48,559,-44,lithium ion
+65,Li-Ion,solid state,unk,electrochemical,7,10,428.6,8.6,61.2,1.2,651,-48,552,-42,lithium ion
+66,Li-Ion,solid state,unk,electrochemical,8,10,426.6,8.5,53.3,1.1,651,-48,547,-41,lithium ion
+67,Li-Ion,solid state,unk,electrochemical,2,1,558.9,11.2,279.5,5.6,651,-48,653,-63,lithium ion
+68,Li-Ion,solid state,unk,electrochemical,3,1,535.5,10.7,178.5,3.6,651,-48,605,-54,lithium ion
+69,Li-Ion,solid state,unk,electrochemical,4,1,523.8,10.5,131,2.6,651,-48,582,-48,lithium ion
+70,Li-Ion,solid state,unk,electrochemical,5,1,516.8,10.3,103.4,2.1,651,-48,568,-46,lithium ion
+71,Li-Ion,solid state,unk,electrochemical,6,1,512.1,10.2,85.4,1.7,651,-48,559,-44,lithium ion
+72,Li-Ion,solid state,unk,electrochemical,7,1,508.8,10.2,72.7,1.5,651,-48,552,-42,lithium ion
+73,Li-Ion,solid state,unk,electrochemical,8,1,506.3,10.1,63.3,1.3,651,-48,547,-41,lithium ion
+74,Li-Ion,solid state,unk,electrochemical,2,0.1,719.4,14.4,359.7,7.2,651,-48,653,-63,lithium ion
+75,Li-Ion,solid state,unk,electrochemical,3,0.1,679.5,13.6,226.5,4.5,651,-48,605,-54,lithium ion
+76,Li-Ion,solid state,unk,electrochemical,4,0.1,659.6,13.2,164.9,3.3,651,-48,582,-48,lithium ion
+77,Li-Ion,solid state,unk,electrochemical,5,0.1,647.6,13,129.5,2.6,651,-48,568,-46,lithium ion
+78,Li-Ion,solid state,unk,electrochemical,6,0.1,639.6,12.8,106.6,2.1,651,-48,559,-44,lithium ion
+79,Li-Ion,solid state,unk,electrochemical,7,0.1,633.9,12.7,90.6,1.8,651,-48,552,-42,lithium ion
+80,Li-Ion,solid state,unk,electrochemical,8,0.1,629.6,12.6,78.7,1.6,651,-48,547,-41,lithium ion
+81,Li-Ion,solid state,unk,electrochemical,2,0.01,1057.8,21.2,528.9,10.6,651,-48,653,-63,lithium ion
+82,Li-Ion,solid state,unk,electrochemical,3,0.01,930.9,18.6,310.3,6.2,651,-48,605,-54,lithium ion
+83,Li-Ion,solid state,unk,electrochemical,4,0.01,867.4,17.3,216.9,4.3,651,-48,582,-48,lithium ion
+84,Li-Ion,solid state,unk,electrochemical,5,0.01,829.3,16.6,165.9,3.3,651,-48,568,-46,lithium ion
+85,Li-Ion,solid state,unk,electrochemical,6,0.01,803.9,16.1,134,2.7,651,-48,559,-44,lithium ion
+86,Li-Ion,solid state,unk,electrochemical,7,0.01,785.8,15.7,112.3,2.2,651,-48,552,-42,lithium ion
+87,Li-Ion,solid state,unk,electrochemical,8,0.01,772.2,15.4,96.5,1.9,651,-48,547,-41,lithium ion
+88,Li-Ion,solid state,unk,electrochemical,0.5,100,808.5,16.2,1617,32.3,651,-48,395,11,lithium ion
+89,Li-Ion,solid state,unk,electrochemical,1,100,466.3,9.3,466.3,9.3,651,-48,624,-41,lithium ion
+90,Li-Ion,solid state,unk,electrochemical,0.5,10,849.8,17,1699.6,34,651,-48,395,11,lithium ion
+91,Li-Ion,solid state,unk,electrochemical,1,10,485.5,9.7,485.5,9.7,651,-48,624,-41,lithium ion
+92,Li-Ion,solid state,unk,electrochemical,0.5,1,1007.3,20.1,2014.6,40.3,651,-48,395,11,lithium ion
+93,Li-Ion,solid state,unk,electrochemical,1,1,592.3,11.8,592.3,11.8,651,-48,624,-41,lithium ion
+94,Li-Ion,solid state,unk,electrochemical,0.5,0.1,1398.9,28,2797.8,56,651,-48,395,11,lithium ion
+95,Li-Ion,solid state,unk,electrochemical,1,0.1,755.2,15.1,755.2,15.1,651,-48,624,-41,lithium ion
+96,PbA,solid state,Pb,electrochemical,2,1,445.8,13.4,222.9,6.7,423,-60,381,-60,lead acid
+97,PbA,solid state,Pb,electrochemical,2,1,375.5,11.3,187.8,5.6,423,-60,381,-60,lead acid
+98,PbA,solid state,Pb,electrochemical,2,1,338.4,10.2,169.2,5.1,423,-60,381,-60,lead acid
+99,PbA,solid state,Pb,electrochemical,2,0.1,550.4,16.5,275.2,8.3,423,-60,381,-60,lead acid
+100,PbA,solid state,Pb,electrochemical,2,0.1,461.8,13.9,230.9,6.9,423,-60,381,-60,lead acid
+101,PbA,solid state,Pb,electrochemical,2,0.1,514.4,15.4,257.2,7.7,423,-60,381,-60,lead acid
+102,PbA,solid state,Pb,electrochemical,2,0.01,810.6,24.3,405.3,12.2,423,-60,381,-60,lead acid
+103,PbA,solid state,Pb,electrochemical,2,0.01,633.2,19,316.6,9.5,423,-60,381,-60,lead acid
+104,PbA,solid state,Pb,electrochemical,2,0.01,542.3,16.3,271.2,8.1,423,-60,381,-60,lead acid
+105,PbC,solid state,PbC,electrochemical,2,1,720.9,21.6,360.5,10.8,685,-90,693,-104,lead carbon
+106,PbC,solid state,PbC,electrochemical,3,1,598.1,17.9,199.4,6,685,-90,582,-82,lead carbon
+107,PbC,solid state,PbC,electrochemical,4,1,547.5,16.4,136.9,4.1,685,-90,535,-67,lead carbon
+108,PbC,solid state,PbC,electrochemical,2,0.1,877.8,26.3,438.9,13.2,685,-90,693,-104,lead carbon
+109,PbC,solid state,PbC,electrochemical,3,0.1,738.4,22.2,246.1,7.4,685,-90,582,-82,lead carbon
+110,PbC,solid state,PbC,electrochemical,4,0.1,664.4,19.9,166.1,5,685,-90,535,-67,lead carbon
+111,PbC,solid state,PbC,electrochemical,2,0.01,1201.6,36,600.8,18,685,-90,693,-104,lead carbon
+112,PbC,solid state,PbC,electrochemical,3,0.01,973.8,29.2,324.6,9.7,685,-90,582,-82,lead carbon
+113,PbC,solid state,PbC,electrochemical,4,0.01,855,25.7,213.8,6.4,685,-90,535,-67,lead carbon

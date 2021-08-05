@@ -1206,7 +1206,7 @@ REFERENCES
 #####################################################
 
 
-def building_pv_energy_sim(Building_,
+def  building_pv_energy_sim(Building_,
                            City_,
                            Furnace_=None,
                            AC_=None,
