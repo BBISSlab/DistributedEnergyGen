@@ -2,7 +2,6 @@
 # LIBRARIES NEEDED TO RUN THE TOOL #
 ####################################
 import pathlib
-from simExecution import test_pv
 from openpyxl import load_workbook
 import math as m
 import time
@@ -21,7 +20,7 @@ import numpy as np      # To install: pip install numpy
 # BatteryStorage Class #
 ########################
 
-class BatteryStorage: 
+class BatteryStorage:
     """
     Because we are typically given the roundtrip efficiencies, this method assumes that we can store all the electricity
     input. The loss of energy is assumed to occur during discharge. This assumption holds if the maximum charging and
@@ -44,7 +43,7 @@ class BatteryStorage:
         self.parallel_battery_strings = parallel_battery_strings
         self.interface = interface
         self.age = age
-        
+
         # Module parameters: operational parameters
         if module_parameters is None:
             try:
@@ -52,7 +51,7 @@ class BatteryStorage:
             except KeyError:
                 self.module_parameters = {}
 
-        # Cost parameters: 
+        # Cost parameters:
         if cost_parameters is None:
             try:
                 self.cost_parameters = self._infer_battery_cost_parameters()
@@ -93,13 +92,14 @@ class BatteryStorage:
                          'depth_of_discharge_kWh': battery['capacity_kWh'] * doe_battery['depth_of_discharge_percent'] / 100,
                          'peak_power_kW': battery['peak_power_kW'],
                          'power_cont_kW': battery['power_continuous_kW'],
-                         'degradation_rate': doe_battery['degradation_rate_percent'] / 100, # Convert from percent to fraction
+                         # Convert from percent to fraction
+                         'degradation_rate': doe_battery['degradation_rate_percent'] / 100,
                          'roundtrip_efficiency': doe_battery['roundtrip_efficiency'] / 100,
                          'voltage_nom': battery['volt_nominal_V'],
                          'endoflife_capacity_kWh': doe_battery['end_of_life_capacity_percent'] * battery['capacity_kWh'] / 100,
                          'lifetime_yr': doe_battery['lifetime_yr'],
                          'cycling_times': battery['cycling_times'],
-                        }
+                         }
         return module_params
 
     def _infer_battery_cost_parameters(self):
@@ -109,10 +109,9 @@ class BatteryStorage:
         cost_parameters = {'A0': doe_battery['A0'],
                            'A1': doe_battery['A1'],
                            'om_cost_fraction': doe_battery['om_percent'] / 100
-                       }
+                           }
         return cost_parameters
 
-            
     ##############################
     # BES Operational Parameters #
     ##############################
@@ -153,6 +152,7 @@ class BatteryStorage:
         ----------
 
         '''
+        # print(F'BES_cap: {BES_current_capacity}')
         SoC = BES_current_capacity / self.state_of_health_capacity(age)
         if SoC > 1:
             SoC = 1
@@ -196,7 +196,7 @@ class BatteryStorage:
         a0 = self.cost_parameters['A0']
         a1 = self.cost_parameters['A1']
         capacity = self.nominal_capacity()
-        return a0 + a1 * np.log(capacity) # $ / kWh
+        return a0 + a1 * np.log(capacity)  # $ / kWh
 
     def om_cost(self):
         specific_cost = self.specific_cost()
@@ -247,13 +247,14 @@ class BatteryStorage:
             return nominal_voltage(PVSystem_)
         if interface == 'ac':
             # System has built in inverter.
-            return 
+            return
 
     def calculate_batteries_per_string(self, BES_voltage=48):
         unit_battery_voltage = self.module_parameters['voltage_nom']
-        return m.floor(BES_voltage / unit_battery_voltage)   
+        return m.floor(BES_voltage / unit_battery_voltage)
 
-    def calculate_total_parallel_strings(self, required_BES_capacity, how='high'):
+    def calculate_total_parallel_strings(
+            self, required_BES_capacity, how='high'):
         unit_battery_capacity = self.module_parameters['capacity_kWh']
         min_number_of_batteries = required_BES_capacity / unit_battery_capacity
         # Manufacturers typically limit maximum number of parallel strings to 3
@@ -262,10 +263,26 @@ class BatteryStorage:
         elif how == 'low':
             return m.floor(min_number_of_batteries / self.batteries_per_string)
 
-    
-    def size_by_autonomous_days(self, electricity_demand, 
-                                autonomous_hours, method='mean',
-                                req_voltage=48):
+    def calculate_min_bank_size(self, available_energy):
+        # Available energy in kWh
+        roundtrip_efficiency = self.module_parameters['roundtrip_efficiency']
+
+        DoD_percent = self.module_parameters['depth_of_discharge_kWh'] / \
+            self.module_parameters['capacity_kWh']
+
+        # Divide the bank size by the RT efficiency and depth of discharge to obtain
+        # the bank size for the available capacity.
+
+        # ISSUE: available_energy a Nonetype
+
+        bank_size = available_energy / \
+            (roundtrip_efficiency * DoD_percent)  # kWh
+
+        return bank_size
+
+    def size_BES_array(self, electricity_load,
+                 hours, method='mean',
+                 design_voltage=48):
         """
         This method determines the number of storage units required to supply energy for a consecutive number of
         'storage_hours' to the Building. This is determined by looking at the minimum, maximum, and mean sum of electricity
@@ -276,80 +293,17 @@ class BatteryStorage:
         SAME POWER OUTPUT. We can call batteries in series a train.
         """
         # Calculate required size
-        backup_energy_demand = calculate_backup_bank_size(electricity_demand, autonomous_hours, method)
-        
-        roundtrip_efficiency = self.module_parameters['roundtrip_efficiency']
-        DoD_percent = self.module_parameters['depth_of_dicharge_kWh'] / self.module_parameters['capacity_kWh']
+        required_available_energy = required_BES_capacity(
+            electricity_load, hours, method)
 
-        # Divide the bank size by the RT efficiency and depth of discharge to obtain 
-        # the bank size for the available capacity.
-        bank_size = backup_energy_demand / (roundtrip_efficiency * DoD_percent) # kWh
+        bank_size = self.calculate_min_bank_size(required_available_energy)
 
-        self.parallel_battery_strings = self.calculate_batteries_per_string(bank_size)        
-        
-        self.batteries_per_string = self.calculate_batteries_per_string(req_voltage)
+        self.batteries_per_string = self.calculate_batteries_per_string(
+            design_voltage)
+        self.parallel_battery_strings = self.calculate_total_parallel_strings(
+            bank_size)
 
-        self.parallel_battery_strings = self.calculate_total_parallel_strings(bank_size)
-        
-        
-        num_units = bank_size // self.nominal_capacity()
-
-
-        storage_capacity = num_units * self.nom_capacity()
-
-        self.num_units = num_units
-        self.sysCapacity = self.nom_capacity * self.num_units
-        self.sysPower = self.power_cont * self.num_units
-        self.sysPower = self.power_cont * self.num_units
-
-        capital_cost_BES = self.sysCapacity * self.specific_cost
-
-        return storage_capacity, num_units, capital_cost_BES
-
-    def size_by_surplus_load(self, electricity_surplus):
-        """
-        This method determines the number of storage units required to supply energy for a consecutive number of
-        'storage_hours' to the Building. This is determined by looking at the minimum, maximum, and mean sum of electricity
-        used within the consecutive hours for the time specified.
-
-        NEXT UPDATE MUST CHECK FOR THE NUMBER OF UNITS IN PARALLEL AND IN SERIES. CONNECTING BATTERIES IN PARALLEL DOUBLES
-        THE POWER OUTPUT BUT MAINTAINS THE SAME VOLTAGE. CONNECTING THEM IN SERIES DOUBLES THE VOLTAGE, BUT MAINTAINS THE
-        SAME POWER OUTPUT. We can call batteries in series a train.
-        """
-        # Calculate required size 
-        backup_energy_demand = calculate_backup_bank_size(electricity_surplus, 24)
-        
-        roundtrip_efficiency = self.module_parameters['roundtrip_efficiency']
-        DoD_percent = self.module_parameters['depth_of_dicharge_kWh'] / self.module_parameters['capacity_kWh']
-
-        # Divide the bank size by the RT efficiency and depth of discharge to obtain 
-        # the bank size for the available capacity.
-        bank_size = backup_energy_demand / (roundtrip_efficiency * DoD_percent) # kWh
-
-        self.parallel_battery_strings = self.calculate_batteries_per_string(bank_size)        
-        
-        self.batteries_per_string = self.calculate_batteries_per_string(req_voltage)
-
-        self.parallel_battery_strings = self.calculate_total_parallel_strings(bank_size)
-        
-        
-        num_units = bank_size // self.nominal_capacity()
-
-
-        storage_capacity = num_units * self.nom_capacity()
-
-        self.num_units = num_units
-        self.sysCapacity = self.nom_capacity * self.num_units
-        self.sysPower = self.power_cont * self.num_units
-        self.sysPower = self.power_cont * self.num_units
-
-        capital_cost_BES = self.sysCapacity * self.specific_cost
-
-        return storage_capacity, num_units, capital_cost_BES
-
-    def capacity(self):
-        # (daily energy consumption / (rt_eff * depth of discharge * nominal voltage)) / autonomous days
-        pass
+        return self
 
     def size_BES_inverter(self, dc_power=0, ac_voltage=240):
         from pvlib import pvsystem
@@ -359,24 +313,18 @@ class BatteryStorage:
             columns={'index': 'inverter'})
 
         df = df[df['Vac']] == ac_voltage
-        
+
         pass
         # print(df)
 
-    
     #################
     # BES Operation #
     #################
     '''
     To Do:
-    x Charging function
-    x Discharging fcn
-    X update the soc of the BES
-    x check uppper and lower bounds of the BES
-    x limit power input/output of BES
-    - self discharge of the system
     - BES algorithm
     '''
+
     def charge(self, SoC, electricity_input=0, age=0, time_step=1):
         """
         Three cases exist for charging your battery:
@@ -403,10 +351,12 @@ class BatteryStorage:
             """
             electricity_stored = self.taper_power(electricity_input, time_step)
 
-            electricity_stored = self.storage_limitation(SoC, electricity_stored, age)
-            
+            electricity_stored = self.storage_limitation(
+                SoC, electricity_stored, age)
+
             # Roundtrip efficiency considered here instead of at discharge
-            return electricity_stored * self.module_parameters['roundtrip_efficiency']
+            return electricity_stored * \
+                self.module_parameters['roundtrip_efficiency']
 
     def discharge(self, SoC, electricity_output=0, age=0, time_step=1):
         r"""
@@ -418,18 +368,19 @@ class BatteryStorage:
         Assumptions:
         The round-trip efficiency includes the DC/AC conversion losses of the inverter
         """
-        
+
         # Null Case
         if electricity_output == 0:
             return 0
-        
+
         # Case 1
         # BES is at or below minimum SoC
         if SoC <= self.min_state_of_charge(age):
             return 0
 
-        # Case 2: The BES has enough energy to meet the demand for time t 
-        # Case 3: The BES can satisfy some of the demand, but not all, for time t
+        # Case 2: The BES has enough energy to meet the demand for time t
+        # Case 3: The BES can satisfy some of the demand, but not all, for time
+        # t
         else:
             """
             The discharging of the battery depends on its power-rating. We cannot force provide more electricity from the
@@ -437,10 +388,12 @@ class BatteryStorage:
             meet the demand, we may still have a deficit IF we cannot meet it fast enough. Here, we assume that the
             power_output is the average energy demand over the specified timeframe
             """
-            electricity_discharged = self.taper_power(electricity_output, time_step)
+            electricity_discharged = self.taper_power(
+                electricity_output, time_step)
 
             electricity_discharged = electricity_discharged * -1.
-            electricity_discharged = self.storage_limitation(SoC, electricity_discharged, age)
+            electricity_discharged = self.storage_limitation(
+                SoC, electricity_discharged, age)
 
             # Roundtrip efficiency losses considered at the charging point
             return electricity_discharged
@@ -458,7 +411,7 @@ class BatteryStorage:
 
     def storage_limitation(self, SoC_initial, energy_change, age=0):
         r'''
-        Checks that the energy change to the BES stays within the bounds of the 
+        Checks that the energy change to the BES stays within the bounds of the
         maximum capacity and depth of discharge, with respect to the system's age
 
         Parameters
@@ -481,13 +434,13 @@ class BatteryStorage:
             allowable_energy_change = maximum_capacity - energy_level_initial
         else:
             allowable_energy_change = energy_change
-        
+
         return allowable_energy_change
-     
+
     def taper_power(self, electricity_input_output=0, time_step=1):
         # Ensure that the power input/output is positive to avoid errors
         power_input_output = np.abs(electricity_input_output / time_step)
-        
+
         if power_input_output < self.power():
             return power_input_output * time_step
         elif power_input_output > self.power():
@@ -499,7 +452,7 @@ class BatteryStorage:
     def self_discharge(self):
         # Values are currently included in the roundtrip efficiency
         pass
-    
+
     def BES_storage_simulation(self, energy_io, age=0,
                                initial_state_of_charge=1):
         # Make sure that input_output is a list
@@ -511,19 +464,22 @@ class BatteryStorage:
 
         SoC = initial_state_of_charge
         # Initialize battery capacity
-        BES_SoC = [initial_state_of_charge]
-        BES_io = [0]
+        BES_SoC = [] # [initial_state_of_charge]
+        BES_io = [] # [0]
+
         # you will go by index
         for i in energy_input_output:
+            # print(F'input SOC, BES_io, age: {SoC}, {BES_io}, {age}')
             if i > 0:
                 # Charge
                 energy_charged = self.charge(SoC, i, age)
-                BES_io.append(energy_charged )
-                SoC = self.update_BES_energy(SoC, BES_io, age)
+                BES_io.append(energy_charged)
+                SoC = self.update_BES_energy(SoC, energy_charged, age)
                 BES_SoC.append(SoC)
             elif i < 0:
                 # Discharge
-                energy_discharged = self.discharge(SoC, i, age) # discharge returns negative value
+                energy_discharged = self.discharge(
+                    SoC, i, age)  # discharge returns negative value
                 BES_io.append(energy_discharged)
                 SoC = self.update_BES_energy(SoC, energy_discharged, age)
                 BES_SoC.append(SoC)
@@ -534,17 +490,24 @@ class BatteryStorage:
                 BES_SoC.append(SoC)
             # Add a case for self discharge
             # Maybe some self discharge
-        
-        BES_power = pd.DataFrame([BES_io, BES_SoC], index=energy_io.index, columns=['BES_energy_io', 'BES_SoC']) 
+        # print(F'BES_io: {len(BES_io)}')
+        # print(F'BES_SoC: {len(BES_SoC)}')
+        # print(F'{energy_io.index}')
+        # Need to restructure the data
+        BES_power = pd.DataFrame(list(zip(BES_io, BES_SoC)), index=energy_io.index, columns=[
+                                 'BES_energy_io', 'BES_SoC'])
         return BES_power
+
 
 def retrieve_battery_specs():
     csvdata = 'data\\Tech_specs\\Battery_specs_2.0.csv'
     return _parse_raw_BES_df(csvdata)
 
+
 def retrieve_doe_op_specs():
-    csvdata = 'data\Tech_specs\doe_energy_storage_operational_params.csv'
+    csvdata = 'data\\Tech_specs\\doe_energy_storage_operational_params.csv'
     return _parse_raw_BES_df(csvdata)
+
 
 def _parse_raw_BES_df(csvdata):
     df = pd.read_csv(csvdata, index_col=0, skiprows=0)
@@ -553,92 +516,9 @@ def _parse_raw_BES_df(csvdata):
     return df
 
 
-def battery_cost_regression(csvdata, technology):
-    from sklearn.linear_model import LinearRegression
-
-    df = pd.read_csv(csvdata)
-    X = df['technology', 'system_size_MW', 'storage_duration_hr']
-    Y = df['installed_sys_cost_USD_per_kWh']
-    model = LinearRegression()
-
-
-    pass
-########
-# TEST #
-########
-
-def size_BES(battery, design_voltage, method = 'days_of_autonomy',
-                        hours_of_autonomy = 72, interface='dc'):
-    # All PV Energy
-    # Backup days
-    # Voltage Requirements (V)
-    # Power Requirements
-    # Capacity Requirements (Ah)
-    # Method: Determines the design load
-    # - Daily Consumption
-    # - Peak Load
-    # - Days of Autonomy
-    if method == 'days_of_autonomy':
-        required_BES_capacity = size_by_autonomous_days()
-    # - Sun-hours
-    # Method for full-system backup, partial-system backup & to maximize home usage
-    # Design for AC and DC interfaces
-    required_BES_capacity = (design_load) / \
-        (depth_of_discharge) * temperature_modifier
-    parallel_battery_strings = required_BES_capacity / unit_battery_capacity
-    batteries_per_string = BES_voltage / unit_battery_voltage
-
-    pass
-
-
-def size_by_autonomous_days(electricity_demand, battery, storage_hours=72):
-    """
-    This method determines the number of storage units required to supply energy for a consecutive number of
-    'storage_hours' to the Building. This is determined by looking at the minimum, maximum, and mean sum of electricity
-    used within the consecutive hours for the time specified.
-
-    NEXT UPDATE MUST CHECK FOR THE NUMBER OF UNITS IN PARALLEL AND IN SERIES. CONNECTING BATTERIES IN PARALLEL DOUBLES
-    THE POWER OUTPUT BUT MAINTAINS THE SAME VOLTAGE. CONNECTING THEM IN SERIES DOUBLES THE VOLTAGE, BUT MAINTAINS THE
-    SAME POWER OUTPUT. We can call batteries in series a train.
-    """
-
-    # The storage list contains all of the required storage values for a
-    # consecutive number of storage hours.
-    storage = []
-
-    """
-        The for-loop below and accompanying if-statement calculate the total electricity demand for all consecutive hours
-        within the specified timeframe. For example, for 24 hours of storage, it will calculate the total energy storage for
-        any consecutive 24 hour period.
-        """
-    for i in range(0, len(electricity_demand), storage_hours):
-        if (i + storage_hours) < len(electricity_demand):
-            storage.append(sum(electricity_demand[i:i + storage_hours]))
-
-    storage = np.array(storage)
-
-    if method == 'max':
-        num_units = storage.max() // self.nom_capacity
-    if method == 'min':
-        num_units = storage.min() // self.nom_capacity
-    if method == 'mean':
-        num_units = storage.mean() // self.nom_capacity
-
-    storage_capacity = num_units * self.nom_capacity
-
-    self.num_units = num_units
-    self.sysCapacity = self.nom_capacity * self.num_units
-    self.sysPower = self.power_cont * self.num_units
-    self.sysPower = self.power_cont * self.num_units
-
-    capital_cost_BES = self.sysCapacity * self.specific_cost
-
-    return storage_capacity, num_units, capital_cost_BES
-
-
-def calculate_backup_bank_size(electricity_load, 
-                            hours=72,
-                            method='mean'):
+def required_BES_capacity(electricity_load,
+                                        hours=72,
+                                        method='mean'):
     r'''
     This function calculates the total amount of energy required to satisfy
     X-hours of autonomous operation.
@@ -649,7 +529,7 @@ def calculate_backup_bank_size(electricity_load,
     for i in range(0, len(electricity_load), hours):
         if (i + hours) < len(electricity_load):
             bank_size.append(sum(electricity_load[i: i + hours]))
-    
+
     bank_size = np.array(bank_size)
 
     if method == 'max':
@@ -659,24 +539,84 @@ def calculate_backup_bank_size(electricity_load,
     if method == 'mean':
         return bank_size.mean()
 
+
+
+def battery_cost_regression(csvdata, technology):
+    from sklearn.linear_model import LinearRegression
+
+    df = pd.read_csv(csvdata)
+    X = df['technology', 'system_size_MW', 'storage_duration_hr']
+    Y = df['installed_sys_cost_USD_per_kWh']
+    model = LinearRegression()
+
+    pass
+########
+# TEST #
+########
+
+
+def design_BES(battery,
+               electricity_load_profile=None,
+               design_voltage=48, 
+               hours=72, 
+               interface='dc'):
+    # All PV Energy
+    # Backup days
+    # Voltage Requirements (V)
+    # Power Requirements
+    # Capacity Requirements (Ah)
+    # Method: Determines the design load
+    # - Daily Consumption
+    # - Peak Load
+    # - Days of Autonomy
+    # - Sun-hours
+    # Method for full-system backup, partial-system backup & to maximize home usage
+    # Design for AC and DC interfaces
+
+    # Create BES 
+    BES = BatteryStorage(BES_id=battery)
+
+    # Size the BES
+    BES = BES.size_BES_array(electricity_load=electricity_load_profile, 
+                            hours=hours, 
+                            design_voltage=design_voltage)
+    
+    #required_BES_capacity = (design_load) / \
+    #    (depth_of_discharge) * temperature_modifier
+    #parallel_battery_strings = required_BES_capacity / unit_battery_capacity
+    #batteries_per_string = BES_voltage / unit_battery_voltage
+
+    return BES
+
+
+# Design PV System
+energy_df = pd.read_csv(r'model_outputs\testing\building_pv.csv')
+electricity_load = energy_df.electricity_surplus
+
+design_BES('Li7', electricity_load_profile=electricity_load, hours=24)
+
 def calculate_peak_shaving():
     pass
 # Sample PV output
+
+
 def run_test():
     # Load PV output
     try:
-        df = pd.read_csv(r'model_outputs\testing\building_pv.csv', index_col='datetime')
+        df = pd.read_csv(
+            r'model_outputs\testing\building_pv.csv',
+            index_col='datetime')
     except KeyError:
         df = test_pv()
 
     df['net_electricity'] = df.electricity_surplus + df.electricity_deficit
     print(df.net_electricity)
-    
+
     battery = BatteryStorage(BES_id='Li4')
     print(battery)
 
     # print(df)
-    
+
 # run_test()
 
 # End BatteryStorage Methods #

@@ -1,4 +1,5 @@
 # My modules
+from energy_storage import design_BES
 from sysClasses import *
 from models import *
 # 3rd Party Modules
@@ -328,7 +329,8 @@ def test_supply():
 
 
 def test_pv():
-    import pv_system
+    import energy_storage
+
     City_ = City(name='atlanta',
                  nerc_region=nerc_region_dictionary['atlanta'],
                  tmy3_file=tmy3_city_dictionary['atlanta'])
@@ -356,16 +358,23 @@ def test_pv():
                                              AC_=AC_,
                                              oversize_factor=1.3)
 
-    '''print(PVSystem_.module)
-    print(PVSystem_.module_parameters)
-    print(PVSystem_.inverter)
-    print(PVSystem_.inverter_parameters)
-    print(PVSystem_.modules_per_string)
-    print(PVSystem_.strings_per_inverter)
-    '''
-    building_pv_sim.to_csv(r'model_outputs\testing\building_pv.csv')
+    electricity_load = building_pv_sim.electricity_surplus
+    V_pv = nominal_voltage(PVSystem_)
 
-    return building_pv_sim
+    BES = design_BES('Li7', electricity_load, V_pv, 12)
+
+    energy_input_output = building_pv_sim.electricity_surplus + building_pv_sim.electricity_deficit
+    
+    BES_power = BES.BES_storage_simulation(energy_input_output)
+    # Separate function for energy supplied by the BES
+    
+    sns.lineplot(x=BES_power.index, y=BES_power.BES_energy_io)
+    plt.show()
+    print(BES_power)
+ 
+    # building_pv_sim.to_csv(r'model_outputs\testing\building_pv.csv')
+
+    return # building_pv_sim
 
 
 test_pv()
