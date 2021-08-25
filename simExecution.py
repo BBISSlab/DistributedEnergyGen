@@ -1,4 +1,5 @@
 # My modules
+from energy_storage import design_BES
 from sysClasses import *
 from models import *
 # 3rd Party Modules
@@ -33,7 +34,7 @@ def execute_energy_demand_sim(thermal_distribution_loss_factor=1.0):
         n = int(input('Enter number of cities: '))
         for i in range(0, n):
             city_input = str(input(
-                'Type in the name of the {}th city: '.format(i+1)))
+                'Type in the name of the {}th city: '.format(i + 1)))
             cities_to_simulate.append(city_input)
         print('Simulating the following list: {}'.format(cities_to_simulate))
         system_dict = generate_objects(
@@ -49,7 +50,13 @@ def execute_energy_demand_sim(thermal_distribution_loss_factor=1.0):
 
     # Drop residential AC units and exhaust-fired ABCs
     AC_drop = ['AC1', 'AC2', 'CH1', 'CH2', 'CH3', 'CH4']
-    ABC_drop = ['ABC_SS1', 'ABC_SS3', 'ABC_TS1', 'ABC_TS2', 'ABC_TS3', 'ABC_TS4']
+    ABC_drop = [
+        'ABC_SS1',
+        'ABC_SS3',
+        'ABC_TS1',
+        'ABC_TS2',
+        'ABC_TS3',
+        'ABC_TS4']
     for key in AC_drop:
         AC_dict.pop(key)
     for key in ABC_drop:
@@ -103,13 +110,13 @@ def execute_energy_demand_sim(thermal_distribution_loss_factor=1.0):
                 # Beta loop
             # Building Loop
             building_agg = pd.concat(dataframes_ls, axis=0).reset_index()
-            
+
             if thermal_distribution_loss_factor == 1.0:
                 building_agg.to_feather(
-                    r'model_outputs\energy_demands\Hourly_'+city+'_'+building+'_energy_dem.feather')
+                    r'model_outputs\energy_demands\Hourly_' + city + '_' + building + '_energy_dem.feather')
             else:
                 building_agg.to_feather(
-                    r'model_outputs\distribution_sensitivity\Hourly_'+city+'_'+building+'_energy_dem_dist_sens.feather')
+                    r'model_outputs\distribution_sensitivity\Hourly_' + city + '_' + building + '_energy_dem_dist_sens.feather')
             building_number += 1
         # City Loop
         city_number += 1
@@ -129,7 +136,7 @@ def execute_energy_supply_sim(thermal_distribution_loss_factor=1.0):
         n = int(input('Enter number of cities: '))
         for i in range(0, n):
             city_input = str(input(
-                'Type in the name of the {}th city: '.format(i+1)))
+                'Type in the name of the {}th city: '.format(i + 1)))
             cities_to_simulate.append(city_input)
         print('Simulating the following list: {}'.format(cities_to_simulate))
         system_dict = generate_objects(
@@ -152,8 +159,8 @@ def execute_energy_supply_sim(thermal_distribution_loss_factor=1.0):
     ts = time.gmtime()
     print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
 
-    alpha_CHP_range = [0.0, #0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 
-                        1.0]
+    alpha_CHP_range = [0.0,  # 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+                       1.0]
 
     city_number = 1
     for city in City_dict:
@@ -181,11 +188,11 @@ def execute_energy_supply_sim(thermal_distribution_loss_factor=1.0):
                             city, city_number, building, building_number, alpha, furnace, Furnace_number, pm, pm_number, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')
 
                         df = energy_supply_sim(Building_=Building_,
-                                           City_=City_,
-                                           Furnace_=Furnace_,
-                                           PrimeMover_=PrimeMover_,
-                                           alpha_CHP=alpha,
-                                           thermal_distribution_loss_factor=thermal_distribution_loss_factor)
+                                               City_=City_,
+                                               Furnace_=Furnace_,
+                                               PrimeMover_=PrimeMover_,
+                                               alpha_CHP=alpha,
+                                               thermal_distribution_loss_factor=thermal_distribution_loss_factor)
 
                         df.reset_index(inplace=True)
 
@@ -199,13 +206,16 @@ def execute_energy_supply_sim(thermal_distribution_loss_factor=1.0):
                 pm_number += 1
             # Building Loop
             building_number += 1
-            building_agg = pd.concat(dataframes_ls, axis=0).reset_index(drop=True)
+            building_agg = pd.concat(
+                dataframes_ls,
+                axis=0).reset_index(
+                drop=True)
             if thermal_distribution_loss_factor == 1:
                 building_agg.to_feather(
-                    r'model_outputs\energy_supply' + F'\Annual_{city}_{building}_energy_sup.feather')
+                    r'model_outputs\energy_supply' + F'\\Annual_{city}_{building}_energy_sup.feather')
             else:
                 building_agg.to_feather(
-                    r'model_outputs\distribution_sensitivity' + F'\Annual_{city}_{building}_energy_sup_dist_sens.feather')
+                    r'model_outputs\distribution_sensitivity' + F'\\Annual_{city}_{building}_energy_sup_dist_sens.feather')
         # City Loop
         city_number += 1
     print('\nCompleted Simulation')
@@ -214,18 +224,20 @@ def execute_energy_supply_sim(thermal_distribution_loss_factor=1.0):
 def execute_impacts_sim(data, leakage_factor=1,
                         sensitivity=None):
     impacts = impacts_sim(data, leakage_factor)
-    
+
     if sensitivity is None:
         impacts.to_feather(r'model_outputs\impacts\All_impacts.feather')
 
         impacts.to_csv(r'model_outputs\testing\All_impacts.csv')
 
     if sensitivity == 'DS':
-        impacts.to_feather(r'model_outputs\distribution_sensitivity\All_impacts_DS.feather')
+        impacts.to_feather(
+            r'model_outputs\distribution_sensitivity\All_impacts_DS.feather')
 
         impacts.to_csv(r'model_outputs\testing\All_impacts_DS.csv')
     print("Impacts Sim Complete")
     return impacts
+
 
 def compile_data(all_cities=True, file_type='supply'):
     if all_cities is True:
@@ -235,14 +247,13 @@ def compile_data(all_cities=True, file_type='supply'):
         n = int(input('Enter number of cities: '))
         for i in range(0, n):
             city_input = str(input(
-                'Type in the name of the {}th city: '.format(i+1)))
+                'Type in the name of the {}th city: '.format(i + 1)))
             cities_to_simulate.append(city_input)
         print('Simulating the following list: {}'.format(cities_to_simulate))
         system_dict = generate_objects(
             all_cities=False, selected_cities=cities_to_simulate)
-    
-    City_dict = system_dict['City_dict']
 
+    City_dict = system_dict['City_dict']
 
     if file_type == 'supply':
         filepath = r'model_outputs\energy_supply'
@@ -251,28 +262,25 @@ def compile_data(all_cities=True, file_type='supply'):
         for city in City_dict:
             for building in building_type_list:
                 filename = F'Annual_{city}_{building}_energy_sup.feather'
-                df = pd.read_feather(F'{filepath}\{filename}')
+                df = pd.read_feather(F'{filepath}\\{filename}')
                 dataframes.append(df)
 
     if file_type == 'distribution_sensitivity':
         filepath = r'model_outputs\distribution_sensitivity'
-        
+
         dataframes = []
         for city in City_dict:
             for building in building_type_list:
                 filename = F'Annual_{city}_{building}_energy_sup_dist_sens.feather'
-                df = pd.read_feather(F'{filepath}\{filename}')
+                df = pd.read_feather(F'{filepath}\\{filename}')
                 dataframes.append(df)
-    
 
     compiled_df = pd.concat(dataframes, axis=0).reset_index(drop=True)
 
     # Some cleaning that should be incorporated into models.py
-    compiled_df.drop(['index','level_8'], axis=1, inplace=True)
+    compiled_df.drop(['index', 'level_8'], axis=1, inplace=True)
 
     return compiled_df
-
-
 
 
 # execute_energy_demand_sim(thermal_distribution_loss_factor=1.1)
@@ -281,15 +289,15 @@ def compile_data(all_cities=True, file_type='supply'):
 # df.to_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
 # df.to_csv(r'model_outputs\testing\All_supply_data_DS.csv')
 
-data = pd.read_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
+# data = pd.read_feather(r'model_outputs\distribution_sensitivity\All_supply_data_DS.feather')
 # print(data.head())
-execute_impacts_sim(data=data, sensitivity=None)
+# execute_impacts_sim(data=data, sensitivity=None)
 
 def test_supply():
 
     cities_to_simulate = ['albuquerque']
     system_dict = generate_objects(
-            all_cities=False, selected_cities=cities_to_simulate)
+        all_cities=False, selected_cities=cities_to_simulate)
 
     City_dict = system_dict['City_dict']
     Grid_dict = system_dict['Grid_dict']
@@ -299,19 +307,110 @@ def test_supply():
     AC_dict = system_dict['AC_dict']
     ABC_dict = system_dict['ABC_dict']
 
-    Building_ = Building(name='Test', building_type='full_service_restaurant', City_=City_dict['albuquerque'])
+    Building_ = Building(
+        name='Test',
+        building_type='full_service_restaurant',
+        City_=City_dict['albuquerque'])
     City_ = City_dict['albuquerque']
     Furnace_ = Furnace_dict['B2']
     PrimeMover_ = PrimeMover_dict['RE1']
     alpha = 0
     df = energy_supply_sim(Building_=Building_,
-                                           City_=City_,
-                                           Furnace_=Furnace_,
-                                           PrimeMover_=PrimeMover_,
-                                           alpha_CHP=alpha)
+                           City_=City_,
+                           Furnace_=Furnace_,
+                           PrimeMover_=PrimeMover_,
+                           alpha_CHP=alpha)
 
     df.to_csv(r'model_outputs\testing\Energy_supply.csv')
 
     print('DONE')
 
 # test_supply()
+
+
+def test_pv():
+    import energy_storage
+
+    City_ = City(name='atlanta',
+                 nerc_region=nerc_region_dictionary['atlanta'],
+                 tmy3_file=tmy3_city_dictionary['atlanta'])
+    City_._get_data(City_.tmy3_file)
+
+    Building_ = Building(
+        name='medium_office',
+        building_type='medium_office',
+        City_=City_)
+
+    airconditioners = retrieve_AirConditioners()
+    furnaces = retrieve_Furnaces()
+
+    # Temporarily, make the ac and the furnace a dictionary object, rather
+    # than an object.
+    Furnace_ = furnaces['B1']
+    AC_ = airconditioners['CH2']
+
+    PVSystem_ = design_building_PV(Building_, Furnace_, AC_)
+
+    building_pv_sim = building_pv_energy_sim(Building_=Building_,
+                                             City_=City_,
+                                             PVSystem_=PVSystem_,
+                                             Furnace_=Furnace_,
+                                             AC_=AC_,
+                                             oversize_factor=1.3)
+
+    electricity_load = building_pv_sim.electricity_surplus
+    V_pv = nominal_voltage(PVSystem_)
+
+    BES = design_BES('Li7', electricity_load, V_pv, 12)
+
+    energy_input_output = building_pv_sim.electricity_surplus + building_pv_sim.electricity_deficit
+    
+    BES_power = BES.BES_storage_simulation(energy_input_output)
+    # Separate function for energy supplied by the BES
+    
+    sns.lineplot(x=BES_power.index, y=BES_power.BES_energy_io)
+    plt.show()
+    print(BES_power)
+ 
+    # building_pv_sim.to_csv(r'model_outputs\testing\building_pv.csv')
+
+    return # building_pv_sim
+
+
+test_pv()
+
+
+def building_pv_sim(building_type, city_name,
+                    AC_model, Furnace_model,
+                    PVSystem_=None, oversize_factor=1,
+                    ):
+    # ToDo:
+    # Generate city and building objects
+    City_ = City(name=city_name,
+                 nerc_region=nerc_region_dictionary[city_name],
+                 tmy3_file=tmy3_city_dictionary[city_name])
+    City_._get_data(City_.tmy3_file)
+
+    Building_ = Building(
+        name=building_type,
+        building_type=building_type,
+        City_=City_)
+
+    # ToDo: Convert AC and Furnace into objects rather than dictionaries
+    airconditioners = retrieve_AirConditioners()
+    furnaces = retrieve_Furnaces()
+    Furnace_ = furnaces[Furnace_model]
+    AC_ = airconditioners[AC_model]
+
+    PVSystem_ = design_building_PV(Building_, Furnace_, AC_, oversize_factor)
+
+    building_pv_sim = building_pv_energy_sim(Building_=Building_,
+                                             City_=City_,
+                                             PVSystem_=PVSystem_,
+                                             Furnace_=Furnace_,
+                                             AC_=AC_,
+                                             oversize_factor=oversize_factor)
+
+
+    pass
+
