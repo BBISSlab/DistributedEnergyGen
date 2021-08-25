@@ -1,6 +1,7 @@
 ####################################
 # LIBRARIES NEEDED TO RUN THE TOOL #
 ####################################
+import iapws.iapws97 as thermo
 import pathlib
 from openpyxl import load_workbook
 import math as m
@@ -47,7 +48,7 @@ class BatteryStorage:
         # Module parameters: operational parameters
         if module_parameters is None:
             try:
-                self.module_parameters = self._infer_battery_module_params()
+                self.module_parameters = self._infer_battery_module_parameters()
             except KeyError:
                 self.module_parameters = {}
 
@@ -75,32 +76,32 @@ class BatteryStorage:
         # GENERAL INFO
         self.name = f"{battery['manufacturer']}_{battery['model']}"
         self.battery_type = battery['chemistry']
-        self.module_parameters = self._infer_battery_module_params()
+        self.module_parameters = self._infer_battery_module_parameters()
         self.cost_parameters = self._infer_battery_cost_parameters()
 
         return self
 
-    def _infer_battery_module_params(self, source='doe'):
+    def _infer_battery_module_parameters(self, source='doe'):
         battery = retrieve_battery_specs()[self.BES_id]
         doe_battery = retrieve_doe_op_specs()[battery['technology']]
 
-        module_params = {'technology': battery['technology'],
-                         'chemistry': battery['chemistry'],
-                         'capacity_kWh': battery['capacity_kWh'],
-                         'capacity_Ah': battery['capacity_Ah'],
-                         'depth_of_discharge_perc': doe_battery['depth_of_discharge_percent'],
-                         'depth_of_discharge_kWh': battery['capacity_kWh'] * doe_battery['depth_of_discharge_percent'] / 100,
-                         'peak_power_kW': battery['peak_power_kW'],
-                         'power_cont_kW': battery['power_continuous_kW'],
-                         # Convert from percent to fraction
-                         'degradation_rate': doe_battery['degradation_rate_percent'] / 100,
-                         'roundtrip_efficiency': doe_battery['roundtrip_efficiency'] / 100,
-                         'voltage_nom': battery['volt_nominal_V'],
-                         'endoflife_capacity_kWh': doe_battery['end_of_life_capacity_percent'] * battery['capacity_kWh'] / 100,
-                         'lifetime_yr': doe_battery['lifetime_yr'],
-                         'cycling_times': battery['cycling_times'],
-                         }
-        return module_params
+        module_parameters = {'technology': battery['technology'],
+                             'chemistry': battery['chemistry'],
+                             'capacity_kWh': battery['capacity_kWh'],
+                             'capacity_Ah': battery['capacity_Ah'],
+                             'depth_of_discharge_perc': doe_battery['depth_of_discharge_percent'],
+                             'depth_of_discharge_kWh': battery['capacity_kWh'] * doe_battery['depth_of_discharge_percent'] / 100,
+                             'peak_power_kW': battery['peak_power_kW'],
+                             'power_cont_kW': battery['power_continuous_kW'],
+                             # Convert from percent to fraction
+                             'degradation_rate': doe_battery['degradation_rate_percent'] / 100,
+                             'roundtrip_efficiency': doe_battery['roundtrip_efficiency'] / 100,
+                             'voltage_nom': battery['volt_nominal_V'],
+                             'endoflife_capacity_kWh': doe_battery['end_of_life_capacity_percent'] * battery['capacity_kWh'] / 100,
+                             'lifetime_yr': doe_battery['lifetime_yr'],
+                             'cycling_times': battery['cycling_times'],
+                             }
+        return module_parameters
 
     def _infer_battery_cost_parameters(self):
         battery = retrieve_battery_specs()[self.BES_id]
@@ -281,8 +282,8 @@ class BatteryStorage:
         return bank_size
 
     def size_BES_array(self, electricity_load,
-                 hours, method='mean',
-                 design_voltage=48):
+                       hours, method='mean',
+                       design_voltage=48):
         """
         This method determines the number of storage units required to supply energy for a consecutive number of
         'storage_hours' to the Building. This is determined by looking at the minimum, maximum, and mean sum of electricity
@@ -464,8 +465,8 @@ class BatteryStorage:
 
         SoC = initial_state_of_charge
         # Initialize battery capacity
-        BES_SoC = [] # [initial_state_of_charge]
-        BES_io = [] # [0]
+        BES_SoC = []  # [initial_state_of_charge]
+        BES_io = []  # [0]
 
         # you will go by index
         for i in energy_input_output:
@@ -517,8 +518,8 @@ def _parse_raw_BES_df(csvdata):
 
 
 def required_BES_capacity(electricity_load,
-                                        hours=72,
-                                        method='mean'):
+                          hours=72,
+                          method='mean'):
     r'''
     This function calculates the total amount of energy required to satisfy
     X-hours of autonomous operation.
@@ -540,7 +541,6 @@ def required_BES_capacity(electricity_load,
         return bank_size.mean()
 
 
-
 def battery_cost_regression(csvdata, technology):
     from sklearn.linear_model import LinearRegression
 
@@ -557,8 +557,8 @@ def battery_cost_regression(csvdata, technology):
 
 def design_BES(battery,
                electricity_load_profile=None,
-               design_voltage=48, 
-               hours=72, 
+               design_voltage=48,
+               hours=72,
                interface='dc'):
     # All PV Energy
     # Backup days
@@ -573,15 +573,15 @@ def design_BES(battery,
     # Method for full-system backup, partial-system backup & to maximize home usage
     # Design for AC and DC interfaces
 
-    # Create BES 
+    # Create BES
     BES = BatteryStorage(BES_id=battery)
 
     # Size the BES
-    BES = BES.size_BES_array(electricity_load=electricity_load_profile, 
-                            hours=hours, 
-                            design_voltage=design_voltage)
-    
-    #required_BES_capacity = (design_load) / \
+    BES = BES.size_BES_array(electricity_load=electricity_load_profile,
+                             hours=hours,
+                             design_voltage=design_voltage)
+
+    # required_BES_capacity = (design_load) / \
     #    (depth_of_discharge) * temperature_modifier
     #parallel_battery_strings = required_BES_capacity / unit_battery_capacity
     #batteries_per_string = BES_voltage / unit_battery_voltage
@@ -594,6 +594,7 @@ energy_df = pd.read_csv(r'model_outputs\testing\building_pv.csv')
 electricity_load = energy_df.electricity_surplus
 
 design_BES('Li7', electricity_load_profile=electricity_load, hours=24)
+
 
 def calculate_peak_shaving():
     pass
@@ -653,64 +654,148 @@ def _generate_BatteryStorage(csv_file, sheet_name=None, header=1):
 
 
 class WaterTank:
+    # To Do:
+    # - Lower Bound 40 C
+    # - Upper Bound 90 C
+    # - Charging
+    # - Discharging
+    # - Energy
+    # - kWh to Btu converter
+    #
 
-    def __init__(self, TES_id, model='', manufacturer='',
-                 nom_capacity=0, power=0,
-                 degradation_rate=0, roundtripEfficiency=1,
-                 lifetime=10, age=0, cycling_times=0, end_of_life_capacity=1, warranty=0,
-                 volt_nom=0, battery_cost=0, install_cost=0, total_cost=0, specific_cost=0,
-                 stateOfCharge=0, num_units=1):
+    def __init__(self, TES_id, name=None,
+                 module_parameters=None, cost_parameters=None,
+                 number_of_tanks=0, age=0,
+                 heat_pump=None):
         # BASIC INFORMATION
-        self.BES_id = BES_id
-        self.model = model
-        self.manufacturer = manufacturer
+        self.TES_id = TES_id
+        self.name = name
+
         # PERFORMANCE METRICS
         # Capacity, DoD in kWh
-        self.nom_capacity = nom_capacity
-        # Power in kW
-        self.power = power
-        # Degradation rate in fraction of capacity loss
-        self.degradation_rate = degradation_rate
-        # RTE is a % but set here as a fraction
-        self.RTE = roundtripEfficiency
-        # Voltage
-        self.volt_nom = volt_nom
-        # End of Life is a fraction of total capacity
-        self.EoL_cap = end_of_life_capacity
-        # LIFECYCLE METRICS
-        # Lifetime, warranty, and age in years, cycling times in cycles
-        self.lifetime = lifetime
-        self.warranty = warranty
-        self.cycling_times = cycling_times
-        self.age = age
-        # COSTS
-        # Battery, install, and capital costs in $. Specific cost in $/kWh
-        self.battery_cost = battery_cost
-        self.install_cost = install_cost
-        self.total_cost = total_cost
-        # OPERATIONAL PARAMETERS
-        # SoC and all other parameters in kWh; number of units is integer
-        self.temperature = temperature
-        self.num_units = num_units
-        self.sysCapacity = self.nom_capacity * self.num_units
-        self.sysDoD = self.DoD * self.num_units
-        self.sysSoC = self.SoC * self.num_units
-        self.sysPower = self.power_cont * self.num_units
-        # rejectedElectricityIn
-        # self.rejectedElectricityIn = 0
+        self.module_parameters = module_parameters
+        self.cost_parameters = cost_parameters
+        self.number_of_tanks = number_of_tanks
+
+        if module_parameters is None:
+            try:
+                self.module_parameters = self._infer_water_tank_parameters()
+            except KeyError:
+                self.module_parameters = {}
+        if cost_parameters is None:
+            try:
+                self.cost_parameters = self._infer_water_tank_cost_parameters()
+            except KeyError:
+                self.cost_parameters = {}
 
     def __repr__(self):
-        attrs = ['BES_id', ' model', 'manufacturer', 'chemistry', 'application',
-                 'nom_capacity', 'DoD', 'peak_power', 'power_cont',
-                 'degradation_rate', 'RTE', 'volt_nom', 'EoL_cap',
-                 'lifetime', 'warranty', 'cycling_times', 'age',
-                 'battery_cost', 'install_cost', 'total_cost', 'specific_cost',
-                 'SoC', 'num_units', 'sysCapacity', 'sysDoD', 'sysSoC', 'sysPower']
-        return ('Battery Storage: \n ' + ' \n '.join('{}: {}'.format(attr,
+        attrs = ['TES_id', 'name',
+                 'module_parameters', 'cost_parameters',
+                 'number_of_tanks', 'age']
+        return ('WaterTank: \n ' + ' \n '.join('{}: {}'.format(attr,
                 getattr(self, attr)) for attr in attrs))
 
-    def size_WaterTank():
+    def _get_data(self):
         pass
+
+    def _infer_water_tank_parameters(self):
+        pass
+
+    def _infer_water_tank_cost_parameters(self):
+        pass
+
+    #####################################
+    # Water Tank Operational Parameters #
+    #####################################
+
+    def storage_medium_mass(self, density=1000  # kg/L
+                            ):
+        volume = self.module_parameters['tank_volume']  # Tank volume in L
+        return volume * density
+
+    def nominal_capacity(self):
+        r'''
+        The difference in energy between the upper boundary and the lower boundary
+        '''
+        maximum_temp = self.module_parameters['max_temperature_C']
+        minimum_temp = self.module_parameters['min_temperature_C']
+        mass = self.storage_medium_mass()
+        c_p = 4.184  # kJ / (kg * K)
+
+        return mass * c_p * (maximum_temp - minimum_temp)
+
+    def power(self):
+        r'''
+        This may depend on the coupled system
+        '''
+        pass
+
+    def depth_of_discharge(self):
+        pass
+
+    def state_of_charge(self):
+        r'''The temperature of the system, and the amound of energy that can be extracted.
+        The SOC is 0 when the system is at the lower boundary
+        '''
+        pass
+
+    def size_WaterTank(self):
+        # Determine the required capacity
+        # Make sure that
+        pass
+
+    def charge(self, temperature_initial, energy_in):
+        pass
+
+    def discharge(self, temperature_initial, energy_out):
+        pass
+
+    def change_in_heat(self, temperature_initial, temperature_final):
+        r'''
+        Calculate the change in temperature in the water tank
+        as a result of heat input or output.
+
+        delta_Q = m * c_p * delta_T
+
+        Parameters
+        ----------
+        delta_Q : change in heat
+
+        Output
+        ------
+        delta_T : change in temperature, in K or C
+
+        '''
+
+    def change_in_temperature(self, delta_Q, units='kWh'):
+        r'''
+        Calculate the change in temperature in the water tank
+        as a result of heat input or output.
+
+        delta_Q = m * c_p * delta_T
+
+        Parameters
+        ----------
+        delta_Q : change in heat
+
+        Output
+        ------
+        delta_T : change in temperature, in K or C
+
+        '''
+
+        import iapws.iapws97
+        # Q = m * c_p * delta_T
+
+        if units == 'kWh':
+            delta_Q = 3600 * delta_Q
+
+        c_p = 4.184  # kJ / (kg * K)
+        mass = self.storage_medium_mass()
+
+        delta_T = delta_Q / (mass * c_p)
+
+        return delta_T
 
 
 class ThermalBattery:
@@ -719,3 +804,9 @@ class ThermalBattery:
 
 class ChemicalStorage:
     pass
+
+
+# Testing
+water_heater = WaterTank(TES_id='TEST')
+
+print(thermo())

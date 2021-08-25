@@ -2411,6 +2411,42 @@ def _parse_raw_Furnace_df(csvdata):
 ###################################
 
 
+class HeatPump:
+    def __init__(self, HeatPump_id, 
+                technology=None, electric=True, 
+                module_parameters=None, 
+                cost_parameters=None):
+
+        self.HeatPump_id = HeatPump_id
+        self.technology = technology
+        self.electric = electric
+        self.module_parameters = module_parameters
+        self.cost_parameters = cost_parameters
+    
+    def __repr__(self):
+        attrs = ['HeatPump_id', 'technology', 'electric',  'module_parameters', 'cost_parameters']
+        return ('HeatPump: \n ' + ' \n '.join('{}: {}'.format(attr, 
+                getattr(self, attr)) for attr in attrs))
+                
+    def _infer_module_parameters(self):
+        module = retrieve_tech_specs('heat pump')[self.HeatPump_id]
+
+        module_parameters = {'capacity_kW': module['capacity_kW'],
+                             'COP_heating': module['COP_heating'],
+                             'COP_cooling': module['COP_cooling']}
+        return module_parameters
+
+
+    def _infer_cost_parameters(self):
+        module = retrieve_tech_specs('heat pump')[self.HeatPump_id]
+
+        cost_parameters = {'equipment_cost': module['equipment_cost'],
+                             'total_installed_cost': module['total_installed_cost'],
+                             'annual_maintenance_cost': module['annual_maintenance_cost']}
+        
+        return cost_parameters
+
+
 def generate_objects(all_cities=True, selected_cities=[]):
 
     City_dictionary = _generate_Cities(
@@ -2450,6 +2486,20 @@ def generate_objects(all_cities=True, selected_cities=[]):
                    'ABC_dict': ABC_dictionary}
     return (system_dict)
 
+
+def retrieve_tech_specs(technology=None):
+
+    if technology == 'heat pump':
+        csvdata = r'data\Tech_specs\HeatPump_specs.csv'
+        return _parse_raw_tech_df(csvdata)
+
+    # Insert technology options for the other techs
+
+def _parse_raw_tech_df(csvdata):
+    df = pd.read_csv(csvdata, index_col=0, skiprows=0)
+    df.columns = df.columns.str.replace(' ', '_')
+    df = df.transpose()
+    return df
 
 """
 REFERENCES
