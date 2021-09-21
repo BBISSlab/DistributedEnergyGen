@@ -1,0 +1,15 @@
+,,,kW,,yr,$,$/kWh,,,,,,,,,,
+ABC_id,technology,heat_input_type,capacity_kW,COP_full_load,avg_life,capital_cost,om_cost,chilled_water_in,chilled_water_out,cooling_water_in,cooling_water_out,hot_water_in,hot_water_out,steam_pressure,,manufacturer,model
+ABC_SS1,Single Stage Absorption Chiller,hot water,176,0.7,20,1705,0.002,,,,,,,,,,
+ABC_SS2,Single Stage Absorption Chiller,hot water,440,0.74,20,654,0.0006,,,,,,,,,,
+ABC_SS3,Single Stage Absorption Chiller,low pressure steam,1320,0.79,20,512,0.0003,,,,,,,,,,
+ABC_TS1,Two-Stage Absorption Chiller,high pressure steam,1161,1.42,20,853,0.0009,,,,,,,,,,
+ABC_TS2,Two-Stage Absorption Chiller,high pressure steam,4645,1.42,20,625,0.0003,,,,,,,,,,
+ABC_TS3,Two-Stage Absorption Chiller,exhaust -fired,1161,1.35,20,938,0.0009,,,,,,,,,,
+ABC_TS4,Two-Stage Absorption Chiller,exhaust -fired,3519,1.38,20,568,0.0003,,,,,,,,,,
+ABC_SS4,Single Stage Absorption Chiller,hot water,,,,,,12,6,27,32,90,72,,,York,YHAU-CL/CH
+ABC_SS5,Single Stage Absorption Chiller,hot water,,,,,,12,7,32,38,98,88,,,York,
+ABC_SS6,Single Stage Absorption Chiller,low pressure steam,,,,,,12,7,32,40,,,,,,
+ABC_SS7,Single Stage Absorption Chiller,low pressure steam,,,,,,12,7,30,38,,,,,,
+ABC_SS8,Single Stage Absorption Chiller,hot water,,,,,,13,7,29,,91,85,,,,
+ABC_SS9,Single Stage Absorption Chiller,hot water,,,,,,12.2,6.7,29.4,38.4,95,86,,,,
