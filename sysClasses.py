@@ -12,6 +12,7 @@ __version__ = '0.1'
 ####################################
 # LIBRARIES NEEDED TO RUN THE TOOL #
 ####################################
+from logging import error
 import pathlib
 from openpyxl import load_workbook
 import math as m
@@ -1575,6 +1576,133 @@ class AbsorptionChiller:
         self.om_cost = dataframe.iloc[index]['om_cost']
 
 
+# Enthalpy Equation
+def enthalpy_LiBr_solution(concentration=0., solution_temperature=0):
+    r'''
+        Chapter 30: Thermophysical Properties of Refrigerants. ASHRAE (2009)
+
+        Enthalpy-Concentration diagram for water / LiBr Solutions
+
+        Equation is valid for:
+            concentration range 40 < X < 70% LiBr
+            temperature range 15 < t < 165 deg C
+
+        t:  solution temperature, deg C
+        t': refrigerant temperature, deg C
+        T': refrigerant temperature, K
+        P:  saturation pressure, kPa
+
+        h = sum(A_n * X^n, 0, 4) + t * sum(B_n * X^n, 0, 4) + t^2 * sum(C_n * X^n, 0, 4)
+    '''
+    # Coefficients
+    A_n = [-2024.33, 163.309, -4.88161, 6.302948 * 10**-2, -2.913705 * 10**-4]
+    B_n = [18.2829, -1.1691757, 3.248041 * 10**-
+           2, -4.034184 * 10**-4, 1.8520569 * 10**-6]
+    C_n = [-3.7008214 * 10**-2, 2.8877666 * 10**-3, -8.1313015 *
+           10**-5, 9.9116628 * 10**-7, -4.4441207 * 10**-9]
+
+    A = Li_Br_summation(coef=A_n, x=concentration)
+    B = Li_Br_summation(coef=B_n, x=concentration)
+    C = Li_Br_summation(coef=C_n, x=concentration)
+
+    return(A + solution_temperature * B + solution_temperature**2 * C)
+
+
+def Li_Br_summation(n=5, coef=[], x=0):
+    summation = 0
+    for i in range(n):
+        summation += coef[i] * x**i
+    return summation
+
+
+def LiBr_equilibrium(concentration=0,
+                     solution_temp=0, refrigerant_temp=0,
+                     pressure_sat=0,
+                     method='refrigerant to solution'
+                     ):
+    r'''
+        Chapter 30: Thermophysical Properties of Refrigerants. ASHRAE (2009)
+
+        Equilibrium Chart for Aqueous LiBr Solutions
+
+        Equation is valid for:
+            concentration range 40 < X < 70% LiBr
+            solution temperature range 5 < t' < 165 deg C
+            refrigerant temperature range -15 < t < 175 deg C
+
+        In aqueous LiBr solutions, water acts as the refrigerant.
+
+        t:  solution temperature, deg C
+        t': refrigerant temperature, deg C
+        T': refrigerant temperature, K
+        P:  saturation pressure, kPa
+
+        h = sum(A_n * X^n, 0, 4) + t * sum(B_n * X^n, 0, 4) + t^2 * sum(C_n * X^n, 0, 4)
+    '''
+    # Coefficients
+    A_n = [-2.00755, 0.16976, -3.133362 * 10**-3, 1.97668 * 10**-5]
+    B_n = [124.937, -7.71649, 0.152286, -7.9590 * 10**-4]
+    C = 7.05
+    D = -1596.49
+    E = -104095.5
+
+
+def solution_temp(refrigerant_temp, A_n=[], B_n=[], concentration=0):
+    A = Li_Br_summation(n=4, coef=A_n, x=concentration)
+    B = Li_Br_summation(n=4, coef=B_n, x=concentration)
+
+    return B + refrigerant_temp * A
+
+
+def refrigerant_temp(solution_temp, A_n=[], B_n=[], concentration=0):
+    A = Li_Br_summation(n=4, coef=A_n, x=concentration)
+    B = Li_Br_summation(n=4, coef=B_n, x=concentration)
+
+    return (solution_temp - B) / A
+
+
+def pressure_sat(refreigerant_temp, C, D, E):
+    T = refrigerant_temp + 273.15
+    return 10**(C + D / T + E / (T**2))
+
+
+def refrigerant_temp_from_pressure(pressure_sat, C, D, E):
+    T = (-2 * E) / (D + (D**2 - 4 * E * (C - np.log10(pressure_sat)))**0.5)
+    refrigerant_temp = T - 273.15
+    if refrigerant_temp < 0:
+        print("refrigerant temperature outside possible range")
+    else:
+        return refrigerant_temp
+
+
+def generator(heat_input=0,
+              hot_water_temp_in=0, hot_water_temp_out=0,
+              solution_temp_in=0, solution_temp_out=0,
+              refrigerant_temp_out=0,
+              generator_temp=0
+              ):
+    '''
+                               ================
+    WEAK SOLUTION IN (1) ====> [              ] ====> STRONG SOLUTION OUT (2)
+                               [  GENERATOR   ] ====> REFRIGERANT OUT (3)
+        HOT WATER IN (4) ====> [              ] ====> HOT WATER OUT (5)
+                               ================
+
+    Assumptions
+    '''
+    import iapws.iapws97 as iapws
+
+    if heat_input > 0:
+        pass
+
+    pass
+
+
+H = enthalpy_LiBr_solution(concentration=40., solution_temperature=60)
+print(H)
+exit()
+
+
 def _generate_AbsorptionChiller_dataframe(csv_file, sheet_name=None, header=0):
     """
     This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data
@@ -2412,22 +2540,27 @@ def _parse_raw_Furnace_df(csvdata):
 
 
 class HeatPump:
-    def __init__(self, HeatPump_id, 
-                technology=None, electric=True, 
-                module_parameters=None, 
-                cost_parameters=None):
+    def __init__(self, HeatPump_id,
+                 technology=None, electric=True,
+                 module_parameters=None,
+                 cost_parameters=None):
 
         self.HeatPump_id = HeatPump_id
         self.technology = technology
         self.electric = electric
         self.module_parameters = module_parameters
         self.cost_parameters = cost_parameters
-    
+
     def __repr__(self):
-        attrs = ['HeatPump_id', 'technology', 'electric',  'module_parameters', 'cost_parameters']
-        return ('HeatPump: \n ' + ' \n '.join('{}: {}'.format(attr, 
+        attrs = [
+            'HeatPump_id',
+            'technology',
+            'electric',
+            'module_parameters',
+            'cost_parameters']
+        return ('HeatPump: \n ' + ' \n '.join('{}: {}'.format(attr,
                 getattr(self, attr)) for attr in attrs))
-                
+
     def _infer_module_parameters(self):
         module = retrieve_tech_specs('heat pump')[self.HeatPump_id]
 
@@ -2436,14 +2569,13 @@ class HeatPump:
                              'COP_cooling': module['COP_cooling']}
         return module_parameters
 
-
     def _infer_cost_parameters(self):
         module = retrieve_tech_specs('heat pump')[self.HeatPump_id]
 
         cost_parameters = {'equipment_cost': module['equipment_cost'],
-                             'total_installed_cost': module['total_installed_cost'],
-                             'annual_maintenance_cost': module['annual_maintenance_cost']}
-        
+                           'total_installed_cost': module['total_installed_cost'],
+                           'annual_maintenance_cost': module['annual_maintenance_cost']}
+
         return cost_parameters
 
 
@@ -2495,11 +2627,13 @@ def retrieve_tech_specs(technology=None):
 
     # Insert technology options for the other techs
 
+
 def _parse_raw_tech_df(csvdata):
     df = pd.read_csv(csvdata, index_col=0, skiprows=0)
     df.columns = df.columns.str.replace(' ', '_')
     df = df.transpose()
     return df
+
 
 """
 REFERENCES
