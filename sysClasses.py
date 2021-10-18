@@ -589,6 +589,8 @@ size_Furnace
 # Functions for Photovoltaic systems are not currently used in this model
 
 
+'''
+DEPRECATED FUNCTIONS
 def list_pv_modules():
     """
     This function lists pv modules in an interactive selction system.
@@ -826,7 +828,7 @@ def size_pv(Building_, City_, PVSystem_,
     om_cost_PV = annual_om_cost / (24 * 365)
 
     return PVSystem_, num_inverter, capital_cost_PV, om_cost_PV
-
+'''
 ##############
 # City Class #
 ##############
@@ -1000,6 +1002,8 @@ def _generate_Cities(all_cities=True, selected_cities=[], how='processed'):
                 City_dictionary[city].tmy3_file, how)
     ''' City_dictionary[selected_cities] = City(name=selected_cities, nerc_region=nerc_region_dictionary[selected_cities], tmy3_file=tmy3_city_dictionary[selected_cities]) City_dictionary[selected_cities]._get_data(City_dictionary[selected_cities].tmy3_file, how)'''
     return City_dictionary
+
+
 
 ################################
 # End City Class and Functions #
@@ -1180,21 +1184,53 @@ class Building:
 
 
 class PrimeMover:
-    def __init__(self, PM_id, model='', technology=None, power_nom=0., heat_nom=0, fuel_nom=0,
+    def __init__(self, PM_id,
+                 module_parameters=None,
+                 emission_parameters=None,
+                 cost_parameters=None,
+                 number_of_modules=1,
+                 age=0,
+                 model='', technology=None, power_nom=0., heat_nom=0, fuel_nom=0,
                  capital_cost=0., om_cost=0, carbon_monoxide=0, carbon_dioxide=0, nox=0, voc=0, water_for_energy=0,
                  embedded_ch4=0, embedded_co2=0, embedded_n2o=0,
                  electric_efficiency_LHV=1, electric_efficiency_HHV=1, thermal_efficiency=1,
                  chp_efficiency_LHV=1, chp_efficiency_HHV=1, effective_efficiency=1,
                  heat_rate=1, phr=1, exhaust_temperature=20, heat_recovery_type='hot_water', abc_compatibility=0,
-                 lifetime=20, age=0):
+                 lifetime=20):
+
         self.PM_id = PM_id
+
+        # Module parameters: operational parameters
+        if module_parameters is None:
+            try:
+                self.module_parameters = self._infer_module_parameters()
+            except KeyError:
+                self.module_parameters = {}
+
+        # Cost parameters:
+        if emission_parameters is None:
+            try:
+                self.emission_parameters = self._infer_emission_parameters()
+            except KeyError:
+                self.cost_parameters = {}
+
+        # Cost parameters:
+        if cost_parameters is None:
+            try:
+                self.cost_parameters = self._infer_cost_parameters()
+            except KeyError:
+                self.cost_parameters = {}
+
+        self.number_of_modules = number_of_modules
+        self.age = age
+
+        # The attributes below will be removed.
         self.model = model
         self.technology = technology
 
         # Lifetime and age are in years.
         # USDoE and NRDC state that CHPs have up to 20 years of service life.
         self.lifetime = lifetime
-        self.age = age
 
         # System nominal capacity is in kW
         self.power_nom = power_nom
@@ -1313,7 +1349,47 @@ class PrimeMover:
         self.min_capacity = self.power_nom.min()
         self.min_heatoutput = self.heat_nom.min()
 
-    def derate(self, City_, altitude=0, dry_bulb_temp=20,
+    def _infer_module_parameters(self):
+        prime_mover = retrieve_PrimeMover_specs()[self.PM_id]
+
+        module_parameters = {'model': prime_mover['model'],
+                             'technology': prime_mover['technology'],
+                             'technology_2': prime_mover['technology_2'],
+                             'power_nominal': prime_mover['capacity_kW'],
+                             'heat_nominal': prime_mover['capacity_kW'] / prime_mover['phr'],
+                             'fuel_nominal': prime_mover['fuel_input'] * (10**6 / 3412.14),
+                             'hpr': 1 / prime_mover['phr'],
+                             'chp_efficiency': max(prime_mover['chp_EFF_LHV'], prime_mover['chp_EFF_HHV']),
+                             'electric_efficiency': max(prime_mover['electric_EFF_LHV'], prime_mover['electric_EFF_HHV']),
+                             'thermal_efficiency': prime_mover['thermal_EFF'],
+                             'effective_efficiency': prime_mover['effective_electric_EFF'],
+                             'exhaust_temp_C': (prime_mover['exhaust_temp'] - 32) * 5 / 9,
+                             'heat_output_type': prime_mover['heat_recovery_type']}
+
+        return module_parameters
+
+    def _infer_emission_parameters(self):
+        prime_mover = retrieve_PrimeMover_specs()[self.PM_id]
+
+        emission_parameters = {'co': prime_mover['carbon_monoxide'],
+                               'co2': prime_mover['carbon_dioxide'],
+                               'nox': prime_mover['nox'],
+                               'voc': prime_mover['voc']}
+        return emission_parameters
+
+    def _infer_cost_parameters(self):
+        prime_mover = retrieve_PrimeMover_specs()[self.PM_id]
+
+        cost_parameters = {'capital_cost': prime_mover['capital_cost'],
+                           'om_cost': prime_mover['om_cost']}
+        return cost_parameters
+
+    # Sizing Functions
+
+    def nominal_capacity(self):
+        return self.number_of_modules * self.module_parameters['power_nominal']
+
+    def derate(self, altitude=0, dry_bulb_temp=20,
                pressure=1, relative_humidity=0):
         """
         This method calculates the capacity and efficiency of the prime mover due to the variation of altitude (air
@@ -1322,29 +1398,19 @@ class PrimeMover:
         the combustion process. Humidity portion is pending. According to S.F. Al Fahed et al (2009), the effect of relative
         humidity on cogeneration is negligible.
         """
-
-        # Check if tmy3 data has been read. If not, it will read it.
-        altitude = City_.altitude  # meters
-        dry_bulb_T = City_.tmy_data.DryBulb  # deg C
-        pressure = City_.tmy_data.Pressure  # bar
-        relative_humidity = City_.tmy_data.RHum
-        # tmy_data, tmy_metadata = tmy_read(tmy3_file)
-
+        power_nominal = self.module_parameters['power_nominal']
         derated_df = pd.DataFrame()
 
         # CF = correction factor
         CF_altitude = ((-1 / 300.) * altitude + 100) / (100)
 
-        # print(type(self.power_nom))
-        # print(type(CF_altitude))
-
-        derated_df['capacityCF_temperature'] = dry_bulb_T.apply(lambda x: ((-1 / 6.) * x
-                                                                           + 100) / 100)
-        derated_df['efficiencyCF_temperature'] = dry_bulb_T.apply(lambda x: ((-9 / 250) * x
-                                                                             + 110) / 100)
-        derated_df['power_nom'] = derated_df.capacityCF_temperature.apply(lambda x:
-                                                                          x * self.power_nom * CF_altitude
-                                                                          )
+        derated_df['capacityCF_temperature'] = dry_bulb_temp.apply(lambda x: ((-1 / 6.) * x
+                                                                              + 100) / 100)
+        derated_df['efficiencyCF_temperature'] = dry_bulb_temp.apply(lambda x: ((-9 / 250) * x
+                                                                                + 110) / 100)
+        derated_df['power_nominal'] = derated_df.capacityCF_temperature.apply(lambda x:
+                                                                              x * power_nominal * CF_altitude
+                                                                              )
 
         self.derated_capacity_df = derated_df['power_nom']
 
@@ -1352,27 +1418,37 @@ class PrimeMover:
         derated_df['heat_nom'] = derated_df['power_nom'].apply(
             lambda x: x * self.hpr)
 
-        derated_df.index = City_.tmy_data.index
+        derated_df.index = dry_bulb_temp.index
 
-        self.minimum_capacity = derated_df.power_nom.min()
-        self.min_heatoutput = self.minimum_capacity * self.hpr
         minimum_electrical_capacity = derated_df.power_nom.min()
 
         return minimum_electrical_capacity
 
-    def size_system(self, peak_electricity_demand, peak_thermal_demand,
-                    prime_mover, city=None, operation_mode='FTL'):
-        """
-        This method returns the number of CHP units that will be required to meet the peak electric or thermal load. For
-        UPDATE TASK: Make the sizing system able to incorporate different engine size.
-        """
-        if operation_mode == 'FEL':
-            num_engines = peak_electricity_demand / derated_pm_capacity
+    def size_chp(self, peak_load, module_capacity):
+        self.number_of_modules = m.ceil(peak_load) / module_capacity
+        return self
 
+    # System Costs
+    def capital_cost(self):
+        return self.nominal_capacity() * self.module_parameters['capital_cost']
+
+    def om_cost(self, chp_electricity_output):
+        return self.cost_parameters['om_cost'] * chp_electricity_output
+    
+    def annual_om_cost(self):
+        return self.number_of_modules * self.module_parameters['annual_om_cost']
+
+    # Impacts
+    def calculate_emissions(self, heat_output, pollutant=None):
+        emissions = {}
+        if pollutant is None:
+            for pollutant in self.emission_parameters:
+                emissions[pollutant] = self.emission_parameters[pollutant] * heat_output
         else:
-            derated_pm_heat = derated_pm_capacity * prime_mover.hpr
-            num_engines = peak_thermal_demand / derated_pm_heat
+            emissions[pollutant] = self.emission_parameters[pollutant] * heat_output
+        return emissions
 
+    # Deprecate
     def get_impacts(self, electricity_demand):
         """
         Incomplete method that will output the CO, CO2, NOx, VOC, and Water for Energy (w4e) impacts
@@ -1399,6 +1475,18 @@ class PrimeMover:
             # water_for_energy =  9999
 
         return carbon_monoxide, carbon_dioxide, nox, voc  # , water_for_energy
+
+
+def retrieve_PrimeMover_specs():
+    csvdata = r'data\Tech_specs\PrimeMover_specs.csv'
+    return _parse_raw_PrimeMover_df(csvdata)
+
+
+def _parse_raw_PrimeMover_df(csvdata):
+    df = pd.read_csv(csvdata, index_col=0, skiprows=2)
+    df.columns = df.columns.str.replace(' ', '_')
+    df = df.transpose()
+    return df
 
 
 def _generate_PrimeMover_dataframe(csv_file, sheet_name=None, header=0):
@@ -1465,7 +1553,6 @@ def _generate_PrimeMovers(csv_file, sheet_name=None, header=0):
 
 # Consider making a new object which takes in a pm object and an abs. chiller
 
-
 def size_chp(PrimeMover_,
              peak_electricity_load,
              peak_thermal_load,
@@ -1518,14 +1605,26 @@ def size_chp(PrimeMover_,
 
 class AbsorptionChiller:
     def __init__(self, ABC_id, technology='single_stage', heat_input_type='hot water',
-                 cooling_capacity=175.95, COP=0.7, capital_cost=0, om_cost=0,
-                 lifetime=20, age=0):
+                 cooling_capacity=175.95, COP=0.7, 
+                 number_of_modules=1,
+                 capital_cost=0, om_cost=0,
+                 lifetime=20, age=0,
+                 module_parameters=None,
+                 cost_parameters=None):
         self.ABC_id = ABC_id
+
+        r'''
+        Future iterations will have all of the operational and economic parameters
+        in dictionaries, rather than individual attributes.
+        '''
+
         self.COP = COP
         self.technology = technology
 
         # Capacity rating is in kW
         self.capacity = cooling_capacity
+
+        self.number_of_modules = number_of_modules
 
         # Capital cost in $, variable cost is size dependent
         self.capital_cost = capital_cost
@@ -1539,7 +1638,20 @@ class AbsorptionChiller:
         # Lifetime is in years
         self.lifetime = lifetime
         self.age = age
-        # self.fixedMaintenance = fixedMaintenance
+
+        # Module parameters: operational parameters
+        if module_parameters is None:
+            try:
+                self.module_parameters = self._infer_module_parameters()
+            except KeyError:
+                self.module_parameters = {}
+
+        # Cost parameters:
+        if cost_parameters is None:
+            try:
+                self.cost_parameters = self._infer_cost_parameters()
+            except KeyError:
+                self.cost_parameters = {}
 
     def __repr__(self):
         attrs = ['ABC_id', 'technology', 'COP', 'capacity',
@@ -1548,10 +1660,10 @@ class AbsorptionChiller:
                 getattr(self, attr)) for attr in attrs))
 
     def cooling_output(self, heat_input):
-        return heat_input * self.COP
+        return heat_input * self.module_parameters['COP']
 
     def get_heat_demand(self, cooling_demand):
-        return cooling_demand / self.COP
+        return cooling_demand / self.module_parameters['COP']
 
     def _get_data(self, dataframe, sheet_name=None, index=0):
         """
@@ -1575,8 +1687,110 @@ class AbsorptionChiller:
         self.capital_cost = dataframe.iloc[index]['capital_cost']
         self.om_cost = dataframe.iloc[index]['om_cost']
 
+    def _infer_module_parameters(self):
+        absorption_chiller = retrieve_ABC_specs()[self.ABC_id]
 
-# Enthalpy Equation
+        module_parameters = {'technology': absorption_chiller['technology'],
+                             'heat_input_type': absorption_chiller['heat_input_type'],
+                             'capacity': absorption_chiller['capacity_kW'],
+                             'COP': absorption_chiller['COP_full_load'],
+                             'lifetime_yr': absorption_chiller['lifetime'],
+                             'manufacturer': absorption_chiller['manufacturer'],
+                             'model': absorption_chiller['model'],
+                             # choose generic temperatures and pressures
+                             'chilled_water_inlet_temp': absorption_chiller['chilled_water_in'],
+                             'chilled_water_outlet_temp': absorption_chiller['chilled_water_out'],
+                             'cooling_water_inlet_temp': absorption_chiller['cooling_water_in'],
+                             'cooling_water_outlet_temp': absorption_chiller['cooling_water_out'],
+                             'generator_water_inlet_temp': absorption_chiller['hot_water_in'],
+                             'generator_water_outlet_temp': absorption_chiller['hot_water_out'],
+                             'steam_pressure': absorption_chiller['steam_pressure']}
+
+        return module_parameters
+
+    def _infer_cost_parameters(self):
+        absorption_chiller = retrieve_ABC_specs()[self.ABC_id]
+
+        cost_parameters = {'capital_cost': absorption_chiller['capital_cost'],
+                           'om_cost': absorption_chiller['om_cost']}
+
+        return cost_parameters
+
+    def size_system(self, cooling_demand):
+        required_capacity = np.max(cooling_demand)
+        unit_capacity = self.module_parameters['capacity']
+        number_of_modules = m.ceil(required_capacity / unit_capacity)
+        self.number_of_modules = number_of_modules
+        return self
+
+    def system_capacity(self):
+        return self.number_of_modules * self.module_parameters['capacity']
+
+    def capital_cost(self):
+        return self.number_of_modules * self.cost_parameters['capital_cost']
+
+    def om_cost(self, kW_cooling):
+        return kW_cooling * self.cost_parameters['om_cost']
+
+    # Operational Methods
+
+    def PLR(self, cooling_load):
+        return cooling_load / (self.system_capacity())
+
+    # Absorption Chiller Components and Component Modeling
+
+    class Generator:
+
+        def __init__(self,
+                     heat_input=0,
+                     hot_water_temp_in=0, hot_water_temp_out=0,
+                     solution_temp_in=0, solution_temp_out=0,
+                     refrigerant_temp_out=0,
+                     generator_temp=0
+                     ):
+            '''
+                                    ================
+            WEAK SOLUTION IN (1) ====> [              ] ====> STRONG SOLUTION OUT (2)
+                                    [  GENERATOR   ] ====> REFRIGERANT OUT (3)
+                HOT WATER IN (4) ====> [              ] ====> HOT WATER OUT (5)
+                                    ================
+
+            Assumptions
+            '''
+            import iapws.iapws97 as iapws
+            # refrigerant_temp_out =
+
+            if heat_input > 0:
+                pass
+
+            pass
+
+        def refrigerant_temp_out(self):
+            pass
+
+        def heat_demand(self, var1):
+            pass
+
+    class Condenser:
+
+        def __init__(self):
+            pass
+
+    class Evaporator:
+
+        def __init__(self):
+            pass
+
+    class Absorber:
+
+        def __init__(self):
+            pass
+
+    '''H = enthalpy_LiBr_solution(concentration=40., solution_temperature=60)
+    print(H)
+    exit()'''
+
+
 def enthalpy_LiBr_solution(concentration=0., solution_temperature=0):
     r'''
         Chapter 30: Thermophysical Properties of Refrigerants. ASHRAE (2009)
@@ -1595,7 +1809,8 @@ def enthalpy_LiBr_solution(concentration=0., solution_temperature=0):
         h = sum(A_n * X^n, 0, 4) + t * sum(B_n * X^n, 0, 4) + t^2 * sum(C_n * X^n, 0, 4)
     '''
     # Coefficients
-    A_n = [-2024.33, 163.309, -4.88161, 6.302948 * 10**-2, -2.913705 * 10**-4]
+    A_n = [-2024.33, 163.309, -4.88161,
+           6.302948 * 10**-2, -2.913705 * 10**-4]
     B_n = [18.2829, -1.1691757, 3.248041 * 10**-
            2, -4.034184 * 10**-4, 1.8520569 * 10**-6]
     C_n = [-3.7008214 * 10**-2, 2.8877666 * 10**-3, -8.1313015 *
@@ -1675,34 +1890,6 @@ def refrigerant_temp_from_pressure(pressure_sat, C, D, E):
         return refrigerant_temp
 
 
-def generator(heat_input=0,
-              hot_water_temp_in=0, hot_water_temp_out=0,
-              solution_temp_in=0, solution_temp_out=0,
-              refrigerant_temp_out=0,
-              generator_temp=0
-              ):
-    '''
-                               ================
-    WEAK SOLUTION IN (1) ====> [              ] ====> STRONG SOLUTION OUT (2)
-                               [  GENERATOR   ] ====> REFRIGERANT OUT (3)
-        HOT WATER IN (4) ====> [              ] ====> HOT WATER OUT (5)
-                               ================
-
-    Assumptions
-    '''
-    import iapws.iapws97 as iapws
-
-    if heat_input > 0:
-        pass
-
-    pass
-
-
-H = enthalpy_LiBr_solution(concentration=40., solution_temperature=60)
-print(H)
-exit()
-
-
 def _generate_AbsorptionChiller_dataframe(csv_file, sheet_name=None, header=0):
     """
     This function reads my CSV file which documents typical parameters for each prime mover. It corrects the type of data
@@ -1759,6 +1946,18 @@ def size_ABC(peak_demand=0., AbsorptionChiller_=None, beta=0):
 
     return number_ABC, capital_cost_ABC
 
+
+def retrieve_ABC_specs():
+    csvdata = r'data\\Tech_specs\\ABC_specs_2.0.csv'
+    return _parse_raw_ABC_df(csvdata)
+
+
+def _parse_raw_ABC_df(csvdata):
+    df = pd.read_csv(csvdata, index_col=0, skiprows=1)
+    df.columns = df.columns.str.replace(' ', '_')
+    df = df.transpose()
+    return df
+
 #############################################
 # End AbsorptionChiller Class and Functions #
 #############################################
@@ -1769,12 +1968,35 @@ def size_ABC(peak_demand=0., AbsorptionChiller_=None, beta=0):
 
 
 class AirConditioner:
-    def __init__(self, AC_id, technology=None, building_type='all', climate_zone='all',
-                 lifetime=20, age=0, cooling_capacity=0,
+    def __init__(self, AC_id, 
+                number_of_modules=1,
+                age=0,
+                module_parameters=None,
+                cost_parameters=None,
+                technology=None, building_type='all', climate_zone='all',
+                 lifetime=20, cooling_capacity=0,
                  SEER=13, COP=3.8, COP_PLR=0,
                  capital_cost=0, om_cost=0):
         # Basic data
         self.AC_id = AC_id
+        self.number_of_modules = number_of_modules
+        self.age = age
+
+        # Module parameters: operational parameters
+        if module_parameters is None:
+            try:
+                self.module_parameters = self._infer_module_parameters()
+            except KeyError:
+                self.module_parameters = {}
+
+        # Cost parameters:
+        if cost_parameters is None:
+            try:
+                self.cost_parameters = self._infer_cost_parameters()
+            except KeyError:
+                self.cost_parameters = {}
+
+        # The following attributes will be deprecated
         self.technology = technology
         self.building_type = building_type
         self.climate_zone = climate_zone
@@ -1821,6 +2043,48 @@ class AirConditioner:
         self.capital_cost = dataframe.iloc[index]['capital_cost']
         self.om_cost = dataframe.iloc[index]['om_cost']
 
+
+    def _infer_module_parameters(self):
+        air_conditioner = retrieve_AirConditioners()[self.AC_id]
+
+        module_parameters = {'technology': air_conditioner['technology'],
+                             'capacity': air_conditioner['capacity_kW'],
+                             'COP': air_conditioner['COP_full_load'],
+                             'COP_PLR': air_conditioner['COP_PLR'],
+                             'lifetime_yr': air_conditioner['avg_life']}
+
+        return module_parameters
+
+    def _infer_cost_parameters(self):
+        air_conditioner = retrieve_AirConditioners()[self.AC_id]
+
+        # Capital cost in $/kW
+        # Annual O&M cost in $/year of operation
+
+        cost_parameters = {'capital_cost': air_conditioner['capital_cost'],
+                           'om_cost': air_conditioner['om_cost'],
+                           'annual_om_cost': air_conditioner['annual_om']}
+
+        return cost_parameters
+
+    def size_system(self, cooling_demand):
+        required_capacity = np.max(cooling_demand)
+        unit_capacity = self.module_parameters['capacity']
+        number_of_modules = m.ceil(required_capacity / unit_capacity)
+        self.number_of_modules = number_of_modules
+        return self
+
+    def system_capacity(self):
+        return self.number_of_modules * self.module_parameters['capacity']
+
+    def capital_cost(self):
+        return self.system_capacity() * self.cost_parameters['capital_cost']
+
+    def om_cost(self, kW_cooling):
+        return kW_cooling * self.cost_parameters['om_cost']
+
+    def annual_cost(self):
+        return self.number_of_modules * self._infer_cost_parameters['annual_om']
 
 def _generate_AirConditioner_dataframe(csv_file, sheet_name=None, header=1):
     """
@@ -2366,13 +2630,48 @@ def _generate_Grid(impacts_csv_file, projections_csv_file, header=0):
 
 
 class Furnace:
-    def __init__(self, Furnace_id, technology='furnace', electric=False, building='', climate='any',
+    def __init__(self, Furnace_id, 
+                 module_parameters=None,
+                 emission_parameters=None,
+                 cost_parameters=None,
+                 number_of_modules=1,
+                 technology='furnace', electric=False, building='', climate='any',
                  capacity=234, efficiency=1, electric_consumption=0, lifetime=20, age=0,
                  retail_equipment_cost=0, total_installed_cost=0, annual_maintenance_cost=0,
                  equipment_cost=0, capital_cost=0, om_cost=0,
                  co2=182, n2o=9.71 * 10**-4, pm=2.88**10 - 3, ch4=3.49 * 10**-3, so2=9.10 * 10**-4,
                  voc=8.35 * 10**-3, nox=0.152, co=6.07**10 - 2):
+        
         self.Furnace_id = Furnace_id
+        self.module_parameters = module_parameters
+        self.emission_parameters = emission_parameters
+        self.cost_parameters = cost_parameters
+        self.number_of_modules = number_of_modules
+        self.age = age
+
+        # Module parameters: operational parameters
+        if module_parameters is None:
+            try:
+                self.module_parameters = self._infer_module_parameters()
+            except KeyError:
+                self.module_parameters = {}
+
+        # Cost parameters:
+        if emission_parameters is None:
+            try:
+                self.emission_parameters = self._infer_emission_parameters()
+            except KeyError:
+                self.cost_parameters = {}
+
+        # Cost parameters:
+        if cost_parameters is None:
+            try:
+                self.cost_parameters = self._infer_cost_parameters()
+            except KeyError:
+                self.cost_parameters = {}
+
+
+        # These attributes will be deprecated
         self.technology = technology
         self.electric = electric  # Boolean
         self.building = building
@@ -2386,14 +2685,14 @@ class Furnace:
         self.electric_consumption = electric_consumption
         # Lifetime in years
         self.lifetime = lifetime
-        self.age = age
+        
         # Costs in 2017$
         self.retail_equipment_cost = retail_equipment_cost
         self.total_installed_cost = total_installed_cost
         self.annual_maintenance_cost = annual_maintenance_cost
         # Costs in $/kW
         self.equipment_cost = equipment_cost
-        self.capital_cost = capital_cost
+        # self.capital_cost = capital_cost
         # OM Costs in $/kWh. Does not include fuel or electricity consumption
         self.om_cost = om_cost
         # Impact factors in kg/MWh or g/kWh
@@ -2450,6 +2749,70 @@ class Furnace:
         self.co = dataframe.iloc[index]['carbon_monoxide']
         return dataframe
 
+    def _infer_module_parameters(self):
+        furnace = retrieve_Furnaces()[self.Furnace_id]
+
+        module_parameters = {'model': '',
+                             'technology': furnace['technology'],
+                             'energy_source': furnace['primary_energy'],
+                             'building_type': furnace['building'],
+                             'capacity_kW': furnace['capacity_kW'],
+                             'efficiency': furnace['efficiency'],
+                             'annual_electric_consumption_kWh': furnace['annual_electric_consumption'],
+                             }
+
+        return module_parameters
+
+    def _infer_emission_parameters(self):
+        furnace = retrieve_Furnaces()[self.Furnace_id]
+        
+        # All values in kg/MWh
+        emission_parameters = {'ch4': furnace['methane'],
+                               'co': furnace['carbon_monoxide'],
+                               'co2': furnace['carbon_dioxide'],
+                               'no2': furnace['nitrous_oxide'],
+                               'nox': furnace['nox'],
+                               'pm': furnace['PM'],
+                               'so2': furnace['sulfur_dioxide'],
+                               'voc': furnace['voc']}
+
+        return emission_parameters
+
+    def _infer_cost_parameters(self):
+        furnace = retrieve_Furnaces()[self.Furnace_id]
+
+        cost_parameters = {'equipment_cost': furnace['equipment_cost'],
+                           'capital_cost': furnace['capital_cost'],
+                           'om_cost': furnace['om_cost'],
+                           'annual_om_cost': furnace['annual_maintenance_cost']}
+        return cost_parameters
+
+    def size_system(self, peak_load):
+        module_capacity = self.module_parameters['capacity_kW']
+        self.number_of_modules = m.ceil(peak_load / module_capacity)
+        return self
+
+    def system_capacity(self):
+        return self.number_of_modules * self.module_parameters['capacity']
+
+    def capital_cost(self):
+        return self.system_capacity() * self.module_parameters['capital_cost']
+    
+    def annual_om_cost(self):
+        return self.number_of_modules * self.module_parameters['annual_om_cost']
+
+    def calculate_emissions(self, heat_output, pollutant=None):
+        emissions = {}
+        if pollutant is None:
+            for pollutant in self.emission_parameters:
+                emissions[pollutant] = self.emission_parameters[pollutant] * heat_output
+        else:
+            emissions[pollutant] = self.emission_parameters[pollutant] * heat_output
+        return emissions
+
+    def primary_energy_demand(self, heat_load):
+        return heat_load / self.module_parameters['efficiency']
+    
 
 def _generate_Furnace_dataframe(csv_file, sheet_name=None, header=1):
     dataframe = pd.read_csv(filepath_or_buffer=csv_file,
@@ -2635,6 +2998,33 @@ def _parse_raw_tech_df(csvdata):
     return df
 
 
+class CCHP:
+
+    def __init__(self):
+        pass
+
+
+
+class EnergySystem:
+
+    def __init__(self, system_ID,
+                    Building_,
+                    AC_=None,
+                    Furnace_=None,
+                    ABC_=None,
+                    PrimeMover_=None,
+                    PV_=None
+                    ):
+        
+        self.system_ID = system_ID
+        self.Building_ = Building_
+        self.AC_ = AC_
+        self.Furnace_ = Furnace_
+        self.ABC_ = ABC_
+        self.PrimeMover_ = PrimeMover_
+        self.PV_ = PV_
+    
+    
 """
 REFERENCES
 

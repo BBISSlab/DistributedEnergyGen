@@ -23,6 +23,7 @@ import numpy as np
 
 # import sklearn
 import pvlib
+import pv_system
 
 # Writing format
 import pyarrow
@@ -89,7 +90,7 @@ def get_inverter_parameters(inverter):
     
     return inverter_dict
 
-def size_pv_modules(design_load, module, oversize_factor=1):
+def size_pv_by_load(design_load, module, oversize_factor=1):
     module_parameters = get_module_parameters(module)
 
     # Nominal power rating
@@ -107,6 +108,16 @@ def size_pv_modules(design_load, module, oversize_factor=1):
     minimum_number_of_modules = m.ceil(
         minimum_number_of_modules * oversize_factor)
     return minimum_number_of_modules
+
+
+def size_pv_by_area(design_area,
+                    module):
+    module_parameters = get_module_parameters(module)
+    module_area = module_parameters['Area']
+
+    number_of_modules = design_area // module_area
+
+    return number_of_modules
 
 
 def calculate_power_rating(module, number_of_modules):
@@ -186,15 +197,22 @@ def size_pv_array(number_of_modules,
         return modules_per_string, strings
 
 
-def design_PVSystem(design_load,
-                    module,
+def design_PVSystem(module,
+                    method='design_load',
+                    design_load=0,
+                    design_area=0,
                     surface_azimuth=180,
                     surface_tilt=0,
                     oversize_factor=1,
                     name=''):
     # Design Load should be in W
+    
+    if method == 'design_load':
     # Get minimum module size
-    number_of_modules = size_pv_modules(design_load, module, oversize_factor)
+        number_of_modules = size_pv_by_load(design_load, module, oversize_factor)
+    if method == 'design_area':
+        number_of_modules = size_pv_by_area(design_area, module)
+    
     pv_power_rating = calculate_power_rating(module, number_of_modules)
     module_parameters = get_module_parameters(module)
 

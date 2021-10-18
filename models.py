@@ -261,7 +261,7 @@ def model(Building_, City_,
 
         # For now assume no net metering
         df['alpha_PV'] = np.where((df.alpha_PV > 1),
-                               1, (df.alpha_PV))
+                                  1, (df.alpha_PV))
 
         df['electricity_deficit'] = df.electricity_deficit - \
             (df.alpha_PV * df.electricity_demand)
@@ -269,8 +269,8 @@ def model(Building_, City_,
         df['max_alpha_chp'] = 1 - df.alpha_PV
 
         df['alpha_chp'] = np.where((df.alpha_CHP <= df.max_alpha_CHP),
-                                (df.alpha_CHP),
-                                (df.max_alpha_CHP))
+                                   (df.alpha_CHP),
+                                   (df.max_alpha_CHP))
     else:
         df['alpha_PV'] = 0
         df['alpha_PV_int'] = 0
@@ -805,6 +805,229 @@ def energy_supply_sim(Building_, City_,
     return agg_df
 
 
+def size_energy_system(system_ID,
+                        Building_, City_,
+                        AC_=None, 
+                        Furnace_=None,
+                        pv_module=None,
+                        ABC_=None, 
+                        PrimeMover_=None, CHP_mode='FTL',
+                        thermal_distribution_loss_rate=0.1,
+                        thermal_distribution_loss_factor=1):
+
+    df = pd.DataFrame()
+
+    # Initializing Demands. All demands are in kWh
+    df['electricity_demand'] = Building_.electricity_demand
+    df['heat_demand'] = Building_.heat_demand
+    df['cooling_demand'] = Building_.cooling_demand
+
+    # Metadata
+    df['City'] = City_.name
+    df['Building'] = Building_.building_type
+    
+    # df['DryBulb_C'] = City_.tmy_data['DryBulb']
+    # df['DewPoint_C'] = City_.tmy_data['DewPoint']
+    # df['RHum'] = City_.tmy_data['RHum']
+    # df['Pressure_mbar'] = City_.tmy_data['Pressure']
+
+    # Design Cooling System
+    if AC_ is None:
+        df['AC_id'] = 'None'
+    else:
+        df['AC_id'] = AC_.AC_id
+        AC_ = AC_.size_system(df.cooling_demand.max())
+        df['heat_cooling'] = 0
+        df['electricity_cooling'] = df.cooling_demand / \
+            AC_.module_parameters['COP']
+
+    if ABC_ is None:
+        df['ABC_id'] = 'None'
+    else:
+        df['ABC_id'] = ABC_.ABC_id
+        ABC_ = ABC_.size_system(df.cooling_demand.max())
+        df['heat_cooling'] = df.cooling_demand / (ABC_.module_parameters['COP'](
+            1 - (thermal_distribution_loss_rate * thermal_distribution_loss_factor)))
+        df['electricity_cooling'] = 0
+
+    df['total_electricity_demand'] = df['electricity_demand'] + df['electricity_cooling']
+    df['total_heat_demand'] = df['heat_demand'] + df['heat_cooling']
+
+    # Design Furnace
+    if Furnace_ is None:
+        pass
+    else:
+        Furnace_ = Furnace_.size_system(peak_load = df.total_heat_demand.max())
+    # Design CHP
+    if PrimeMover_ is None:
+        pass
+    else:
+        altitude = City_.metadata['altitude']
+        dry_bulb_temp = City_.tmy_data['DryBulb']
+        derated_power_capacity = PrimeMover_.derate(altitude, dry_bulb_temp)
+
+        # Determine peak load and derated capacity of system
+        if CHP_mode == 'FTL':
+            peak_load = df.total_heat_demand.max()
+            peak_load = peak_load * (1 + thermal_distribution_loss_rate * thermal_distribution_loss_factor)
+            design_capacity = derated_power_capacity * PrimeMover_.module_parameters['hpr']
+        else:
+            peak_load = df.total_electricity_demand.max()
+            design_capacity = derated_power_capacity
+        
+        PrimeMover_ = PrimeMover_.size_chp(peak_load, design_capacity)
+
+    # Design PV System
+    if pv_module is None:
+        PVSystem_ = None
+    else:
+        PVSystem_ = design_PVSystem(module=pv_module,
+                                    method='design_area',
+                                    design_area=Building_.roof_area)
+
+    EnergySystem_ = EnergySystem(system_ID, Building_, AC_, Furnace_, ABC_, PrimeMover_, PVSystem_)
+    return EnergySystem_
+
+# Recoded energy demand and supply functions
+def calculate_energy_demands(Building_, 
+                             City_,
+                             AC_=None,
+                             ABC_=None,
+                             thermal_distribution_loss_rate=0.1,
+                             thermal_distribution_loss_factor=1.0,
+                             memory={}):
+    df = pd.DataFrame()
+
+    # Initializing Demands. All demands are in kWh
+    df['electricity_demand'] = Building_.electricity_demand
+    df['heat_demand'] = Building_.heat_demand
+    df['cooling_demand'] = Building_.cooling_demand
+
+    # Metadata
+    df['City'] = City_.name
+    df['Building'] = Building_.building_type
+    
+    # df['DryBulb_C'] = City_.tmy_data['DryBulb']
+    # df['DewPoint_C'] = City_.tmy_data['DewPoint']
+    # df['RHum'] = City_.tmy_data['RHum']
+    # df['Pressure_mbar'] = City_.tmy_data['Pressure']
+
+
+    if AC_ is None:
+        df['AC_id'] = 'None'
+        df['AC_modules'] = 0
+    else:
+        AC_ = AC_.size_system(df.cooling_demand.max())
+        df['AC_id'] = AC_.AC_id
+        df['AC_modules'] = AC_.number_of_modules
+        df['heat_cooling'] = 0
+        df['electricity_cooling'] = df.cooling_demand / \
+            AC_.module_parameters['COP']
+
+    if ABC_ is None:
+        df['ABC_id'] = 'None'
+        df['ABC_modules'] = 0
+    else:
+        ABC_ = ABC_.size_system(df.cooling_demand.max())
+        df['ABC_id'] = ABC_.ABC_id
+        df['ABC_modules'] = ABC_.number_of_modules
+        df['heat_cooling'] = df.cooling_demand / (ABC_.module_parameters['COP'] * (
+            1 - (thermal_distribution_loss_rate * thermal_distribution_loss_factor)))
+        df['electricity_cooling'] = 0
+
+    # Size AC or ABC
+    df['total_electricity_demand'] = df.electricity_demand + df.electricity_cooling
+    df['total_heat_demand'] = df.heat_demand + df.heat_cooling
+
+    return df
+
+
+def calculate_energy_supply(energy_demand_df,
+                            City_,
+                            Building_,
+                            Furnace_=None,
+                            PrimeMover_=None, FTL=True,
+                            PV_=None,
+                            BES_=None):
+    if PrimeMover_ is None:
+        pass
+    else:
+        chp_df = CCHP_energy(electricity_demand=energy_demand_df['total_electricity_demand'],
+                            heat_demand=energy_demand_df['total_heat_demand'],
+                            PrimeMover_=PrimeMover_,
+                            FTL=FTL)
+
+    if Furnace_ is None:
+        pass
+    else:
+        pass
+
+def CCHP_energy(electricity_demand,
+                heat_demand,
+                City_,
+                PrimeMover_=None, HPR_CHP=1, efficiency_CHP=0.73,
+                FTL = True,
+                thermal_distribution_loss_rate=0.1,
+                thermal_distribution_loss_factor=1.0,
+                aggregate='A',
+                memory={}):
+
+    r'''
+    CONTINUE HERE
+    '''
+    altitude = City_.metadata['altitude']
+    dry_bulb_temp = City_.tmy_data['DryBulb']
+    derated_power_capacity = PrimeMover_.derate(altitude, dry_bulb_temp)
+
+    # Determine peak load and derated capacity of system
+    if FTL is True:
+        peak_load = df.total_heat_demand.max()
+        peak_load = peak_load * (1 + thermal_distribution_loss_rate * thermal_distribution_loss_factor)
+        design_capacity = derated_power_capacity * PrimeMover_.module_parameters['hpr']
+    else:
+        peak_load = df.total_electricity_demand.max()
+        design_capacity = derated_power_capacity
+    
+    PrimeMover_ = PrimeMover_.size_chp(peak_load, design_capacity)
+
+    heat_to_power_ratio = PrimeMover_.module_parameters['hpr']
+    
+    """
+    ENERGY SUPPLY SIMULATION
+    """
+    df['electricity_deficit'] = df.total_electricity_demand
+    df['heat_deficit'] = df.total_heat_demand
+    
+    if FTL is True:
+        heat_chp = heat_demand
+        electricity_chp = heat_chp / heat_to_power_ratio
+
+    else:
+        electricity_chp = electricity_demand
+        heat_chp = electricity_chp * heat_to_power_ratio
+
+
+    if PrimeMover_ is None:
+        pass
+    else:
+        pass
+    
+    chp_df = pd.DataFrame(index=df.index)
+    # Combine electricity and heat into one dataframe
+    # Check for Design size to building requirements
+    
+    # Check the Sizing functions
+    # Get size of CHP on a separate file
+    # Get size of ABC on a separate file
+
+    # Size PV System?
+
+    return chp_df
+
+def energy_sypply(energy_demand_df,
+                ):
+    pass
+
 def impacts_sim(data,
                 Building_=None, City_=None,
                 Furnace_=None,
@@ -1206,7 +1429,7 @@ REFERENCES
 #####################################################
 
 
-def  building_pv_energy_sim(Building_,
+def building_pv_energy_sim(Building_,
                            City_,
                            Furnace_=None,
                            AC_=None,

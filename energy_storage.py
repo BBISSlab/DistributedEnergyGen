@@ -807,6 +807,6 @@ class ChemicalStorage:
 
 
 # Testing
-water_heater = WaterTank(TES_id='TEST')
+# water_heater = WaterTank(TES_id='TEST')
 
-print(thermo())
+# print(thermo())
