@@ -415,30 +415,118 @@ def building_pv_sim(building_type, city_name,
 ###############
 # CCHP v Grid #
 ###############
-# create your scenarios here
-Furnace_ = Furnace(Furnace_id='F4')
-AC_ = AirConditioner(AC_id='AC3')
-ABC_ = AbsorptionChiller(ABC_id='ABC_SS1')
-# Current default PV module
-pv_module = 'Silevo_Triex_U300_Black__2014_'
+def simulate_energy_flows(thermal_distribution_loss_rate=0.1,
+                            thermal_distribution_loss_factor=1.0,
+                            scenario='Reference'):
+    all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
+    
+    from sysClasses import _generate_Cities
+    '''
+    OBJECT GENERATOR
+    ----------------
+    '''
+    if all_cities == 1:
+        City_dict = _generate_Cities(all_cities=True)
+    else:
+        cities_to_simulate = []
+        n = int(input('Enter number of cities: '))
+        for i in range(0, n):
+            city_input = str(input(
+                'Type in the name of the {}th city: '.format(i + 1)))
+            cities_to_simulate.append(city_input)
+        print('Simulating the following list: {}'.format(cities_to_simulate))
+        City_dict = _generate_Cities(
+            all_cities=False, selected_cities=cities_to_simulate)
 
-reference_case = {'AC':AC_, 'Furnace':Furnace_, 
-                  'CHP':None, 'ABC':None,  
-                  'pv_module':None}
-cchp_case = {'AC':None, 'Furnace':None, 
-             'CHP':None, 'ABC':ABC_,  
-             'pv_module':None}
-pv_case = {'AC':None, 'Furnace':None, 
-             'CHP':None, 'ABC':ABC_,  
-             'pv_module':None}
-pv_cchp_case = {'AC':None, 'Furnace':None, 
-             'CHP':None, 'ABC':ABC_,  
-             'pv_module':None}
+    # Standard cooling and heating systems
+    AC_ = AirConditioner(AC_id='AC3')
+    ABC_ = AbsorptionChiller(ABC_id='ABC_SS1')
+    Furnace_ = Furnace(Furnace_id='F4')
+    CHP_list = retrieve_PrimeMover_specs()
+    # Drop steam turbines
+    CHP_list.drop(columns=['ST1', 'ST2', 'ST3'], inplace=True)
+
+    # Scenarios
+    reference_case = {'AC':AC_, 'Furnace': Furnace_,
+                      'ABC':None, 'CHP': None,
+                      'PV':None, 'BES':None}
+    cchp_case = {'AC':None, 'Furnace': None,
+                'ABC':ABC_, 'CHP': None,
+                'PV':None, 'BES':None}
+    pv_case = {'AC':AC_, 'Furnace': Furnace_,
+                'ABC':None, 'CHP': None,
+                'PV':None, 'BES':None}
+    cchp_pv_case = {'AC':None, 'Furnace': None,
+                'ABC':ABC_, 'CHP': None,
+                'PV':None, 'BES':None}
+
+    scenarios = {'Reference': reference_case,
+                 'CCHP': cchp_case}
+
+    # Code Starts
+    ts = time.gmtime()
+    print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
+
+    city_number = 1
+    for city in City_dict:
+
+        City_ = City_dict[city]
+
+        building_number = 1
+        for building in building_type_list:
+
+            dataframes_ls = []
+
+            Building_ = Building(
+                name=building, building_type=building, City_=City_dict[city])
+
+            ac = scenarios[scenario]['AC']
+            abc = scenarios[scenario]['ABC']
+            furnace = scenarios[scenario]['Furnace']
+
+            if scenario == 'Reference':
+                print('City: {}, {} of 16 | Building: {}, {} of 16 | Scenario: {} | Time: {}'.format(
+                        city, city_number, building, building_number, scenario, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')
+                
+                df = calculate_energy_flows(Building_=Building_,
+                                            City_=City_,
+                                            AC_=ac, Furnace_=furnace)
+                df.reset_index(inplace=True)
+                dataframes_ls.append(df)
+
+            elif scenario == 'CCHP':
+                for chp in CHP_list.columns.unique():
+                    CHP_ = PrimeMover(PM_id=chp)
+                    
+                    print('City: {}, {} of 16 | Building: {}, {} of 16 | Scenario: {} | CHP: {} | Time: {}'.format(
+                        city, city_number, building, building_number, scenario, chp, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')
+
+                    df = calculate_energy_flows(Building_=Building_,
+                                            City_=City_,
+                                            PrimeMover_=CHP_,
+                                            ABC_=abc)
+                    df.reset_index(inplace=True)
+
+                    dataframes_ls.append(df)
+
+            elif scenario == 'PV':
+                pass
+
+            elif scenario == 'CCHP_PV':
+                pass
+                
+
+            # Building Loop
+            building_agg = pd.concat(dataframes_ls, axis=0).reset_index(drop=True)
+            building_agg.to_feather(F'model_outputs\CCHPvGrid\{scenario}\{city}_{building}.feather')
+
+            building_number += 1
+        # City Loop
+        city_number += 1
+    print('\nCompleted Simulation')
 
 
-supply_scenarios = {}
-
-def simulate_energy_demands(thermal_distribution_loss_rate=0.1,
+def simulate_energy_supply(thermal_distribution_loss_rate=0.1,
                             thermal_distribution_loss_factor=1.0):
     all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
     
@@ -460,91 +548,28 @@ def simulate_energy_demands(thermal_distribution_loss_rate=0.1,
         City_dict = _generate_Cities(
             all_cities=False, selected_cities=cities_to_simulate)
 
-    # Demand Scenarios
+    # create your scenarios here
+    Furnace_ = Furnace(Furnace_id='F4')
     AC_ = AirConditioner(AC_id='AC3')
     ABC_ = AbsorptionChiller(ABC_id='ABC_SS1')
-    electric_cooling = {'AC':AC_, 'ABC':None}
-    absorption_cooling = {'AC':None, 'ABC': ABC_}
-    demand_scenarios = {'electric_cooling':electric_cooling,
-                        'absorption_cooling':absorption_cooling}
+    # Current default PV module
+    pv_module = 'Silevo_Triex_U300_Black__2014_'
 
-    # Code Starts
-    ts = time.gmtime()
-    print('Start Time: {}'.format(time.strftime("%Y-%m-%d %H:%M:%S", ts)))
-
-    city_number = 1
-    for city in City_dict:
-
-        City_ = City_dict[city]
-
-        building_number = 1
-        for building in building_type_list:
-
-            dataframes_ls = []
-
-            Building_ = Building(
-                name=building, building_type=building, City_=City_dict[city])
-            for scenario in demand_scenarios:
-                ac = demand_scenarios[scenario]['AC']
-                abc = demand_scenarios[scenario]['ABC']
-                
-                print('City: {}, {} of 16 | Building: {}, {} of 16 | Demand Scenario: {} | Time: {}'.format(
-                            city, city_number, building, building_number, scenario, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')                
-
-                df = calculate_energy_demands(Building_=Building_,
-                                               City_=City_,
-                                               AC_=ac,
-                                               ABC_=abc,
-                                               thermal_distribution_loss_rate=thermal_distribution_loss_rate,
-                                               thermal_distribution_loss_factor=thermal_distribution_loss_factor)
-
-                df.reset_index(inplace=True)
-
-                dataframes_ls.append(df)
-
-            # Building Loop
-            building_agg = pd.concat(dataframes_ls, axis=0).reset_index(drop=True)
-
-            if thermal_distribution_loss_factor == 1.0:
-                building_agg.to_feather(
-                    r'model_outputs\CCHPvGrid\energy_demands\Demand' + city + '_' + building + '.feather')
-                # building_agg.to_csv(r'model_outputs\CCHPvGrid\energy_demands\Demand' + city + '_' + building + '.csv')
-            else:
-                building_agg.to_feather(
-                    r'model_outputs\CCHPvGrid\energy_demands\Demand_' + city + '_' + building + '_energy_dem_dist_sens.feather')
-            building_number += 1
-        # City Loop
-        city_number += 1
-    print('\nCompleted Simulation')
+    reference_case = {'AC':AC_, 'Furnace':Furnace_, 
+                    'CHP':None, 'ABC':None,  
+                    'pv_module':None}
+    cchp_case = {'AC':None, 'Furnace':None, 
+                'CHP':None, 'ABC':ABC_,  
+                'pv_module':None}
+    pv_case = {'AC':None, 'Furnace':None, 
+                'CHP':None, 'ABC':ABC_,  
+                'pv_module':None}
+    pv_cchp_case = {'AC':None, 'Furnace':None, 
+                'CHP':None, 'ABC':ABC_,  
+                'pv_module':None}
 
 
-def simulate_energy_supply(thermal_distribution_loss_rate=0.1,
-                            thermal_distribution_loss_factor=1.0):
-    all_cities = int(input('All cities?:\n 1) True\n 2) False\n'))
-    '''
-    OBJECT GENERATOR
-    ----------------
-    '''
-    if all_cities == 1:
-        system_dict = generate_objects(all_cities=True)
-    else:
-        cities_to_simulate = []
-        n = int(input('Enter number of cities: '))
-        for i in range(0, n):
-            city_input = str(input(
-                'Type in the name of the {}th city: '.format(i + 1)))
-            cities_to_simulate.append(city_input)
-        print('Simulating the following list: {}'.format(cities_to_simulate))
-        system_dict = generate_objects(
-            all_cities=False, selected_cities=cities_to_simulate)
-
-    City_dict = system_dict['City_dict']
-    Grid_dict = system_dict['Grid_dict']
-    PrimeMover_dict = system_dict['PrimeMover_dict']
-    BES_dict = system_dict['BatteryStorage_dict']
-    Furnace_dict = system_dict['Furnace_dict']
-    AC_dict = system_dict['AC_dict']
-    ABC_dict = system_dict['ABC_dict']
+    supply_scenarios = {}
 
     # Just look at two furnaces, one electric and one gas
     Furnace_drop = ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'B1']
@@ -618,4 +643,4 @@ def simulate_energy_supply(thermal_distribution_loss_rate=0.1,
 
 
 
-simulate_energy_demands()
+simulate_energy_flows(scenario='Reference')

@@ -1554,11 +1554,11 @@ def _generate_PrimeMovers(csv_file, sheet_name=None, header=0):
 # Consider making a new object which takes in a pm object and an abs. chiller
 
 def size_chp(PrimeMover_,
-             peak_electricity_load,
-             peak_thermal_load,
+             energy_demand_df,
              City_=None,
              operation_mode='FTL',
-             alpha=0):
+             thermal_distribution_loss_rate=0.1,
+             thermal_distribution_loss_factor=1.0):
     """
     The purpose of this function is to size the prime mover system to the building demand. In other words, how many
     absportion chillers or air conditioning units do we need to meet the cooling demand; and, subsequently, how many prime
@@ -1566,11 +1566,14 @@ def size_chp(PrimeMover_,
     These systems are sized based on the operation mode (i.e., Follow the Thermal Load, Follow the Electric Load, or
     Follow the Base Load).
     - 'FTL' = Follow the Thermal Load (sized to match the peak thermal demand)
-    - 'alpha' = The CHP is sized to meet a fraction of the electric load [0-1]. If alpha=1, CHP can meet the full electric load.
     """
-    # Because we may modify the Prime Mover, we make a copy, that will be
-    # derated for the city.
-    CHP_ = PrimeMover_
+    # Identify Heat and Electricity Demands
+    heat_demand = energy_demand_df.total_heat_demand
+    electricity_demand = energy_demand_df.total_electricity_demand
+
+    altitude = City_.metadata['altitude']
+    dry_bulb_temp = City_.tmy_data['DryBulb']
+    derated_power_capacity = PrimeMover_.derate(altitude, dry_bulb_temp)
 
     if City_ is None:
         minimum_electrical_capacity = CHP_.power_nom
@@ -1578,21 +1581,16 @@ def size_chp(PrimeMover_,
         minimum_electrical_capacity = CHP_.derate(City_)
 
     if operation_mode == 'FTL':
-        design_peak = peak_thermal_load
-        # design capacity in this case is heat output
-        design_capacity = CHP_.min_heatoutput
+        peak_load = heat_demand.max()
+        peak_load = peak_load * (1 + thermal_distribution_loss_rate * thermal_distribution_loss_factor)
+        design_capacity = derated_power_capacity * PrimeMover_.module_parameters['hpr']
+    else:
+        peak_load = electricity_demand.max()
+        design_capacity = derated_power_capacity
+    
+    PrimeMover_ = PrimeMover_.size_chp(peak_load, design_capacity)
 
-    if operation_mode == 'alpha':
-        design_peak = alpha * peak_electricity_load
-        # design capacity in this case is electricity output
-        design_capacity = minimum_electrical_capacity
-
-    number_PM = m.ceil(design_peak / design_capacity)
-
-    capital_cost_PM = number_PM * CHP_.power_nom * \
-        CHP_.capital_cost
-
-    return CHP_, number_PM, capital_cost_PM
+    return PrimeMover_
 
 
 ######################################
