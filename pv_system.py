@@ -89,7 +89,7 @@ def get_inverter_parameters(inverter):
     
     return inverter_dict
 
-def size_pv_modules(design_load, module, oversize_factor=1):
+def size_pv_by_load(design_load, module, oversize_factor=1):
     module_parameters = get_module_parameters(module)
 
     # Nominal power rating
@@ -107,6 +107,16 @@ def size_pv_modules(design_load, module, oversize_factor=1):
     minimum_number_of_modules = m.ceil(
         minimum_number_of_modules * oversize_factor)
     return minimum_number_of_modules
+
+
+def size_pv_by_area(design_area,
+                    module):
+    module_parameters = get_module_parameters(module)
+    module_area = module_parameters['Area']
+
+    number_of_modules = design_area // module_area
+
+    return number_of_modules
 
 
 def calculate_power_rating(module, number_of_modules):
@@ -137,8 +147,8 @@ def size_inverter(design_load, units='W', grid_tied=True):
             columns={'index': 'inverter'})
 
         # Filter for inverters that fit the design load
-        df = df[(df['CEC_Type'] == 'Utility Interactive') &
-                (df['Pdco']) < design_load]
+        df = df[#(df['CEC_Type'] == 'Utility Interactive') &
+                (df['Pdco'] < design_load)]
 
         df['power_difference'] = np.abs(df['Pdco'] - design_load)
 
@@ -186,15 +196,22 @@ def size_pv_array(number_of_modules,
         return modules_per_string, strings
 
 
-def design_PVSystem(design_load,
-                    module,
+def design_PVSystem(module,
+                    method='design_load',
+                    design_load=0,
+                    design_area=0,
                     surface_azimuth=180,
                     surface_tilt=0,
                     oversize_factor=1,
                     name=''):
     # Design Load should be in W
+    
+    if method == 'design_load':
     # Get minimum module size
-    number_of_modules = size_pv_modules(design_load, module, oversize_factor)
+        number_of_modules = size_pv_by_load(design_load, module, oversize_factor)
+    if method == 'design_area':
+        number_of_modules = size_pv_by_area(design_area, module)
+    
     pv_power_rating = calculate_power_rating(module, number_of_modules)
     module_parameters = get_module_parameters(module)
 
@@ -393,7 +410,7 @@ def pv_simulation(PVSystem_, City_):
     parameters, inverter parameters, and the surface azimuth.
     Other parameters (e.g., albedo and surface type) are not currently functional.
     '''
-    print('Running PV Simulation for {}'.format(City_.name.upper()))
+    # print('Running PV Simulation for {}'.format(City_.name.upper()))
 
     # the PVSystem_ contains data on the module, inverter, and azimuth.
     if PVSystem_.surface_tilt is None:
@@ -515,8 +532,6 @@ def pv_simulation(PVSystem_, City_):
     ac_out['p_ac'] = pvlib.inverter.sandia(
         array_v_mp, array_p_dc, PVSystem_.inverter_parameters)
 
-    # p_ac/sqm is the AC power generated per square meter of module (W/m^2)
-
     energy_output = pd.DataFrame(index=ac_out.index)
     energy_output['v_dc'] = array_v_mp
     energy_output['p_dc'] = array_p_dc
@@ -531,7 +546,7 @@ def pv_simulation(PVSystem_, City_):
     energy_output['clipped_p_ac'] = clipped_energy['clipped_p_ac']
     energy_output['inverter_efficiency'] = clipped_energy['inverter_efficiency']
 
-    energy_output.to_csv(r'model_outputs\testing\pv_output.csv')
+   # energy_output.to_csv(r'model_outputs\testing\pv_output.csv')
 
     return energy_output
 
@@ -539,6 +554,9 @@ def pv_simulation(PVSystem_, City_):
 def calculate_pv_losses(PVSystem_):
     losses = pvlib.pvsystem.pvwatts_losses()
     return losses
+
+def total_pv_modules(PVSystem_):
+    return PVSystem_.modules_per_string * PVSystem_.strings_per_inverter
 
 # Pending
 def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
@@ -613,3 +631,6 @@ def test():
 ####################################
 # DISCONTINUED, FOR REFERENCE ONLY #
 ####################################
+
+'''sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
+print(sandia_modules.columns)'''
