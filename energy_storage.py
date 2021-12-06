@@ -117,6 +117,13 @@ class BatteryStorage:
                            }
         return cost_parameters
 
+    def increase_system_age(self, years=1):
+        self.age += years
+        if self.age >= self.module_parameters['lifetime_yr']:
+            self.age = 0
+            return self
+        else:
+            return self
     ##############################
     # BES Operational Parameters #
     ##############################
@@ -224,7 +231,7 @@ class BatteryStorage:
     ######################
 
     def backup_BES_capacity(self, electricity_demand,
-                              hours_of_autonomy=72, how='mean'):
+                            hours_of_autonomy=72, how='mean'):
         """
         This method determines the BES required to supply energy for a consecutive number of
         storage hours. This is determined by looking at the minimum, maximum, and mean sum of electricity
@@ -256,7 +263,7 @@ class BatteryStorage:
             return storage.min()
 
     def surplus_BES_capacity(self, electricity_supply,
-                              hours_of_storage=72, how='mean'):
+                             hours_of_storage=72, how='mean'):
         """
         This method determines the BES required to supply energy for a consecutive number of
         storage hours. This is determined by looking at the minimum, maximum, and mean sum of electricity
@@ -329,8 +336,8 @@ class BatteryStorage:
         return bank_size
 
     def size_backup_BES_array(self, electricity_load,
-                       hours, method='mean',
-                       design_voltage=48):
+                              hours, method='mean',
+                              design_voltage=48):
         """
         This method determines the number of storage units required to supply energy for a consecutive number of
         'storage_hours' to the Building. This is determined by looking at the minimum, maximum, and mean sum of electricity
@@ -354,8 +361,8 @@ class BatteryStorage:
         return self
 
     def size_surplus_BES_array(self, electricity_surplus,
-                       hours, method='mean',
-                       design_voltage=48):
+                               hours, method='mean',
+                               design_voltage=48):
         r"""
         REWORD
         This method determines the number of storage units required to store surplus energy for a consecutive number of
@@ -611,8 +618,8 @@ def _parse_raw_BES_df(csvdata):
 
 
 def calculate_BES_capacity(electricity_load,
-                          hours=72,
-                          method='mean'):
+                           hours=72,
+                           method='mean'):
     r'''
     This function calculates the total amount of energy required to satisfy
     X-hours of autonomous operation.
@@ -675,29 +682,29 @@ def design_BES(battery,
     # Size the BES
     if method == 'backup':
         BES = BES.size_backup_BES_array(electricity_load=electricity_demand,
-                                hours=hours,
-                                design_voltage=design_voltage)
-    if method == 'surplus':
-        BES = BES.size_surplus_BES_array(electricity_surplus=electricity_input,
                                         hours=hours,
                                         design_voltage=design_voltage)
+    if method == 'surplus':
+        BES = BES.size_surplus_BES_array(electricity_surplus=electricity_input,
+                                         hours=hours,
+                                         design_voltage=design_voltage)
 
     return BES
 
 
-def BES_storage_simulation(BES_, 
-                        energy_input, energy_output,
-                        initial_state_of_charge=1):
-    
+def BES_storage_simulation(BES_,
+                           energy_input, energy_output,
+                           initial_state_of_charge=1):
+
     # Energy input values will be positive if flowing into the battery
-    # and negative if flowing out. 
+    # and negative if flowing out.
     # Accordingly, energy_output should be negative values.
     energy_input_output = energy_input + energy_output
 
-    BES_df = BES_.BES_storage_simulation(energy_input_output, 
-                            initial_state_of_charge)
+    BES_df = BES_.BES_storage_simulation(energy_input_output,
+                                         initial_state_of_charge)
 
-    electricity_BES_in = np.where(BES_df.BES_energy_io > 0, 
+    electricity_BES_in = np.where(BES_df.BES_energy_io > 0,
                                   BES_df.BES_energy_io, 0)
     electricity_BES_out = np.where(BES_df.BES_energy_io < 0,
                                    BES_df.BES_energy_io, 0)
@@ -708,7 +715,8 @@ def BES_storage_simulation(BES_,
     df['electricity_BES_in'] = electricity_BES_in
 
     return df
- 
+
+
 def calculate_peak_shaving():
     pass
 # Sample PV output
@@ -737,7 +745,9 @@ def test_BES_sim():
     Temporary function to make sure that the BES storage simulation is working properly.
     '''
     # Design PV System
-    df = pd.read_csv(r'model_outputs\testing\building_pv.csv', index_col='datetime')
+    df = pd.read_csv(
+        r'model_outputs\testing\building_pv.csv',
+        index_col='datetime')
 
     '''from sysClasses import _generate_Cities
     City_dict = _generate_Cities(all_cities=False, selected_cities=['atlanta'])
@@ -751,11 +761,12 @@ def test_BES_sim():
     '''
 
     BES_ = design_BES('Li3', method='surplus',
-                        electricity_input=df.electricity_surplus, 
-                        hours=24,
-                        design_voltage=400)
+                      electricity_input=df.electricity_surplus,
+                      hours=24,
+                      design_voltage=400)
 
-    bes_df = BES_storage_simulation(BES_, df.electricity_surplus, df.electricity_deficit)
+    bes_df = BES_storage_simulation(
+        BES_, df.electricity_surplus, df.electricity_deficit)
     bes_df.to_csv(r'model_outputs\testing\BES_test.csv')
 
 
