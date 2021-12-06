@@ -867,6 +867,11 @@ class City(Location):
         self.tmy_data = tmy_data
         self.metadata = metadata
 
+        if metadata is None:
+            metadata = pd.read_csv(r'data\Tmy3_files\TMY3Metadata.csv', index_col=0)
+            metadata = metadata.transpose()
+            self.metadata = metadata[self.name]
+
     def _get_data(self, tmy3_file, how='processed'):
 
         self.tmy3_file = tmy3_file
@@ -1364,7 +1369,35 @@ class PrimeMover:
                              'thermal_efficiency': prime_mover['thermal_EFF'],
                              'effective_efficiency': prime_mover['effective_electric_EFF'],
                              'exhaust_temp_C': (prime_mover['exhaust_temp'] - 32) * 5 / 9,
-                             'heat_output_type': prime_mover['heat_recovery_type']}
+                             'heat_output_type': prime_mover['heat_recovery_type'],
+                             'lifetime_yr': 20}
+        '''
+        Part Load Ration Models
+        =======================
+        F / F_nom = K1 + K2 * (P / P_nom) 
+        Q / Q_nom = K3 + K4 * (P / P_nom)
+        '''
+
+        if (module_parameters['technology'] == 'Reciprocating Engine') or (module_parameters['technology'] == 'Gas Turbine'):
+            module_parameters['K1'] = -0.188
+            module_parameters['K2'] = 0.815
+            module_parameters['K3'] = -0.264
+            module_parameters['K4'] = 0.864
+        elif module_parameters['technology'] == 'Microturbine':
+            module_parameters['K1'] = 0.
+            module_parameters['K2'] = 1.042
+            module_parameters['K3'] = 0.
+            module_parameters['K4'] = 1.028
+        elif module_parameters['technology'] == 'Fuel Cell':
+            module_parameters['K1'] = 0.
+            module_parameters['K2'] = 1.006
+            module_parameters['K3'] = 0.
+            module_parameters['K4'] = 1.018
+        else:
+            module_parameters['K1'] = 0
+            module_parameters['K2'] = 1
+            module_parameters['K3'] = 0
+            module_parameters['K4'] = 1
 
         return module_parameters
 
@@ -1384,10 +1417,32 @@ class PrimeMover:
                            'om_cost': prime_mover['om_cost']}
         return cost_parameters
 
+    def increase_system_age(self, years=1):
+        self.age += years
+        if self.age >= self.module_parameters['lifetime_yr']:
+            self.age = 0
+            return self
+        else:
+            return self
     # Sizing Functions
 
     def nominal_capacity(self):
         return self.number_of_modules * self.module_parameters['power_nominal']
+
+    def nominal_heat_capacity(self):
+        hpr = self.module_parameters['hpr']
+        return self.nominal_capacity() * hpr
+
+    def nominal_fuel_input(self):
+        '''
+        Part Load Ration Models
+        =======================
+        CHP_efficiency = (P_nom + Q_nom) / F_nom 
+        '''
+        chp_efficiency = self.module_parameters['chp_efficiency']
+        P_nom = self.nominal_capacity()
+        Q_nom = self.nominal_heat_capacity()
+        return (P_nom + Q_nom) / chp_efficiency
 
     def derate(self, altitude=0, dry_bulb_temp=20,
                pressure=1, relative_humidity=0):
@@ -1412,21 +1467,76 @@ class PrimeMover:
                                                                               x * power_nominal * CF_altitude
                                                                               )
 
-        self.derated_capacity_df = derated_df['power_nom']
+        self.derated_capacity_df = derated_df['power_nominal']
 
         # Will add to ouput later
-        derated_df['heat_nom'] = derated_df['power_nom'].apply(
+        derated_df['heat_nominal'] = derated_df['power_nominal'].apply(
             lambda x: x * self.hpr)
 
         derated_df.index = dry_bulb_temp.index
 
-        minimum_electrical_capacity = derated_df.power_nom.min()
+        minimum_electrical_capacity = derated_df.power_nominal.min()
 
         return minimum_electrical_capacity
 
     def size_chp(self, peak_load, module_capacity):
-        self.number_of_modules = m.ceil(peak_load) / module_capacity
+        self.number_of_modules = m.ceil(peak_load / module_capacity)
         return self
+
+    # PLR operation
+    def plr_heat(self, heat_out):
+        return heat_out / self.nominal_heat_capacity()
+
+    def plr_electricity(self, electricity_out):
+        return electricity_out / self.nominal_capacity()
+
+    def plr_fuel(self, fuel_input):
+        return fuel_input / self.nominal_fuel_input()
+
+    def plr_to_electricity(self, plr):
+        return plr * self.nominal_capacity()
+
+    def heat_to_electricity(self, heat_out):
+        '''
+        Part Load Ration Models
+        =======================
+        Q / Q_nom = K3 + K4 * (P / P_nom)
+        '''
+        K3 = self.module_parameters['K3']
+        K4 = self.module_parameters['K4']
+        P_nom = self.nominal_capacity()
+        PLR_heat = self.plr_heat(heat_out)
+        return ((PLR_heat) - K3) * (P_nom / K4)
+
+    def electricity_to_heat(self, electricity_out):
+        '''
+        Part Load Ration Models
+        =======================
+        Q / Q_nom = K3 + K4 * (P / P_nom)
+        '''
+        K3 = self.module_parameters['K3']
+        K4 = self.module_parameters['K4']
+        Q_nom = self.nominal_heat_capacity()
+        PLR_electricity = self.plr_electricity(electricity_out)
+        return (K3 + (K4 * (PLR_electricity))) * Q_nom 
+
+    def electricity_to_fuel(self, electricity_out):
+        '''
+        Part Load Ration Models
+        =======================
+        F / F_nom = K1 + K2 * (P / P_nom)
+        '''
+        K1 = self.module_parameters['K1']
+        K2 = self.module_parameters['K2']
+        PLR_electricity = self.plr_electricity(electricity_out)
+        F_nom = self.nominal_fuel_input()
+        return (K1 + K2 * (PLR_electricity)) * F_nom
+
+    def fuel_input(self, PLR):
+        pass
+
+    def hpr(self, PLR):
+        pass
 
     # System Costs
     def capital_cost(self):
@@ -1573,12 +1683,11 @@ def size_chp(PrimeMover_,
 
     altitude = City_.metadata['altitude']
     dry_bulb_temp = City_.tmy_data['DryBulb']
-    derated_power_capacity = PrimeMover_.derate(altitude, dry_bulb_temp)
 
     if City_ is None:
-        minimum_electrical_capacity = CHP_.power_nom
+        derated_power_capacity = PrimeMover_.power_nominal
     else:
-        minimum_electrical_capacity = CHP_.derate(City_)
+        derated_power_capacity = PrimeMover_.derate(altitude, dry_bulb_temp)
 
     if operation_mode == 'FTL':
         peak_load = heat_demand.max()
@@ -1653,7 +1762,8 @@ class AbsorptionChiller:
 
     def __repr__(self):
         attrs = ['ABC_id', 'technology', 'COP', 'capacity',
-                 'capital_cost', 'om_cost', 'lifetime']
+                 'capital_cost', 'om_cost', 'lifetime',
+                 'module_parameters', 'cost_parameters']
         return ('Absorption Chiller: \n ' + ' \n '.join('{}: {}'.format(attr,
                 getattr(self, attr)) for attr in attrs))
 
@@ -1713,6 +1823,14 @@ class AbsorptionChiller:
                            'om_cost': absorption_chiller['om_cost']}
 
         return cost_parameters
+
+    def increase_system_age(self, years=1):
+        self.age += years
+        if self.age >= self.module_parameters['lifetime_yr']:
+            self.age = 0
+            return self
+        else:
+            return self
 
     def size_system(self, cooling_demand):
         required_capacity = np.max(cooling_demand)
@@ -2064,6 +2182,15 @@ class AirConditioner:
                            'annual_om_cost': air_conditioner['annual_om']}
 
         return cost_parameters
+
+    def increase_system_age(self, years=1):
+        self.age += years
+        if self.age >= self.module_parameters['lifetime_yr']:
+            self.age = 0
+            return self
+        else:
+            return self
+            
 
     def size_system(self, cooling_demand):
         required_capacity = np.max(cooling_demand)
@@ -2757,6 +2884,7 @@ class Furnace:
                              'capacity_kW': furnace['capacity_kW'],
                              'efficiency': furnace['efficiency'],
                              'annual_electric_consumption_kWh': furnace['annual_electric_consumption'],
+                             'lifetime_yr': furnace['average_life']
                              }
 
         return module_parameters
@@ -2784,6 +2912,14 @@ class Furnace:
                            'om_cost': furnace['om_cost'],
                            'annual_om_cost': furnace['annual_maintenance_cost']}
         return cost_parameters
+
+    def increase_system_age(self, years=1):
+        self.age += years
+        if self.age >= self.module_parameters['lifetime_yr']:
+            self.age = 0
+            return self
+        else:
+            return self
 
     def size_system(self, peak_load):
         module_capacity = self.module_parameters['capacity_kW']

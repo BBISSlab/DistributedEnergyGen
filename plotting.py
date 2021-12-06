@@ -13,6 +13,7 @@ import matplotlib.ticker as mtick
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import MultipleLocator
 
 import scipy.optimize
 import scipy.stats

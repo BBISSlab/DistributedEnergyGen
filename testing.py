@@ -9,7 +9,9 @@ def convert_feather_to_csv(file=r'model_outputs\energy_supply\Annual_atlanta_ful
 
 import pandas as pd
 
-NGCC_dict = {'NGCC_ch4': [2.5 * 10**-2],
+from sysClasses import AirConditioner
+
+'''NGCC_dict = {'NGCC_ch4': [2.5 * 10**-2],
                  'NGCC_co': [8.71 * 10**-2],
                  'NGCC_co2': [170.24],
                  'NGCC_nox': [3.1 * 10**-2],
@@ -21,4 +23,12 @@ NGCC_dict = {'NGCC_ch4': [2.5 * 10**-2],
 
 df = pd.DataFrame.from_dict(NGCC_dict)
 
-print(df)
+print(df)'''
+
+# df = pd.read_feather(r'model_outputs\CCHPvGrid\Energy_Supply\CHP\albuquerque_large_office.feather')
+
+# df.to_csv(r'model_outputs\testing\TEST_CCHP.csv')
+
+df = pd.read_feather(r'model_outputs\CCHPvGrid\PV\albuquerque_hospital.feather')
+
+df.to_csv(r'model_outputs\testing\TEST_PV_scenario.csv')

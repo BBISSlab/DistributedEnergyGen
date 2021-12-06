@@ -23,7 +23,6 @@ import numpy as np
 
 # import sklearn
 import pvlib
-import pv_system
 
 # Writing format
 import pyarrow
@@ -66,29 +65,31 @@ def get_inverter_parameters(inverter):
     cec_inverters = pvlib.pvsystem.retrieve_sam('cecinverter')
     inverter_parameters = cec_inverters[inverter]
 
-    if isinstance(inverter_parameters, pd.Series) or isinstance(inverter_parameters, pd.DataFrame):
+    if isinstance(inverter_parameters, pd.Series) or isinstance(
+            inverter_parameters, pd.DataFrame):
 
         inverter_parameters = inverter_parameters.transpose()
         inverter_dict = inverter_parameters.to_dict()
-        inverter_dict = {'Model':inverter,
-                         'Vac':inverter_dict['Vac'],
-                         'Pso':inverter_dict['Pso'],
-                         'Paco':inverter_dict['Paco'],
-                         'Pdco':inverter_dict['Pdco'],
-                         'Vdco':inverter_dict['Vdco'],
-                         'C0':inverter_dict['C0'],
-                         'C1':inverter_dict['C1'],
-                         'C2':inverter_dict['C2'],
-                         'C3':inverter_dict['C3'],
-                         'Pnt':inverter_dict['Pnt'],
-                         'Vdcmax':inverter_dict['Vdcmax'],
-                         'Idcmax':inverter_dict['Idcmax'],
-                         'Mppt_low':inverter_dict['Mppt_low'],
-                         'Mppt_high':inverter_dict['Mppt_high'],
-                         'CEC_Date':inverter_dict['CEC_Date'],
-                         'CEC_Type':inverter_dict['CEC_Type']}
-    
+        inverter_dict = {'Model': inverter,
+                         'Vac': inverter_dict['Vac'],
+                         'Pso': inverter_dict['Pso'],
+                         'Paco': inverter_dict['Paco'],
+                         'Pdco': inverter_dict['Pdco'],
+                         'Vdco': inverter_dict['Vdco'],
+                         'C0': inverter_dict['C0'],
+                         'C1': inverter_dict['C1'],
+                         'C2': inverter_dict['C2'],
+                         'C3': inverter_dict['C3'],
+                         'Pnt': inverter_dict['Pnt'],
+                         'Vdcmax': inverter_dict['Vdcmax'],
+                         'Idcmax': inverter_dict['Idcmax'],
+                         'Mppt_low': inverter_dict['Mppt_low'],
+                         'Mppt_high': inverter_dict['Mppt_high'],
+                         'CEC_Date': inverter_dict['CEC_Date'],
+                         'CEC_Type': inverter_dict['CEC_Type']}
+
     return inverter_dict
+
 
 def size_pv_by_load(design_load, module, oversize_factor=1):
     module_parameters = get_module_parameters(module)
@@ -148,8 +149,8 @@ def size_inverter(design_load, units='W', grid_tied=True):
             columns={'index': 'inverter'})
 
         # Filter for inverters that fit the design load
-        df = df[(df['CEC_Type'] == 'Utility Interactive') &
-                (df['Pdco']) < design_load]
+        df = df[  # (df['CEC_Type'] == 'Utility Interactive') &
+            (df['Pdco'] < design_load)]
 
         df['power_difference'] = np.abs(df['Pdco'] - design_load)
 
@@ -157,8 +158,8 @@ def size_inverter(design_load, units='W', grid_tied=True):
         chosen_inverter = df[(df['power_difference'] ==
                               df['power_difference'].min())]['inverter']
 
-
-        if (len(chosen_inverter.index) > 1) or isinstance(chosen_inverter, pd.Series):
+        if (len(chosen_inverter.index) > 1) or isinstance(
+                chosen_inverter, pd.Series):
             chosen_inverter.reset_index(inplace=True, drop=True)
             return chosen_inverter[0]
 
@@ -181,7 +182,9 @@ def size_pv_array(number_of_modules,
     if inverter_parameters is None:
         inverter_parameters = get_inverter_parameters(inverter)
 
-    modules_per_string = m.ceil(inverter_parameters['Vdcmax'] / module_parameters['Vmpo'])
+    modules_per_string = m.ceil(
+        inverter_parameters['Vdcmax'] /
+        module_parameters['Vmpo'])
 
     strings = m.ceil(number_of_modules / modules_per_string)
 
@@ -206,13 +209,14 @@ def design_PVSystem(module,
                     oversize_factor=1,
                     name=''):
     # Design Load should be in W
-    
+
     if method == 'design_load':
-    # Get minimum module size
-        number_of_modules = size_pv_by_load(design_load, module, oversize_factor)
+        # Get minimum module size
+        number_of_modules = size_pv_by_load(
+            design_load, module, oversize_factor)
     if method == 'design_area':
         number_of_modules = size_pv_by_area(design_area, module)
-    
+
     pv_power_rating = calculate_power_rating(module, number_of_modules)
     module_parameters = get_module_parameters(module)
 
@@ -283,6 +287,7 @@ def select_PVSystem(
                                         racking_model='open_rack')
 
     return PVSystem_
+
 
 def calculate_clipped_energy(v_dc, p_dc, inverter):
     r'''
@@ -376,15 +381,16 @@ def calculate_clipped_energy(v_dc, p_dc, inverter):
     clipped_power = pd.concat([p_ac, clipped_p_ac, p_dc, clipped_p_dc, inverter_efficiency],
                               axis=1)
 
-    clipped_power.rename(columns={0:'p_ac', 
-                                  1:'clipped_p_ac',
-                                  'p_mp':'p_dc',
-                                  2:'clipped_p_dc',
-                                  3:'inverter_efficiency'},
+    clipped_power.rename(columns={0: 'p_ac',
+                                  1: 'clipped_p_ac',
+                                  'p_mp': 'p_dc',
+                                  2: 'clipped_p_dc',
+                                  3: 'inverter_efficiency'},
                          inplace=True)
 
     # Clean Dataset
-    clipped_power['clipped_p_ac'] = np.where(clipped_power.p_dc <= 0, 0., clipped_p_ac)
+    clipped_power['clipped_p_ac'] = np.where(
+        clipped_power.p_dc <= 0, 0., clipped_p_ac)
     clipped_power['inverter_efficiency'].replace(np.inf, 0, inplace=True)
 
     return clipped_power
@@ -411,7 +417,7 @@ def pv_simulation(PVSystem_, City_):
     parameters, inverter parameters, and the surface azimuth.
     Other parameters (e.g., albedo and surface type) are not currently functional.
     '''
-    print('Running PV Simulation for {}'.format(City_.name.upper()))
+    # print('Running PV Simulation for {}'.format(City_.name.upper()))
 
     # the PVSystem_ contains data on the module, inverter, and azimuth.
     if PVSystem_.surface_tilt is None:
@@ -447,7 +453,6 @@ def pv_simulation(PVSystem_, City_):
     The following functions calculate the energy output of the PV system. The simulation incorporates the efficiency losses
     from temperature increase, PV module efficiency, and the inverter efficiency (dc-ac conversion)
     """
-
 
     # Calculate Solar Position
     solar_pos = location.get_solarposition(
@@ -528,12 +533,11 @@ def pv_simulation(PVSystem_, City_):
     ac_out = pd.DataFrame()
 
     array_v_mp = dc_out.v_mp * PVSystem_.strings_per_inverter
-    array_p_dc = dc_out.p_mp * (PVSystem_.strings_per_inverter * PVSystem_.modules_per_string)
+    array_p_dc = dc_out.p_mp * \
+        (PVSystem_.strings_per_inverter * PVSystem_.modules_per_string)
     # ac_out['p_ac'] is the AC power output in W from the DC power input.
     ac_out['p_ac'] = pvlib.inverter.sandia(
         array_v_mp, array_p_dc, PVSystem_.inverter_parameters)
-
-    # p_ac/sqm is the AC power generated per square meter of module (W/m^2)
 
     energy_output = pd.DataFrame(index=ac_out.index)
     energy_output['v_dc'] = array_v_mp
@@ -541,15 +545,16 @@ def pv_simulation(PVSystem_, City_):
     energy_output['p_ac'] = ac_out['p_ac']
 
     # Calculate the clipped energy
-    clipped_energy = calculate_clipped_energy(v_dc=array_v_mp, # energy_output['v_dc'],
-                                              p_dc=array_p_dc, # energy_output['p_dc'],
+    clipped_energy = calculate_clipped_energy(v_dc=array_v_mp,  # energy_output['v_dc'],
+                                              # energy_output['p_dc'],
+                                              p_dc=array_p_dc,
                                               inverter=PVSystem_.inverter_parameters)
 
     energy_output['clipped_p_dc'] = clipped_energy['clipped_p_dc']
     energy_output['clipped_p_ac'] = clipped_energy['clipped_p_ac']
     energy_output['inverter_efficiency'] = clipped_energy['inverter_efficiency']
 
-    energy_output.to_csv(r'model_outputs\testing\pv_output.csv')
+   # energy_output.to_csv(r'model_outputs\testing\pv_output.csv')
 
     return energy_output
 
@@ -558,7 +563,13 @@ def calculate_pv_losses(PVSystem_):
     losses = pvlib.pvsystem.pvwatts_losses()
     return losses
 
+
+def total_pv_modules(PVSystem_):
+    return PVSystem_.modules_per_string * PVSystem_.strings_per_inverter
+
 # Pending
+
+
 def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
     # Solar PV Prices from:
     # NREL (National Renewable Energy Laboratory). 2020. 2020 Annual Technology
@@ -585,12 +596,12 @@ def pv_system_costs(pv_system_power_rating=0, building_type='commercial'):
     return capital_cost_PV, fixed_cost, variable_om_cost
 
 
-
 def calculate_surplus_dc_power():
     pass
 
+
 def lifetime_electricity_output(PVSystem_, lifetime, degradation_rate):
-    
+
     pass
 
 
@@ -631,3 +642,7 @@ def test():
 ####################################
 # DISCONTINUED, FOR REFERENCE ONLY #
 ####################################
+
+
+'''sandia_modules = pvlib.pvsystem.retrieve_sam('SandiaMod')
+print(sandia_modules.columns)'''
