@@ -17,6 +17,8 @@ from openpyxl import load_workbook
 import math as m
 
 
+
+
 def lin_reg(data, fit_intercept=True):
     from sklearn.linear_model import LinearRegression
     from sklearn.linear_model import Ridge
@@ -26,10 +28,14 @@ def lin_reg(data, fit_intercept=True):
     # Linear Regression
     model = LinearRegression(fit_intercept=fit_intercept)
     x = data.waterflow_kg_per_hour
+    # Convert to kg/s
+    x = x / 3600
     X = x.values.reshape(len(x.index), 1)
 
     # Perform regression for each impact
     y = data['airflow_kg_per_hour']
+    # Convert airflow to kg/s
+    y = y / 3600
     Y = y.values.reshape(len(y.index), 1)
 
     model.fit(X, Y)
@@ -68,7 +74,7 @@ def get_regression_results(fit_intercept=True):
         'score': scores}
     df = pd.DataFrame.from_dict(dictionary)
 
-    savepath = r'model_outputs\CCHPvGrid'
+    savepath = r'\\model_outputs\AbsorptionChillers'
     savefile = F'Regression_results_interc_{type}.csv'
 
     df.to_csv(F'{savepath}\{savefile}')
@@ -96,15 +102,15 @@ def plot_regression(fit_intercept=False):
 
 
     fig, axn = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(9, 7))
-    y_ticks = np.arange(0, 2200000, 200000)
-    x_ticks = np.arange(0, 70000, 10000)
+    y_ticks = np.arange(0, 600, 50)
+    x_ticks = np.arange(0, 1100, 100)
     ##########################
     # TOP SUBPLOT - PLR Fuel #
     ##########################
     ax = plt.subplot(1, 1, 1)
 
-    sns.scatterplot(x=data['waterflow_kg_per_hour'],
-                    y=data['airflow_kg_per_hour'],
+    sns.scatterplot(x=data['waterflow_kg_per_hour']/3600,
+                    y=data['airflow_kg_per_hour']/3600,
                     alpha=0.4,
                     s=80,
                     color='cornflowerblue')
@@ -112,7 +118,7 @@ def plot_regression(fit_intercept=False):
     # Plot Trendline
     regression_dict = lin_reg(data, fit_intercept)
     
-    X = np.arange(0, 60100, 100)
+    X = np.arange(0, 1005, 5)
     slope = regression_dict['coef']
     intercept = regression_dict['intercept']
     score = regression_dict['score']
@@ -122,16 +128,16 @@ def plot_regression(fit_intercept=False):
 
     # Formatting
     ax.set_yticks(y_ticks)
-    ax.set_yticklabels(y_ticks / 100000)    
+    ax.set_yticklabels(y_ticks)    
     ax.set_ylim(np.min(y_ticks), np.max(y_ticks))
-    ax.yaxis.set_minor_locator(MultipleLocator(50000))
-    ax.set_ylabel('Air Mass Flowrate $10^5 kg / hr$')
+    ax.yaxis.set_minor_locator(MultipleLocator(10))
+    ax.set_ylabel('Air Mass Flowrate, $kg / s$')
 
     ax.set_xticks(x_ticks)
-    ax.set_xticklabels(x_ticks / 1000)
+    ax.set_xticklabels(x_ticks)
     ax.set_xlim(np.min(x_ticks), np.max(x_ticks))
-    ax.xaxis.set_minor_locator(MultipleLocator(2000))
-    ax.set_xlabel('Water Mass Flowrate $10^3 kg / hr$')
+    ax.xaxis.set_minor_locator(MultipleLocator(50))
+    ax.set_xlabel('Water Mass Flowrate, $kg / s$')
 
     # ax.get_legend().remove()
     sns.despine()
