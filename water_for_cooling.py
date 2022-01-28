@@ -36,9 +36,6 @@ from sysClasses import *
 
 specific_heat_water = 4.186  # kJ / (kg K)
 
-###########################
-# PROPERTIES OF HUMID AIR #
-###########################
 # Unit Conversions
 
 
@@ -67,6 +64,10 @@ def convert_C_to_K(temperature):
 
 def convert_K_to_C(temperature):
     return temperature - 273.15
+
+###########################
+# PROPERTIES OF HUMID AIR #
+###########################
 
 # Relative humidity calculations
 
@@ -103,6 +104,54 @@ def mass_fraction_of_water_in_humid_air(humidity_ratio):
 # Thermodynamic properties of humid air
 
 
+def humid_air_enthalpy(temperature, pressure, relative_humidity,
+                       method='iawps'):
+    r'''
+    Calculate the enthalpy (kJ/kg) of the humid air.
+
+    Parameters
+    ----------
+    temperature: temperature of the air (C)
+    pressure: pressure of the air (kPa)
+    relative_humidity: relative_humidity of the air, as a fraction [0 - 1]
+
+    Output
+    ------
+    enthalpy: enthalpy (kJ/kg) of humid air
+
+    '''
+    # Calculate the  humidity ratio
+    HR = humidity_ratio(temperature=temperature,
+                        P_atm=pressure,
+                        relative_humidity=relative_humidity)
+
+    if method == 'iawps':
+        # Calcualte the mass fraction of water in humid air
+        W = mass_fraction_of_water_in_humid_air(HR)
+
+        # Convert pressure from kPa to MPA
+        P_MPa = pressure / 1000
+        # Convert temperature from C to K
+        temp_K = convert_C_to_K(temperature)
+
+        # Create Humid Air Class from iawps
+        Humid_Air = humidAir.HumidAir(T=temp_K, P=P_MPa, W=W)
+
+        return Humid_Air.h
+    elif method == 'cengel':
+        enthalpy_dry_air = 1.005 * temperature
+        enthalpy_water_vapor = saturated_vapor_enthalpy(temperature)
+        return enthalpy_dry_air + HR * enthalpy_water_vapor
+
+    else:
+        print('Choose iawps or cengel')
+
+#####################################
+# THERMODYNAMIC PROPERTIES OF WATER #
+#####################################
+# Generic thermodynamic property functions
+
+
 def calculate_P_sat(temperature, temp_units="C"):
     r'''
     Calculate the saturation pressure of water.
@@ -128,49 +177,6 @@ def calculate_P_sat(temperature, temp_units="C"):
         exit()
 
 
-def humid_air_enthalpy(temperature, pressure, relative_humidity,
-    method='iawps'):
-    r'''
-    Calculate the enthalpy (kJ/kg) of the humid air.
-
-    Parameters
-    ----------
-    temperature: temperature of the air (C)
-    pressure: pressure of the air (kPa)
-    relative_humidity: relative_humidity of the air, as a fraction [0 - 1]
-
-    Output
-    ------
-    enthalpy: enthalpy (kJ/kg) of humid air
-
-    '''
-    # Calculate the  humidity ratio
-    HR = humidity_ratio(temperature=temperature,
-                                    P_atm=pressure,
-                                    relative_humidity=relative_humidity)
-
-    if method == 'iawps':
-        # Calcualte the mass fraction of water in humid air
-        W = mass_fraction_of_water_in_humid_air(HR)
-
-        # Convert pressure from kPa to MPA
-        P_MPa = pressure / 1000
-        # Convert temperature from C to K
-        temp_K = convert_C_to_K(temperature)
-
-        # Create Humid Air Class from iawps
-        Humid_Air = humidAir.HumidAir(T=temp_K, P=P_MPa, W=W)
-
-        return Humid_Air.h
-    elif method == 'cengel':
-        enthalpy_dry_air = 1.005 * temperature
-        enthalpy_water_vapor = saturated_vapor_enthalpy(temperature)
-        return enthalpy_dry_air + HR * enthalpy_water_vapor
-
-    else:
-        print('Choose iawps or cengel')
-    
-# Generic thermodynamic property functions
 def saturated_liquid_enthalpy(temperature):
     r'''
         Calculates the enthalpy of liquid water
@@ -212,16 +218,18 @@ def saturated_vapor_enthalpy(temperature):
 
     return enthalpy
 
+
 def _sat_liquid_obj_fcn(temperature, enthalpy):
     return saturated_liquid_enthalpy(temperature) - enthalpy
 
+
 def saturated_liquid_temperature(enthalpy,
-        percent_error_allowed=0.01):
-    # Initialize Values using upper and lower bounds for 
+                                 percent_error_allowed=0.01):
+    # Initialize Values using upper and lower bounds for
     # the current system
-    t_U = convert_C_to_K(97)    
+    t_U = convert_C_to_K(97)
     t_L = convert_C_to_K(4)
-    
+
     f_U = _sat_liquid_obj_fcn(t_U, enthalpy)
     f_L = _sat_liquid_obj_fcn(t_L, enthalpy)
 
@@ -237,7 +245,7 @@ def saturated_liquid_temperature(enthalpy,
 
     iteration = 0
     while apre > percent_error_allowed:
-        
+
         t_r_old = t_r
         f_r = _sat_liquid_obj_fcn(t_r, enthalpy)
 
@@ -258,23 +266,26 @@ def saturated_liquid_temperature(enthalpy,
                 f_U = f_U / 2
         else:
             apre = 0
-        
+
         t_r = t_U - ((f_U * (t_L - t_U)) / (f_L - f_U))
 
         apre = absolute_percent_relative_error(t_r_old, t_r)
-        
+
         iteration += 1
 
     return round(t_r, 2)
-
 
 
 def absolute_total_error(old_value, new_value):
     difference = old_value - new_value
     return abs(difference)
 
+
 def absolute_percent_relative_error(old_value, new_value):
-    absolute_relative_error = abs(absolute_total_error(old_value, new_value) / new_value)
+    absolute_relative_error = abs(
+        absolute_total_error(
+            old_value,
+            new_value) / new_value)
     return absolute_relative_error * 100
 
 #############################
@@ -543,7 +554,7 @@ def calculate_cold_temperature_out(Q, UA,
 
 
 def calculate_hot_temperature_out(Q, UA,
-        hot_temperature_in, cold_temperature_in, cold_temperature_out):
+                                  hot_temperature_in, cold_temperature_in, cold_temperature_out):
     r'''
         Calculates the refrigerant temperature at inlet (T_3)
 
@@ -608,6 +619,8 @@ def calculate_hot_temperature_out(Q, UA,
 #################################
 # Absorption Chiller Components #
 #################################
+# TODO
+# - Make each component a subclass of a heat-exchanger class
 
 # Absorption Chiller Components and Component Modeling
 
@@ -934,7 +947,12 @@ class Absorber:
                                               CW_temp_in)
 
     def solution_temperature_out(self, Q, SS_temp_in, CW_temp_in, CW_temp_out):
-        return calculate_hot_temperature_out(Q, self.UA, SS_temp_in, CW_temp_in, CW_temp_out)
+        return calculate_hot_temperature_out(
+            Q, self.UA, SS_temp_in, CW_temp_in, CW_temp_out)
+
+    def cooling_water_flowrate(self, Q, CW_temp_in, CW_temp_out):
+        return (Q / (specific_heat_water * (CW_temp_out - CW_temp_in)))
+
 
 class SolutionHeatExhanger:
     r'''
@@ -965,9 +983,11 @@ class SolutionHeatExhanger:
         '''
         return mass_flowrate * (enthalpy_1 - enthalpy_2)
 
+    def strong_solution_temperature_out(
+            self, Q, SS_temp_in, WS_temp_in, WS_temp_out):
+        return calculate_cold_temperature_out(
+            Q, self.UA, SS_temp_in, WS_temp_in, WS_temp_out)
 
-    def strong_solution_temperature_out(self, Q, SS_temp_in, WS_temp_in, WS_temp_out):
-        return calculate_cold_temperature_out(Q, self.UA, SS_temp_in, WS_temp_in, WS_temp_out)
 
 class CoolingTower:
     r'''
@@ -995,23 +1015,24 @@ class CoolingTower:
         self.name = name
 
     def mixer_enthalpy_out(self, cooling_water_mass_flowrate, makeup_water_massflowrate,
-            makeup_water_enthalpy, cooling_tower_water_enthalpy):
+                           makeup_water_enthalpy, cooling_tower_water_enthalpy):
         H_16 = makeup_water_enthalpy * makeup_water_massflowrate
         m_14 = cooling_water_mass_flowrate = makeup_water_massflowrate
         H_14 = m_14 * cooling_tower_water_enthalpy
         return ((H_16 + H_14) / cooling_water_mass_flowrate)
 
     def make_up_water_flowrate(self,
-                           air_mass_flowrate, humidity_ratio_in, humidity_ratio_out):
+                               air_mass_flowrate, humidity_ratio_in, humidity_ratio_out):
         return air_mass_flowrate * (humidity_ratio_out - humidity_ratio_in)
 
     def water_out_flowrate(self, cooling_water_mass_flowrate,
-                               air_mass_flowrate, humidity_ratio_in, humidity_ratio_out):
-        return (cooling_water_mass_flowrate + air_mass_flowrate * (humidity_ratio_in - humidity_ratio_out))
+                           air_mass_flowrate, humidity_ratio_in, humidity_ratio_out):
+        return (cooling_water_mass_flowrate + air_mass_flowrate *
+                (humidity_ratio_in - humidity_ratio_out))
 
-    def water_out_enthalpy(self, Q, 
-        cooling_water_mass_flowrate, cooling_water_enthalpy,
-        water_out_flowrate):
+    def water_out_enthalpy(self, Q,
+                           cooling_water_mass_flowrate, cooling_water_enthalpy,
+                           water_out_flowrate):
         energy_cooling_water = cooling_water_mass_flowrate * cooling_water_enthalpy
         return (energy_cooling_water - Q) / water_out_flowrate
 
@@ -1024,12 +1045,16 @@ class CoolingTower:
     def air_enthalpy_out(self, Q, m_air, enthalpy_ambient):
         return ((Q / m_air) + enthalpy_ambient)
 
-
-    def _air_temp_obj_fcn(self, temperature, pressure, relative_humidity, enthalpy):
+    def _air_temp_obj_fcn(self, temperature, pressure,
+                          relative_humidity, enthalpy):
         try:
             h = humid_air_enthalpy(temperature, pressure, relative_humidity)
         except (AttributeError, TypeError) as e:
-            h = humid_air_enthalpy(temperature, pressure, relative_humidity, method='cengel')
+            h = humid_air_enthalpy(
+                temperature,
+                pressure,
+                relative_humidity,
+                method='cengel')
         return h - enthalpy
 
     def temperature_air_out(self, enthalpy, P_atm,
@@ -1051,14 +1076,14 @@ class CoolingTower:
 
             Iteration method
             ----------------
-            Modified False Position 
+            Modified False Position
         '''
         # Initialize Values
         t_L = min(cooling_water_temp, ambient_air_temp)
         t_U = max(cooling_water_temp, ambient_air_temp)
         f_L = self._air_temp_obj_fcn(t_L, P_atm, relative_humidity, enthalpy)
         f_U = self._air_temp_obj_fcn(t_U, P_atm, relative_humidity, enthalpy)
-        
+
         # First Guess
         t_r = t_U - ((f_U * (t_L - t_U)) / (f_L - f_U))
 
@@ -1071,40 +1096,39 @@ class CoolingTower:
 
         iteration = 0
         while apre > percent_error_allowed:
-            
+
             t_r_old = t_r
-            f_r = self._air_temp_obj_fcn(t_r, P_atm, relative_humidity, enthalpy)
+            f_r = self._air_temp_obj_fcn(
+                t_r, P_atm, relative_humidity, enthalpy)
 
             test = f_L * f_r
             if test < 0:
                 t_U = t_r
-                f_U = self._air_temp_obj_fcn(t_U, P_atm, relative_humidity, enthalpy)
+                f_U = self._air_temp_obj_fcn(
+                    t_U, P_atm, relative_humidity, enthalpy)
                 i_U = 0
                 i_L += 1
                 if i_L >= 2:
                     f_L = f_L / 2
             elif test > 0:
                 t_L = t_r
-                f_L = self._air_temp_obj_fcn(t_L, P_atm, relative_humidity, enthalpy)
+                f_L = self._air_temp_obj_fcn(
+                    t_L, P_atm, relative_humidity, enthalpy)
                 i_L = 0
                 i_U += 1
                 if i_U >= 2:
                     f_U = f_U / 2
             else:
                 apre = 0
-            
+
             t_r = t_U - ((f_U * (t_L - t_U)) / (f_L - f_U))
 
             apre = absolute_percent_relative_error(t_r_old, t_r)
-            
+
             iteration += 1
 
         return t_r
 
-
-#################################
-# Water Thermodynamic Equations #
-#################################
 
 ######################
 # Workflow Algorithm #
@@ -1192,13 +1216,42 @@ def log_mean_temperature_difference(theta_1, theta_2):
     return ((theta_1 - theta_2) / (m.log(theta_1 / theta_2)))
 
 
-def LMTD_guess(theta_1, theta_2):
+def _thermo_dict_to_dataframe(
+        statepoint_list, temperature_dict, pressure_dict, enthalpy_dict, massflow_dict):
+    temperature_ls = list(temperature_dict.values())
+    pressure_ls = list(pressure_dict.values())
+    enthalpy_ls = list(enthalpy_dict.values())
+    massflow_ls = list(massflow_dict.values())
 
-    pass
+    # Convert the lists into a pandas dataframe
+    data = {'statepoint': statepoint_list,
+            'T_degC': temperature_ls,
+            'P_kPa': pressure_ls,
+            'enthalpy': enthalpy_ls,
+            'massflow': massflow_ls}
+    df = pd.DataFrame(data=data)
+    df.set_index('statepoint', inplace=True, drop=True)
+
+    return df
 
 
 def absoprtion_chiller_equilibrium(
         Q_e, T_dry_bulb, P_atm, relative_humidity, error_threshold=0.001):
+    # Create a dictionary to store all values
+    statepoints = [i for i in range(1, 22)]
+
+    # Dictionaries
+    temperature_dict = {}
+    enthalpy_dict = {}
+    pressure_dict = {}
+    massflow_dict = {}
+
+    for i in statepoints:
+        temperature_dict[F'T{i}'] = None
+        enthalpy_dict[F'h{i}'] = None
+        pressure_dict[F'P{i}'] = None
+        massflow_dict[F'm{i}'] = None
+
     # 1. Climate data an input for the function
 
     # 2. Create objects with known UA values
@@ -1228,17 +1281,40 @@ def absoprtion_chiller_equilibrium(
     T_1 = 80
     T_4 = 4
     T_8 = T_1
+    T_13 = T_dry_bulb
     T_16 = 25
     T_18 = 12
     T_19 = 6
     T_20 = 90.6
     T_21 = 85
 
+    # Insert known temperatures into dictionary
+    temperature_dict['T1'] = T_1
+    temperature_dict['T4'] = T_4
+    temperature_dict['T8'] = T_8
+    temperature_dict['T13'] = T_13
+    temperature_dict['T16'] = T_16
+    temperature_dict['T18'] = T_18
+    temperature_dict['T19'] = T_19
+    temperature_dict['T20'] = T_20
+    temperature_dict['T21'] = T_21
+
     # Pressure
     P_g = Generator_.generator_pressure(T_1)
     P_c = P_g
     P_e = Evaporator_.evaporator_pressure(T_4)
     P_a = P_e
+
+    # Insert known pressures into dictionary
+    upper_vessel = [1, 2, 6, 7, 8, 9]
+    lower_vessel = [3, 4, 5, 10]
+    for i in range(1, 11):
+        if i in upper_vessel:
+            pressure_dict[F'P{i}'] = P_g
+        else:
+            pressure_dict[F'P{i}'] = P_e
+    pressure_dict['P13'] = P_atm
+    pressure_dict['P15'] = P_atm
 
     # LiBr Solutions
     X_SS = 60
@@ -1262,6 +1338,21 @@ def absoprtion_chiller_equilibrium(
     # LiBr Solution
     h_8 = strong_solution.enthalpy_LiBr_solution(T_8)
 
+    # Air
+    h_13 = humid_air_enthalpy(T_13, P_atm, relative_humidity)
+    w_13 = humidity_ratio(T_13, P_atm, relative_humidity)
+
+    # Insert known temperatures into dictionary
+    enthalpy_dict['h1'] = h_1
+    enthalpy_dict['h4'] = h_4
+    enthalpy_dict['h8'] = h_8
+    enthalpy_dict['h13'] = h_13
+    enthalpy_dict['h16'] = h_16
+    enthalpy_dict['h18'] = h_18
+    enthalpy_dict['h19'] = h_19
+    enthalpy_dict['h20'] = h_20
+    enthalpy_dict['h21'] = h_21
+
     #########
     # START #
     #########
@@ -1275,6 +1366,8 @@ def absoprtion_chiller_equilibrium(
     '''
     # 4. Solve for m_ChW
     m_ChW = Evaporator_.chilled_water_flowrate(Q_e)
+    for i in [18, 19]:
+        massflow_dict[F'm{i}'] = m_ChW
 
     # 5. Solve for T_3 and h_3
     T_3 = Evaporator_.refrigerant_temp_in(Q_e)
@@ -1307,6 +1400,33 @@ def absoprtion_chiller_equilibrium(
 
     # 8 Solve for Q_c
     Q_c = m_R * (h_1 - h_2)
+
+    # Update temperature and enthalpy dict
+    temperature_dict['T2'] = T_2
+    temperature_dict['T3'] = T_3
+    enthalpy_dict['h2'] = h_2
+    enthalpy_dict['h3'] = h_3
+
+    # Update massflow dict
+    refrigerant = [i for i in range(1, 5)]
+    solution_weak = [i for i in range(5, 8)]
+    solution_strong = [i for i in range(8, 11)]
+    for i in range(1, 11):
+        if i in refrigerant:
+            massflow_dict[F'm{i}'] = m_R
+        elif i in solution_weak:
+            massflow_dict[F'm{i}'] = m_WS
+        else:
+            massflow_dict[F'm{i}'] = m_SS
+
+    pressure_dict['P13'] = P_atm
+    pressure_dict['P15'] = P_atm
+
+    def print_dataframe():
+        balance_df = _thermo_dict_to_dataframe(statepoints, temperature_dict,
+                                               pressure_dict, enthalpy_dict, massflow_dict)
+
+        print(balance_df)
 
     #######################
     # Iterative Processes #
@@ -1380,6 +1500,7 @@ def absoprtion_chiller_equilibrium(
                 h_12 = saturated_liquid_enthalpy(T_12)
 
                 # 9.3.6.3 Solve for m ̇_CW using Eq. 15
+                # m_CW = Condenser_.cooling_water_flowrate(Q_c, T_11, T_12)
                 m_CW = Condenser_.cooling_water_flowrate(Q_c, T_11, T_12)
 
                 # 9.3.6.4 Calculate m ̇_air and Q ̇_CT using Eq. 22 and Eq. 23
@@ -1392,30 +1513,56 @@ def absoprtion_chiller_equilibrium(
                 # 9.3.6.6 Calculate T_15 using iterative calculations Eq. 26
                 # through Eq. 28
                 T_15 = CoolingTower_.temperature_air_out(h_15, P_atm,
-                        T_12, T_13, 1)
+                                                         T_12, T_13, 1)
 
                 # 9.3.6.7 Evaluate ω_15 using Eq. 29
                 w_15 = humidity_ratio(T_15, P_atm, 1)
 
                 # 9.3.6.8 Solve for m_14 using Eq. 21
-                m_14 = CoolingTower_.water_out_flowrate(m_CW, m_air, w_13, w_15)
+                m_14 = CoolingTower_.water_out_flowrate(
+                    m_CW, m_air, w_13, w_15)
 
                 # 9.3.6.9 Calculate h_14 using Eq. 24
                 h_14 = CoolingTower_.water_out_enthalpy(Q_ct, m_CW, h_12, m_14)
+                T_14 = saturated_liquid_temperature(h_14)
 
                 # 9.3.6.10 Calculate makeup water
-                m_makeup = CoolingTower_.make_up_water_flowrate(m_air, w_13, w_15)
+                m_makeup = CoolingTower_.make_up_water_flowrate(
+                    m_air, w_13, w_15)
 
                 # 9.3.6.11 Solve for h_17' and T_17' using Eq. 32
-                h_17_new = CoolingTower_.mixer_enthalpy_out(m_CW, m_makeup, h_16, h_14)
+                h_17_new = CoolingTower_.mixer_enthalpy_out(
+                    m_CW, m_makeup, h_16, h_14)
                 print(F'h17_new = {h_17_new}')
                 T_17_new = saturated_liquid_temperature(h_17_new)
 
                 # 9.3.6.12 Check error_T_17
                 error_T_17 = absolute_total_error(T_17, T_17_new)
-                
+
                 T_17 = T_17_new
                 h_17 = h_17_new
+
+                # Update dictionaries:
+                temperature_dict['T11'] = T_3
+                temperature_dict['T12'] = T_12
+                temperature_dict['T14'] = T_14
+                temperature_dict['T15'] = T_15
+                temperature_dict['T17'] = T_17
+
+                enthalpy_dict['h11'] = h_11
+                enthalpy_dict['h12'] = h_12
+                enthalpy_dict['h14'] = h_14
+                enthalpy_dict['h15'] = h_15
+                enthalpy_dict['h17'] = h_17
+
+                for i in [11, 12, 17]:
+                    massflow_dict[F'm{i}'] = m_CW
+                for i in [13, 15]:
+                    massflow_dict[F'm{i}'] = m_air
+                massflow_dict['m14'] = m_14
+                massflow_dict['m16'] = m_makeup
+
+                print_dataframe()
 
             # 9.3.7 Calculate Q_a using Eq. 9
             Q_a = Absorber_.heat_from_external_flows(m_CW, h_17, h_11)
@@ -1428,14 +1575,14 @@ def absoprtion_chiller_equilibrium(
 
             T_5 = T_5_new
             h_5 = weak_solution.enthalpy_LiBr_solution(T_5)
-        
+
         # 9.4 Calculate Q_she
         T_6 = T_5
         h_6 = h_5
 
         # 9.5 Calculate Q_she
         Q_she = SHE_.heat_flow(m_WS, h_7, h_6)
-        
+
         # 9.6 Calculate T_7
         T_7 = weak_solution.calc_temp_from_enthalpy(h_7)
 
@@ -1480,3 +1627,31 @@ print(T_15)
 
 print(humid_air_enthalpy(24.04, 97.8, 1))'''
 
+'''strong_solution = LiBr_solution(60)
+weak_solution = LiBr_solution(57)
+
+h5 = weak_solution.enthalpy_LiBr_solution(38)
+print(h5)'''
+
+'''absorb = Absorber()
+T11 = absorb.cooling_water_temp_out(62.59, 50.6, 38, 30)
+print(T11)
+
+cond = Condenser()
+T12 = cond.cooling_water_temp_out(6.29, 80, 4.4, 37.48)
+print(T12)'''
+
+statepoints = [i for i in range(1, 22)]
+temperature_dict = {}
+enthalpy_dict = {}
+pressure_dict = {}
+
+
+'''temperature_list = list(temperature_dict.values())
+enthalpy_list = list(enthalpy_dict.values())
+
+# Convert the lists into a pandas dataframe
+data = {'statepoint': statepoints, 'T_degC': temperature_list, 'enthalpy':enthalpy_list}
+df = pd.DataFrame(data=data)
+df.set_index('statepoint', inplace=True, drop=True)
+print(df)'''
