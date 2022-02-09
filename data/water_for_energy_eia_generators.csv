@@ -1,0 +1,14 @@
+,water_consumption_intensity_L_per_kWh,water_consumption_intensity_L_per_kWh,water_consumption_intensity_L_per_kWh
+,mean,std,count
+generator_type,,,
+Coal Integrated Gasification Combined Cycle,2.5302002831035315,1.87343577195773,4
+Conventional Steam Coal,3.1136262622357767,11.839187041557725,435
+Municipal Solid Waste,0.7458242555691553,1.4634798088085826e-06,2
+Natural Gas Fired Combined Cycle,4.862559379924144,11.181440028862367,1083
+Natural Gas Steam Turbine,5.779196814533614,20.563847707654627,229
+Nuclear,2.0085817317790715,2.199489821515872,90
+Other Gases,0.0,,1
+Other Waste Biomass,6.067025121587517,4.290503375958354,2
+Petroleum Coke,0.3211488877514185,0.37143049590720373,4
+Petroleum Liquids,12.009745913550987,20.079907374430775,7
+Wood/Wood Waste Biomass,2.2934980416130175,0.21067705176385998,5

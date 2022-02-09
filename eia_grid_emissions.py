@@ -1,5 +1,6 @@
 # Data Plotting
 # My modules
+from cmath import nan
 import csv
 
 from pandas.core.indexes import base
@@ -25,6 +26,12 @@ emm_ls = ['BASN', 'CANO', 'CASO', 'FRCC', 'ISNE',
           'NYCW', 'NYUP', 'PJMC', 'PJMD', 'PJME',
           'PJMW', 'RMRG', 'SPPC', 'SPPN', 'SPPS',
           'SRCA', 'SRCE', 'SRSE', 'SRSG', 'TRE']
+
+def convert_MMBTU_to_kWh(MMBTU):
+    return MMBTU * 10**6 / 3412.14
+
+def convert_MMBTU_to_MWh(MMBTU):
+    return MMBTU / 3.41214
 
 def read_eia_file(emm, header=0, nrows=None, dataset='electric_power_projections', datatype='Unspecified'):
     columns = [datatype,
@@ -267,8 +274,297 @@ def calculate_EIA_emission_factors():
     print('Completed EIA Emission Factor Calculations')    
     
 
-# df = clean_eia_data('BASN', 'total_electricity_generation_TWh')#'emissions_from_electric_sector_Mton')
-calculate_EIA_emission_factors()
+def read_eia_cooling_detail():
+    r'''
+    Read EIA Cooling Detail Data
 
+    https://www.eia.gov/electricity/data/water/
+    '''
+
+    data_file = r'data\Tech_specs\eia_cooling_detail_2020.csv'
+    columns_to_import = ['\n \n \n \n \n \nUtility ID', 'State', 
+       'Plant Code', 'Plant Name', 'Month',
+       'Generator ID',
+       'Generator Primary Technology',
+       'Summer Capacity of Steam Turbines (MW)',
+       'Gross Generation from Steam Turbines (MWh)',
+       'Net Generation from Steam Turbines (MWh)',
+       'Summer Capacity Associated with Single Shaft Combined Cycle Units (MW)',
+       'Gross Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+       'Net Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+       'Summer Capacity Associated with Combined Cycle Gas Turbines (MW)',
+       'Gross Generation Associated with Combined Cycle Gas Turbines (MWh)',
+       'Net Generation Associated with Combined Cycle Gas Turbines (MWh)',
+       'Water Withdrawal Volume (Million Gallons)',
+       'Water Consumption Volume (Million Gallons)', 'Sector']
+
+
+    df = pd.read_csv(data_file, header=2, usecols=columns_to_import)
+
+    df.rename(columns={'\n \n \n \n \n \nUtility ID':'Utility_ID'}, inplace=True)
+    # df.set_axis(columns, axis=1, inplace=True)
+    columns = ['Utility_ID', 'State', 'Plant Code', 'Plant Name', 'Year', 'Month',
+       'Generator ID', 'Boiler ID', 'Cooling ID',
+       'Generator Primary Technology',
+       'Summer Capacity of Steam Turbines (MW)',
+       'Gross Generation from Steam Turbines (MWh)',
+       'Net Generation from Steam Turbines (MWh)',
+       'Summer Capacity Associated with Single Shaft Combined Cycle Units (MW)',
+       'Gross Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+       'Net Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+       'Summer Capacity Associated with Combined Cycle Gas Turbines (MW)',
+       'Gross Generation Associated with Combined Cycle Gas Turbines (MWh)',
+       'Net Generation Associated with Combined Cycle Gas Turbines (MWh)',
+       'Fuel Consumption from All Fuel Types (MMBTU)',
+       'Fuel Consumption from Steam Turbines (MMBTU)',
+       'Fuel Consumption from Single Shaft Combined Cycle Units (MMBTU)',
+       'Fuel Consumption from Combined Cycle Gas Turbines (MMBTU)',
+       'Coal Consumption (MMBTU)', 'Natural Gas Consumption (MMBTU)',
+       'Petroleum Consumption (MMBTU)', 'Biomass Consumption (MMBTU)',
+       'Other Gas Consumption (MMBTU)', 'Other Fuel Consumption (MMBTU)',
+       'Water Withdrawal Volume (Million Gallons)',
+       'Water Consumption Volume (Million Gallons)',
+       'Water Withdrawal Intensity Rate (Gallons / MWh)',
+       'Water Consumption Intensity Rate (Gallons / MWh)',
+       'Water Withdrawal Rate per Fuel Consumption (Gallons / MMBTU)',
+       'Water Consumption Rate per Fuel Consumption (Gallons / MMBTU)',
+       'Cooling Unit Hours in Service',
+       'Average Distance of Water Intake Below Water Surface (Feet)',
+       '860 Cooling Type 1', '860 Cooling Type 2', '923 Cooling Type',
+       'Cooling System Type', 'Water Type', 'Water Source',
+       'Water Source Name', 'Water Discharge Name', 'Generator Status',
+       'Generator Inservice Month', 'Generator Inservice Year',
+       'Generator Retirement Month', 'Generator Retirement Year',
+       'Boiler Status', 'Boiler Inservice Month', 'Boiler Inservice Year',
+       'Boiler Retirement Month', 'Boiler Retirement Year', 'Cooling Status',
+       'Cooling Inservice Month', 'Cooling Inservice Year', '\n', '\n.1',
+       'Combined Heat and Power Generator?',
+       'Generator Primary Energy Source Code', 'Generator Prime Mover Code',
+       'Generator Duct Burners?', 'Sector', 'Steam Plant Type',
+       'Number Operable Generators', 'Number Operable Boilers',
+       'Number Operable Cooling Systems', 'Relationship Type']
+
+    '''drop_columns = ['Year', 'Cooling ID',
+       'Fuel Consumption from All Fuel Types (MMBTU)',
+       'Fuel Consumption from Steam Turbines (MMBTU)',
+       'Fuel Consumption from Single Shaft Combined Cycle Units (MMBTU)',
+       'Fuel Consumption from Combined Cycle Gas Turbines (MMBTU)',
+       'Coal Consumption (MMBTU)', 'Natural Gas Consumption (MMBTU)',
+       'Petroleum Consumption (MMBTU)', 'Biomass Consumption (MMBTU)',
+       'Other Gas Consumption (MMBTU)', 'Other Fuel Consumption (MMBTU)',
+       'Water Withdrawal Intensity Rate (Gallons / MWh)',
+       'Water Consumption Intensity Rate (Gallons / MWh)',
+       'Water Withdrawal Rate per Fuel Consumption (Gallons / MMBTU)',
+       'Water Consumption Rate per Fuel Consumption (Gallons / MMBTU)',
+       'Cooling Unit Hours in Service',
+       'Average Distance of Water Intake Below Water Surface (Feet)',
+       '860 Cooling Type 1', '860 Cooling Type 2', '923 Cooling Type',
+       'Cooling System Type', 'Water Type', 'Water Source',
+       'Water Source Name', 'Water Discharge Name', 'Generator Status',
+       'Generator Inservice Month', 'Generator Inservice Year',
+       'Generator Retirement Month', 'Generator Retirement Year',
+       'Boiler Status', 'Boiler Inservice Month', 'Boiler Inservice Year',
+       'Boiler Retirement Month', 'Boiler Retirement Year', 'Cooling Status',
+       'Cooling Inservice Month', 'Cooling Inservice Year', '\n', '\n.1',
+       'Combined Heat and Power Generator?',
+       'Generator Primary Energy Source Code', 'Generator Prime Mover Code',
+       'Generator Duct Burners?', 'Steam Plant Type',
+       'Number Operable Generators', 'Number Operable Boilers',
+       'Number Operable Cooling Systems', 'Relationship Type']
+    df.drop(axis=1, columns=drop_columns, inplace=True)'''
+
+    return df
+
+
+def clean_eia_cooling_detail():
+    data_file = r'data\Tech_specs\eia_cooling_detail_2020_clean.csv'
+    
+    columns = ['Utility_ID', 'State', 'Plant Code', 'Plant Name', 'Year', 'Month',
+       'Generator ID', 'Boiler ID', 'Cooling ID',
+       'Generator Primary Technology',
+       'Summer Capacity of Steam Turbines (MW)',
+       'Gross Generation from Steam Turbines (MWh)',
+       'Net Generation from Steam Turbines (MWh)',
+       'Summer Capacity Associated with Single Shaft Combined Cycle Units (MW)',
+       'Gross Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+       'Net Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+       'Summer Capacity Associated with Combined Cycle Gas Turbines (MW)',
+       'Gross Generation Associated with Combined Cycle Gas Turbines (MWh)',
+       'Net Generation Associated with Combined Cycle Gas Turbines (MWh)',
+       'Fuel Consumption from All Fuel Types (MMBTU)',
+       'Fuel Consumption from Steam Turbines (MMBTU)',
+       'Fuel Consumption from Single Shaft Combined Cycle Units (MMBTU)',
+       'Fuel Consumption from Combined Cycle Gas Turbines (MMBTU)',
+       'Coal Consumption (MMBTU)', 'Natural Gas Consumption (MMBTU)',
+       'Petroleum Consumption (MMBTU)', 'Biomass Consumption (MMBTU)',
+       'Other Gas Consumption (MMBTU)', 'Other Fuel Consumption (MMBTU)',
+       'Water Withdrawal Volume (Million Gallons)',
+       'Water Consumption Volume (Million Gallons)',
+       'Water Withdrawal Intensity Rate (Gallons / MWh)',
+       'Water Consumption Intensity Rate (Gallons / MWh)',
+       'Water Withdrawal Rate per Fuel Consumption (Gallons / MMBTU)',
+       'Water Consumption Rate per Fuel Consumption (Gallons / MMBTU)',
+       'Cooling Unit Hours in Service',
+       'Average Distance of Water Intake Below Water Surface (Feet)',
+       '860 Cooling Type 1', '860 Cooling Type 2', '923 Cooling Type',
+       'Cooling System Type', 'Water Type', 'Water Source',
+       'Water Source Name', 'Water Discharge Name', 'Generator Status',
+       'Generator Inservice Month', 'Generator Inservice Year',
+       'Generator Retirement Month', 'Generator Retirement Year',
+       'Boiler Status', 'Boiler Inservice Month', 'Boiler Inservice Year',
+       'Boiler Retirement Month', 'Boiler Retirement Year', 'Cooling Status',
+       'Cooling Inservice Month', 'Cooling Inservice Year', '\n', '\n.1',
+       'Combined Heat and Power Generator?',
+       'Generator Primary Energy Source Code', 'Generator Prime Mover Code',
+       'Generator Duct Burners?', 'Sector', 'Steam Plant Type',
+       'Number Operable Generators', 'Number Operable Boilers',
+       'Number Operable Cooling Systems', 'Relationship Type']
+
+    df = pd.read_csv(data_file)
+
+    drop_columns = ['Year', 'Month','Cooling ID',
+        'Plant Name',
+        'Boiler ID',
+        'Cooling Unit Hours in Service',
+        'Water Withdrawal Intensity Rate (Gallons / MWh)',
+        'Water Consumption Intensity Rate (Gallons / MWh)',
+        'Water Withdrawal Rate per Fuel Consumption (Gallons / MMBTU)',
+        'Water Consumption Rate per Fuel Consumption (Gallons / MMBTU)',
+        'Average Distance of Water Intake Below Water Surface (Feet)',
+        '860 Cooling Type 1', '860 Cooling Type 2', '923 Cooling Type',
+        'Cooling System Type', 'Water Type', 'Water Source',
+        'Water Source Name', 'Water Discharge Name', 'Generator Status',
+        'Generator Inservice Month', 'Generator Inservice Year',
+        'Generator Retirement Month', 'Generator Retirement Year',
+        'Boiler Status', 'Boiler Inservice Month', 'Boiler Inservice Year',
+        'Boiler Retirement Month', 'Boiler Retirement Year', 'Cooling Status',
+        'Cooling Inservice Month', 'Cooling Inservice Year', '\n', '\n.1',
+        'Combined Heat and Power Generator?',
+        'Generator Primary Energy Source Code', 'Generator Prime Mover Code',
+        'Generator Duct Burners?', 'Steam Plant Type',
+        'Number Operable Generators', 'Number Operable Boilers',
+        'Number Operable Cooling Systems', 'Relationship Type']
+    df.drop(axis=1, columns=drop_columns, inplace=True)
+   
+    df.rename(columns={
+        'Utility ID':'utility_id',
+        'State':'state',
+        'Plant Code':'plant_code',
+        'Generator ID':'generator_id', 
+        'Generator Primary Technology':'generator_type',
+        'Summer Capacity of Steam Turbines (MW)':'steam_turbine_capacity_MW',
+        'Gross Generation from Steam Turbines (MWh)':'gross_gen_steam_turbine_MWh',
+        'Net Generation from Steam Turbines (MWh)':'net_gen_steam_turbine_MWh',
+        'Summer Capacity Associated with Single Shaft Combined Cycle Units (MW)':'sscc_capacity_MW',
+        'Gross Generation Associated with Single Shaft Combined Cycle Units (MWh)':'gross_gen_sscc_MWh',
+        'Net Generation Associated with Single Shaft Combined Cycle Units (MWh)':'net_gen_sscc_MWh',
+        'Summer Capacity Associated with Combined Cycle Gas Turbines (MW)':'ccgt_capacity_MW',
+        'Gross Generation Associated with Combined Cycle Gas Turbines (MWh)':'gross_gen_ccgt_MWh',
+        'Net Generation Associated with Combined Cycle Gas Turbines (MWh)':'net_gen_ccgt_MWh',
+        'Fuel Consumption from All Fuel Types (MMBTU)':'fuel_cons_total_MMBTU',
+        'Fuel Consumption from Steam Turbines (MMBTU)':'fuel_cons_steam_turbines_MMBTU',
+        'Fuel Consumption from Single Shaft Combined Cycle Units (MMBTU)':'fuel_cons_sscc_MMBTU',
+        'Fuel Consumption from Combined Cycle Gas Turbines (MMBTU)':'fuel_cons_ccgt_MMBTU',
+        'Coal Consumption (MMBTU)':'fuel_cons_coal_MMBTU', 
+        'Natural Gas Consumption (MMBTU)':'fuel_cons_ng_MMBTU',
+        'Petroleum Consumption (MMBTU)':'fuel_cons_petroleum_MMBTU', 
+        'Biomass Consumption (MMBTU)':'fuel_cons_biogass_MMBTU',
+        'Other Gas Consumption (MMBTU)':'fuel_cons_othergas_MMBTU', 
+        'Other Fuel Consumption (MMBTU)':'fuel_cons_otherfuel_MMBTU',
+        'Water Withdrawal Volume (Million Gallons)':'water_withdrawal_MGal',
+        'Water Consumption Volume (Million Gallons)':'water_consumption_MGal'}, 
+        inplace=True)
+    
+    df.fillna(value=0, axis=0, inplace=True)
+
+    df = df.astype({
+            'utility_id':'int64', 
+            'state':'object', 
+            'plant_code':'int64', 
+            'generator_id':'object', 
+            'generator_type':'object',
+            'steam_turbine_capacity_MW':'float64', 
+            'gross_gen_steam_turbine_MWh':'float64',
+            'net_gen_steam_turbine_MWh':'float64', 
+            'sscc_capacity_MW':'float64', 
+            'gross_gen_sscc_MWh':'float64',       
+            'net_gen_sscc_MWh':'float64', 
+            'ccgt_capacity_MW':'float64', 
+            'gross_gen_ccgt_MWh':'float64',
+            'net_gen_ccgt_MWh':'float64', 
+            'fuel_cons_total_MMBTU':'float64',
+            'fuel_cons_steam_turbines_MMBTU':'float64', 
+            'fuel_cons_sscc_MMBTU':'float64',
+            'fuel_cons_ccgt_MMBTU':'float64', 
+            'fuel_cons_coal_MMBTU':'float64', 
+            'fuel_cons_ng_MMBTU':'float64',
+            'fuel_cons_petroleum_MMBTU':'float64', 
+            'fuel_cons_biogass_MMBTU':'float64',
+            'fuel_cons_othergas_MMBTU':'float64', 
+            'fuel_cons_otherfuel_MMBTU':'float64',
+            'water_withdrawal_MGal':'float64', 
+            'water_consumption_MGal':'float64', 
+            'Sector':'object'})
+
+    df['total_gen_MWh'] = df.net_gen_steam_turbine_MWh + df.net_gen_sscc_MWh + df.net_gen_ccgt_MWh
+
+    df = df[df['total_gen_MWh'] != 0]
+
+    # Aggregate 
+    agg_df = df.groupby(['utility_id', 'plant_code', 
+                         'state', 'generator_id', 'generator_type', 'Sector']).agg({'sum'})
+
+    agg_df.columns = agg_df.columns.droplevel(1)
+    return agg_df
+
+
+def calc_water_for_energy():
+    df = clean_eia_cooling_detail()
+
+    # Convert water consumption to L
+    df['water_consumption_ML'] = df.water_consumption_MGal * 3.78541
+    
+    # Calculate intensity values
+    df['water_consumption_intensity_L_per_kWh'] = df.water_consumption_ML * 10**3 / df.total_gen_MWh
+    df['water_consumption_rate_per_fuel_cons_L_per_kWh'] = df.water_consumption_ML * 10**6 / convert_MMBTU_to_kWh(df.fuel_cons_total_MMBTU)
+
+    df = df[df['water_consumption_intensity_L_per_kWh'] >= 0]
+    
+    df.reset_index(inplace=True)
+    return df
+
+def plot_w4e():
+    df = calc_water_for_energy()
+
+    
+    for generator in df.generator_type.unique():
+        plt.close()
+        print(generator)
+        subset = df[df['generator_type'] == generator]
+        sns.displot(data=subset, x='water_consumption_intensity_L_per_kWh')
+        plt.show()
+
+def boxplot_w4e():
+    df = calc_water_for_energy()
+
+    ax = sns.boxplot(y='generator_type', 
+        x='water_consumption_intensity_L_per_kWh', 
+        data=df, 
+        linewidth=2.5,
+        orient='h',
+        showfliers=False)
+
+    plt.show()
+
+def water_for_energy_statistics():
+    df = calc_water_for_energy()
+
+    df = df[['generator_type', 'water_consumption_intensity_L_per_kWh']].copy()
+    
+    stats = df.groupby(['generator_type']).agg({'mean', 'std', 'count'})
+
+    stats.to_csv(r'data\water_for_energy_eia_generators.csv')
+
+water_for_energy_statistics()
 # To Do:
 # Look Up Emission Factors for each fuel type
