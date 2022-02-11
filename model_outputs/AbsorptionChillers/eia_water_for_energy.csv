@@ -1,0 +1,245 @@
+,plant_code,state,generator_id,generator_type,Sector,Year,net_gen_steam_turbine_MWh,net_gen_sscc_MWh,net_gen_ccgt_MWh,fuel_cons_total_MMBTU,water_withdrawal_MGal,water_consumption_MGal,total_gen_MWh,water_consumption_ML,water_consumption_intensity_L_per_kWh,water_consumption_rate_per_fuel_cons_L_per_kWh
+0,117,AZ,C4-1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,803.0,0.0,0.0,0.0,803.0,0.0,0.0,
+1,141,AZ,AF1,Natural Gas Steam Turbine,Electric Utility,2020,1376.0,0.0,0.0,0.0,19.0,15.0,1376.0,56.781150000000004,41.265370639534886,inf
+2,141,AZ,AF2,Natural Gas Steam Turbine,Electric Utility,2020,815.0,0.0,0.0,0.0,15.0,12.0,815.0,45.42492,55.7360981595092,inf
+3,141,AZ,AF3,Natural Gas Steam Turbine,Electric Utility,2020,561.0,0.0,0.0,0.0,16.0,15.0,561.0,56.781150000000004,101.21417112299466,inf
+4,202,AR,1,Natural Gas Steam Turbine,Electric Utility,2020,657.0,0.0,0.0,0.0,22.0,0.0,657.0,0.0,0.0,
+5,203,AR,1,Natural Gas Steam Turbine,Electric Utility,2020,1594.0,0.0,0.0,0.0,99.0,0.0,1594.0,0.0,0.0,
+6,350,CA,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,333.0,0.0,0.0,0.0,640.0,0.0,333.0,0.0,0.0,
+7,350,CA,2,Natural Gas Steam Turbine,IPP Non-CHP,2020,105.0,0.0,0.0,0.0,0.0,0.0,105.0,0.0,0.0,
+8,356,CA,5,Natural Gas Steam Turbine,IPP Non-CHP,2020,928.0,0.0,0.0,0.0,638.0,0.0,928.0,0.0,0.0,
+9,356,CA,6,Natural Gas Steam Turbine,IPP Non-CHP,2020,1844.0,0.0,0.0,0.0,973.0,0.0,1844.0,0.0,0.0,
+10,377,CA,1,Natural Gas Fired Combined Cycle,Electric Utility,2020,974.0,0.0,0.0,0.0,106.0,100.0,974.0,378.541,388.64579055441476,inf
+11,377,CA,4,Natural Gas Steam Turbine,Electric Utility,2020,157.0,0.0,0.0,0.0,1.0,1.0,157.0,3.78541,24.110891719745226,inf
+12,377,CA,5,Natural Gas Steam Turbine,Electric Utility,2020,955.0,0.0,0.0,217.0,8.0,7.0,955.0,26.497870000000002,27.746460732984296,416.6564154
+13,377,CA,8A,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1084.0,446.0,90.0,84.0,1084.0,317.97444,293.33435424354246,2432.675573321973
+14,377,CA,8BC,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1122.0,0.0,36.0,36.0,1122.0,136.27476000000001,121.4570053475936,inf
+15,389,CA,30,Natural Gas Fired Combined Cycle,Electric Utility,2020,1836.0,0.0,0.0,0.0,764.0,676.0,1836.0,2558.93716,1393.756623093682,inf
+16,389,CA,31,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1248.0,0.0,762.0,674.0,1248.0,2551.36634,2044.3640544871794,inf
+17,404,CA,1,Natural Gas Steam Turbine,Electric Utility,2020,975.0,0.0,0.0,0.0,0.0,0.0,975.0,0.0,0.0,
+18,470,CO,3,Conventional Steam Coal,Electric Utility,2020,607.0,0.0,0.0,0.0,272.0,173.0,607.0,654.87593,1078.8730313014828,inf
+19,492,CO,6,Conventional Steam Coal,Electric Utility,2020,423.0,0.0,0.0,0.0,0.0,0.0,423.0,0.0,0.0,
+20,533,AL,2,Natural Gas Fired Combined Cycle,Electric Utility,2020,1269.0,0.0,0.0,0.0,4.0,3.0,1269.0,11.35623,8.948959810874705,inf
+21,533,AL,3,Natural Gas Fired Combined Cycle,Electric Utility,2020,704.0,0.0,0.0,0.0,4.0,3.0,704.0,11.35623,16.13100852272727,inf
+22,546,CT,5,Natural Gas Steam Turbine,IPP Non-CHP,2020,207.0,0.0,0.0,0.0,22.0,0.0,207.0,0.0,0.0,
+23,546,CT,6,Petroleum Liquids,IPP Non-CHP,2020,455.0,0.0,0.0,0.0,233.0,0.0,455.0,0.0,0.0,
+24,562,CT,3,Natural Gas Steam Turbine,IPP Non-CHP,2020,995.0,0.0,0.0,0.0,80.0,0.0,995.0,0.0,0.0,
+25,568,CT,3,Conventional Steam Coal,IPP Non-CHP,2020,575.0,0.0,0.0,0.0,0.0,0.0,575.0,0.0,0.0,
+26,593,DE,3,Natural Gas Steam Turbine,IPP Non-CHP,2020,189.0,0.0,0.0,0.0,977.0,7.0,189.0,26.497870000000002,140.2003703703704,inf
+27,599,DE,3,Natural Gas Steam Turbine,IPP Non-CHP,2020,986.0,0.0,0.0,0.0,0.0,0.0,986.0,0.0,0.0,
+28,620,FL,4A,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,644.0,0.0,0.0,203.0,644.0,768.4382300000001,1193.2270652173916,inf
+29,641,FL,4,Conventional Steam Coal,Electric Utility,2020,467.0,0.0,0.0,0.0,0.0,0.0,467.0,0.0,0.0,
+30,641,FL,5,Conventional Steam Coal,Electric Utility,2020,96.0,0.0,0.0,0.0,0.0,0.0,96.0,0.0,0.0,
+31,645,FL,ST3,Natural Gas Steam Turbine,Electric Utility,2020,208.0,0.0,0.0,0.0,0.0,0.0,208.0,0.0,0.0,
+32,663,FL,2,Conventional Steam Coal,Electric Utility,2020,400.0,0.0,0.0,0.0,8.0,8.0,400.0,30.28328,75.7082,inf
+33,887,IL,2,Conventional Steam Coal,IPP Non-CHP,2020,1.0,0.0,0.0,65.0,0.0,0.0,1.0,0.0,0.0,0.0
+34,887,IL,5,Conventional Steam Coal,IPP Non-CHP,2020,330.0,0.0,0.0,0.0,0.0,0.0,330.0,0.0,0.0,
+35,990,IN,5,Natural Gas Steam Turbine,Electric Utility,2020,645.0,0.0,0.0,0.0,130.0,0.0,645.0,0.0,0.0,
+36,994,IN,ST1,Conventional Steam Coal,Electric Utility,2020,469.0,0.0,0.0,0.0,81.0,0.0,469.0,0.0,0.0,
+37,1047,IA,4,Conventional Steam Coal,Electric Utility,2020,696.0,0.0,0.0,0.0,0.0,0.0,696.0,0.0,0.0,
+38,1336,KS,S2,Natural Gas Steam Turbine,Electric Utility,2020,632.0,0.0,0.0,0.0,1.0,0.0,632.0,0.0,0.0,
+39,1353,KY,1,Natural Gas Steam Turbine,Electric Utility,2020,130.0,0.0,0.0,194.0,0.0,0.0,130.0,0.0,0.0,0.0
+40,1384,KY,1,Conventional Steam Coal,Electric Utility,2020,1281.0,0.0,0.0,0.0,0.0,0.0,1281.0,0.0,0.0,
+41,1416,LA,5,Natural Gas Steam Turbine,Electric Utility,2020,781.0,0.0,0.0,0.0,21.0,0.0,781.0,0.0,0.0,
+42,1417,LA,3,Natural Gas Steam Turbine,Electric Utility,2020,982.0,0.0,0.0,0.0,831.0,0.0,982.0,0.0,0.0,
+43,1417,LA,4,Natural Gas Steam Turbine,Electric Utility,2020,313.0,0.0,0.0,0.0,831.0,0.0,313.0,0.0,0.0,
+44,1464,LA,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,1687.0,0.0,0.0,0.0,15.0,2.0,1687.0,7.57082,4.487741553052757,inf
+45,1554,MD,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,259.0,0.0,0.0,0.0,0.0,0.0,259.0,0.0,0.0,
+46,1571,MD,4,Natural Gas Steam Turbine,IPP Non-CHP,2020,758.0,0.0,0.0,0.0,0.0,0.0,758.0,0.0,0.0,
+47,1572,MD,3,Conventional Steam Coal,IPP Non-CHP,2020,740.0,0.0,0.0,0.0,4.0,0.0,740.0,0.0,0.0,
+48,1682,MA,9A,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,2864.0,0.0,7.0,6.0,2864.0,22.71246,7.930328212290503,inf
+49,1682,MA,CA9,Natural Gas Fired Combined Cycle,Electric Utility,2020,2625.0,0.0,0.0,0.0,3.0,3.0,2625.0,11.35623,4.326182857142857,inf
+50,1702,MI,3,Natural Gas Steam Turbine,Electric Utility,2020,716.0,0.0,0.0,0.0,0.0,0.0,716.0,0.0,0.0,
+51,1740,MI,3,Conventional Steam Coal,Electric Utility,2020,648.0,0.0,0.0,0.0,0.0,0.0,648.0,0.0,0.0,
+52,1743,MI,7,Conventional Steam Coal,Electric Utility,2020,833.0,0.0,0.0,0.0,0.0,2.0,833.0,7.57082,9.088619447779113,inf
+53,1891,MN,1,Natural Gas Steam Turbine,Electric Utility,2020,719.0,0.0,0.0,0.0,306.0,0.0,719.0,0.0,0.0,
+54,1891,MN,2,Natural Gas Steam Turbine,Electric Utility,2020,688.0,0.0,0.0,0.0,306.0,0.0,688.0,0.0,0.0,
+55,2070,MS,3,Natural Gas Steam Turbine,Electric Utility,2020,2210.0,0.0,0.0,0.0,6.0,3.0,2210.0,11.35623,5.138565610859728,inf
+56,2132,MO,3,Natural Gas Steam Turbine,Electric Utility,2020,562.0,0.0,0.0,0.0,24.0,24.0,562.0,90.84984,161.65451957295372,inf
+57,2226,NE,1,Natural Gas Steam Turbine,Electric Utility,2020,952.0,0.0,0.0,0.0,18.0,0.0,952.0,0.0,0.0,
+58,2322,NV,9,Natural Gas Fired Combined Cycle,Electric Utility,2020,50.0,0.0,0.0,0.0,0.0,0.0,50.0,0.0,0.0,
+59,2393,NJ,4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,8004.0,0.0,104.0,24.0,8004.0,90.84984,11.35055472263868,inf
+60,2393,NJ,5,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,8272.0,0.0,104.0,24.0,8272.0,90.84984,10.982814313346228,inf
+61,2393,NJ,6,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1232.0,0.0,24.0,4.0,1232.0,15.14164,12.29029220779221,inf
+62,2393,NJ,7,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,5364.0,0.0,64.0,16.0,5364.0,60.56656,11.29130499627144,inf
+63,2393,NJ,8,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,7144.0,0.0,0.0,0.0,104.0,24.0,7144.0,90.84984,12.716942889137737,inf
+64,2398,NJ,1101,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1110.0,0.0,0.0,0.0,1110.0,0.0,0.0,
+65,2398,NJ,1201,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,888.0,0.0,0.0,0.0,888.0,0.0,0.0,
+66,2398,NJ,1301,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,984.0,0.0,0.0,0.0,984.0,0.0,0.0,
+67,2398,NJ,1401,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,318.0,2484.0,0.0,0.0,318.0,0.0,0.0,0.0
+68,2398,NJ,2101,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,4128.0,0.0,0.0,0.0,4128.0,0.0,0.0,
+69,2398,NJ,2201,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,588.0,0.0,0.0,0.0,588.0,0.0,0.0,
+70,2398,NJ,2301,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,960.0,0.0,0.0,0.0,0.0,0.0,960.0,0.0,0.0,
+71,2444,NM,8,Natural Gas Steam Turbine,Electric Utility,2020,251.0,0.0,0.0,0.0,0.0,0.0,251.0,0.0,0.0,
+72,2450,NM,1,Natural Gas Steam Turbine,Electric Utility,2020,499.0,0.0,0.0,0.0,0.0,0.0,499.0,0.0,0.0,
+73,2450,NM,2,Natural Gas Steam Turbine,Electric Utility,2020,767.0,0.0,0.0,0.0,4.0,4.0,767.0,15.14164,19.741382007822686,inf
+74,2450,NM,3,Natural Gas Steam Turbine,Electric Utility,2020,1580.0,0.0,0.0,0.0,2.0,2.0,1580.0,7.57082,4.791658227848101,inf
+75,2480,NY,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,1136.0,0.0,0.0,0.0,129.0,0.0,1136.0,0.0,0.0,
+76,2480,NY,2,Natural Gas Steam Turbine,IPP Non-CHP,2020,1184.0,0.0,0.0,0.0,139.0,0.0,1184.0,0.0,0.0,
+77,2493,NY,7,Natural Gas Steam Turbine,Electric Utility,2020,74.0,0.0,0.0,0.0,0.0,0.0,74.0,0.0,0.0,
+78,2527,NY,4,Natural Gas Steam Turbine,IPP Non-CHP,2020,870.0,0.0,0.0,0.0,0.0,0.0,870.0,0.0,0.0,
+79,2706,NC,ST6,Natural Gas Fired Combined Cycle,Electric Utility,2020,416.0,0.0,0.0,0.0,20.0,20.0,416.0,75.7082,181.9908653846154,inf
+80,2964,OK,1,Natural Gas Steam Turbine,Electric Utility,2020,130.0,0.0,0.0,846.0,42.0,24.0,130.0,90.84984,698.844923076923,366.42124474893615
+81,2965,OK,2,Natural Gas Steam Turbine,Electric Utility,2020,1704.0,0.0,0.0,0.0,2.0,1.0,1704.0,3.78541,2.2214847417840375,inf
+82,3006,OK,3,Natural Gas Steam Turbine,Electric Utility,2020,70.0,0.0,0.0,861.0,0.0,0.0,70.0,0.0,0.0,0.0
+83,3006,OK,6,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,496.0,0.0,0.0,5.0,4.0,496.0,15.14164,30.527500000000003,inf
+84,3008,OK,1,Natural Gas Steam Turbine,Electric Utility,2020,226.0,0.0,0.0,0.0,27.0,11.0,226.0,41.63951,184.24561946902656,inf
+85,3008,OK,2,Natural Gas Steam Turbine,Electric Utility,2020,1135.0,0.0,0.0,0.0,34.0,9.0,1135.0,34.068690000000004,30.016466960352425,inf
+86,3008,OK,3,Natural Gas Steam Turbine,Electric Utility,2020,854.0,0.0,0.0,0.0,14.0,4.0,854.0,15.14164,17.730257611241218,inf
+87,3096,PA,ST4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,2595.0,0.0,0.0,1377.0,18.0,15.0,2595.0,56.781150000000004,21.88098265895954,140.7009681633987
+88,3131,PA,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,1074.0,0.0,0.0,0.0,1.0,1.0,1074.0,3.78541,3.524590316573557,inf
+89,3131,PA,2,Natural Gas Steam Turbine,IPP Non-CHP,2020,638.0,0.0,0.0,0.0,1.0,1.0,638.0,3.78541,5.933244514106583,inf
+90,3138,PA,3,Natural Gas Steam Turbine,IPP Non-CHP,2020,1523.0,0.0,0.0,0.0,26.0,0.0,1523.0,0.0,0.0,
+91,3140,PA,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,713.0,0.0,0.0,0.0,246.0,1.0,713.0,3.78541,5.309130434782609,inf
+92,3236,RI,GEN9,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,1560.0,0.0,0.0,0.0,1119.0,0.0,1560.0,0.0,0.0,
+93,3399,TN,2,Conventional Steam Coal,Electric Utility,2020,443.0,0.0,0.0,0.0,0.0,0.0,443.0,0.0,0.0,
+94,3403,TN,4,Conventional Steam Coal,Electric Utility,2020,930.0,0.0,0.0,0.0,0.0,0.0,930.0,0.0,0.0,
+95,3407,TN,1,Conventional Steam Coal,Electric Utility,2020,114.0,0.0,0.0,0.0,0.0,0.0,114.0,0.0,0.0,
+96,3407,TN,3,Conventional Steam Coal,Electric Utility,2020,671.0,0.0,0.0,0.0,0.0,0.0,671.0,0.0,0.0,
+97,3407,TN,4,Conventional Steam Coal,Electric Utility,2020,326.0,0.0,0.0,0.0,0.0,0.0,326.0,0.0,0.0,
+98,3407,TN,5,Conventional Steam Coal,Electric Utility,2020,279.0,0.0,0.0,0.0,0.0,0.0,279.0,0.0,0.0,
+99,3407,TN,8,Conventional Steam Coal,Electric Utility,2020,340.0,0.0,0.0,0.0,0.0,0.0,340.0,0.0,0.0,
+100,3407,TN,9,Conventional Steam Coal,Electric Utility,2020,342.0,0.0,0.0,0.0,0.0,0.0,342.0,0.0,0.0,
+101,3453,TX,7,Natural Gas Steam Turbine,IPP Non-CHP,2020,1399.0,0.0,0.0,0.0,616.0,0.0,1399.0,0.0,0.0,
+102,3453,TX,8,Natural Gas Steam Turbine,IPP Non-CHP,2020,392.0,0.0,0.0,0.0,370.0,0.0,392.0,0.0,0.0,
+103,3459,TX,1,Natural Gas Steam Turbine,Electric Utility,2020,823.0,0.0,0.0,0.0,0.0,12.0,823.0,45.42492,55.19431348724179,inf
+104,3459,TX,4,Natural Gas Steam Turbine,Electric Utility,2020,52.0,0.0,0.0,0.0,0.0,11.0,52.0,41.63951,800.7598076923077,inf
+105,3469,TX,3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,2304.0,0.0,0.0,0.0,8.0,4.0,2304.0,15.14164,6.571892361111112,inf
+106,3469,TX,31,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,3852.0,0.0,8.0,4.0,3852.0,15.14164,3.930851505711319,inf
+107,3469,TX,32,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,3912.0,0.0,8.0,4.0,3912.0,15.14164,3.8705623721881395,inf
+108,3469,TX,33,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,4140.0,0.0,8.0,4.0,4140.0,15.14164,3.6574009661835754,inf
+109,3469,TX,34,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1288.0,0.0,0.0,0.0,1288.0,0.0,0.0,
+110,3469,TX,4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,3668.0,0.0,0.0,0.0,16.0,4.0,3668.0,15.14164,4.128037077426391,inf
+111,3469,TX,41,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,3840.0,0.0,0.0,0.0,3840.0,0.0,0.0,
+112,3469,TX,42,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,2436.0,0.0,0.0,0.0,2436.0,0.0,0.0,
+113,3469,TX,43,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,2272.0,0.0,0.0,0.0,2272.0,0.0,0.0,
+114,3469,TX,44,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,2616.0,0.0,0.0,0.0,2616.0,0.0,0.0,
+115,3485,TX,1,Natural Gas Steam Turbine,Electric Utility,2020,985.0,0.0,0.0,0.0,57.0,57.0,985.0,215.76837,219.05418274111673,inf
+116,3490,TX,1,Natural Gas Steam Turbine,IPP Non-CHP,2020,725.0,0.0,0.0,0.0,0.0,36.0,725.0,136.27476000000001,187.96518620689656,inf
+117,3491,TX,3,Natural Gas Steam Turbine,IPP Non-CHP,2020,74.0,0.0,0.0,0.0,0.0,2.0,74.0,7.57082,102.30837837837839,inf
+118,3504,TX,ST1,Natural Gas Steam Turbine,IPP Non-CHP,2020,1853.0,0.0,0.0,115.0,0.0,9.0,1853.0,34.068690000000004,18.385693470048572,1010.8446947530433
+119,3504,TX,ST2,Natural Gas Steam Turbine,IPP Non-CHP,2020,410.0,0.0,0.0,0.0,0.0,0.0,410.0,0.0,0.0,
+120,3507,TX,6,Natural Gas Steam Turbine,IPP Non-CHP,2020,462.0,0.0,0.0,0.0,1333.0,0.0,462.0,0.0,0.0,
+121,3576,TX,1,Natural Gas Steam Turbine,Electric Utility,2020,741.0,0.0,0.0,0.0,0.0,2.0,741.0,7.57082,10.217031039136304,inf
+122,3576,TX,2,Natural Gas Steam Turbine,Electric Utility,2020,1662.0,0.0,0.0,0.0,0.0,4.0,1662.0,15.14164,9.110493381468112,inf
+123,3576,TX,3,Natural Gas Steam Turbine,Electric Utility,2020,1146.0,0.0,0.0,0.0,0.0,3.0,1146.0,11.35623,9.909450261780105,inf
+124,3628,TX,1,Natural Gas Steam Turbine,Electric Utility,2020,2529.0,0.0,0.0,0.0,2005.0,0.0,2529.0,0.0,0.0,
+125,3628,TX,2,Natural Gas Steam Turbine,Electric Utility,2020,1945.0,0.0,0.0,0.0,784.0,1.0,1945.0,3.78541,1.9462262210796917,inf
+126,3648,UT,2,Natural Gas Steam Turbine,Electric Utility,2020,239.0,0.0,0.0,0.0,3.0,1.0,239.0,3.78541,15.838535564853558,inf
+127,3648,UT,3,Natural Gas Steam Turbine,Electric Utility,2020,565.0,0.0,0.0,0.0,4.0,3.0,565.0,11.35623,20.099522123893806,inf
+128,3775,VA,1,Natural Gas Steam Turbine,Electric Utility,2020,32.0,0.0,0.0,370.0,15.0,9.0,32.0,34.068690000000004,1064.6465625,314.18145918
+129,3797,VA,6,Conventional Steam Coal,Electric Utility,2020,745.0,0.0,0.0,0.0,0.0,0.0,745.0,0.0,0.0,
+130,3992,WI,6,Natural Gas Steam Turbine,Electric Utility,2020,89.0,0.0,0.0,0.0,88.0,0.0,89.0,0.0,0.0,
+131,3992,WI,7,Natural Gas Steam Turbine,Electric Utility,2020,116.0,0.0,0.0,0.0,163.0,0.0,116.0,0.0,0.0,
+132,4042,WI,1,Natural Gas Steam Turbine,Electric Utility,2020,70.0,0.0,0.0,0.0,378.0,0.0,70.0,0.0,0.0,
+133,4266,TX,4,Natural Gas Steam Turbine,Electric Utility,2020,929.0,0.0,0.0,0.0,3.0,3.0,929.0,11.35623,12.224144241119483,inf
+134,4266,TX,5,Natural Gas Steam Turbine,Electric Utility,2020,1526.0,0.0,0.0,0.0,3.0,3.0,1526.0,11.35623,7.441828309305373,inf
+135,6042,FL,2,Natural Gas Steam Turbine,Electric Utility,2020,837.0,0.0,0.0,0.0,0.0,11.0,837.0,41.63951,49.74851851851852,inf
+136,6072,MS,1,Nuclear,Electric Utility,2020,409.0,0.0,0.0,0.0,26.0,13.0,409.0,49.21033,120.31865525672372,inf
+137,6073,MS,2,Conventional Steam Coal,Electric Utility,2020,194.0,0.0,0.0,0.0,0.0,0.0,194.0,0.0,0.0,
+138,6081,MA,CA1,Petroleum Liquids,Electric Utility,2020,3681.0,0.0,0.0,0.0,15.0,15.0,3681.0,56.781150000000004,15.425468622656886,inf
+139,6081,MA,CT1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,2982.0,0.0,3.0,3.0,2982.0,11.35623,3.8082595573440643,inf
+140,6081,MA,CT2,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,2592.0,0.0,21.0,21.0,2592.0,79.49361,30.668831018518517,inf
+141,6081,MA,CT3,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,4656.0,0.0,9.0,9.0,4656.0,34.068690000000004,7.31715850515464,inf
+142,6177,AZ,CO2,Conventional Steam Coal,Electric Utility,2020,89.0,0.0,0.0,0.0,54.0,54.0,89.0,204.41214000000002,2296.765617977528,inf
+143,6183,TX,1,Conventional Steam Coal,Electric Utility,2020,15.0,0.0,0.0,0.0,0.0,0.0,15.0,0.0,0.0,
+144,6190,LA,3,Petroleum Coke,Electric Utility,2020,522.0,0.0,0.0,0.0,1004.0,0.0,522.0,0.0,0.0,
+145,6249,SC,3,Conventional Steam Coal,Electric Utility,2020,842.0,0.0,0.0,0.0,2.0,0.0,842.0,0.0,0.0,
+146,6257,GA,3,Conventional Steam Coal,Electric Utility,2020,176.0,0.0,0.0,0.0,20.0,3.0,176.0,11.35623,64.52403409090908,inf
+147,7153,DE,HR1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,2031.0,0.0,3.0,3.0,2031.0,11.35623,5.591447562776957,inf
+148,7153,DE,HR2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,603.0,0.0,3.0,3.0,603.0,11.35623,18.832885572139304,inf
+149,7153,DE,HR3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1125.0,0.0,3.0,3.0,1125.0,11.35623,10.094426666666667,inf
+150,7242,FL,1CA,Petroleum Coke,Electric Utility,2020,248.0,0.0,0.0,0.0,0.0,0.0,248.0,0.0,0.0,
+151,7302,FL,1GT,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,632.0,0.0,240.0,792.0,632.0,2998.0447200000003,4743.74164556962,inf
+152,7985,IA,GT1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1928.0,0.0,0.0,0.0,1928.0,0.0,0.0,
+153,7985,IA,GT2,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1856.0,0.0,0.0,0.0,1856.0,0.0,0.0,
+154,7999,WA,CT1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,30.0,440.0,4.0,2.0,30.0,7.57082,252.36066666666667,58.71067671545455
+155,8068,AZ,ST1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,905.0,0.0,0.0,54.0,51.0,905.0,193.05591,213.32144751381216,inf
+156,8068,AZ,ST2,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,706.0,0.0,0.0,82.0,53.0,706.0,200.62673,284.1738385269122,inf
+157,8068,AZ,ST3,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,39.0,0.0,0.0,94.0,62.0,39.0,234.69542,6017.831282051282,inf
+158,8073,OR,1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,12894.0,0.0,84.0,54.0,12894.0,204.41214000000002,15.853275942298744,inf
+159,8073,OR,2,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,15876.0,0.0,132.0,66.0,15876.0,249.83706,15.73677626606198,inf
+160,8073,OR,3,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,6888.0,0.0,120.0,54.0,6888.0,204.41214000000002,29.676559233449478,inf
+161,8073,OR,4,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,13836.0,0.0,96.0,48.0,13836.0,181.69968,13.132385082393755,inf
+162,8073,OR,5,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,444.0,0.0,348.0,306.0,444.0,1158.33546,2608.8636486486485,inf
+163,8073,OR,6,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,3474.0,3756.0,72.0,30.0,3474.0,113.56230000000001,32.689205526770294,103.1657258578275
+164,8073,OR,7,Natural Gas Fired Combined Cycle,Electric Utility,2020,9552.0,0.0,0.0,0.0,102.0,48.0,9552.0,181.69968,19.0221608040201,inf
+165,10671,OK,GEN1,Conventional Steam Coal,Electric Utility,2020,814.0,0.0,0.0,0.0,6.0,4.0,814.0,15.14164,18.601523341523343,inf
+166,10671,OK,GEN2,Conventional Steam Coal,Electric Utility,2020,1580.0,0.0,0.0,0.0,8.0,4.0,1580.0,15.14164,9.583316455696202,inf
+167,10682,CO,GT1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1939.0,0.0,1.0,1.0,1939.0,3.78541,1.9522485817431667,inf
+168,10682,CO,GT3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,176.0,0.0,0.0,0.0,176.0,0.0,0.0,
+169,10682,CO,GT4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,3742.0,0.0,6.0,6.0,3742.0,22.71246,6.069604489577766,inf
+170,10682,CO,GT5,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,4834.0,0.0,6.0,6.0,4834.0,22.71246,4.69848158874638,inf
+171,10682,CO,ST1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,3041.0,0.0,0.0,0.0,2.0,2.0,3041.0,7.57082,2.4895823742190073,inf
+172,10682,CO,ST2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,78.0,0.0,0.0,222.0,0.0,0.0,78.0,0.0,0.0,0.0
+173,10682,CO,ST4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,502.0,0.0,0.0,1365.0,0.0,0.0,502.0,0.0,0.0,0.0
+174,10725,NY,GEN1,Natural Gas Fired Combined Cycle,IPP CHP,2020,0.0,0.0,2520.0,0.0,8.0,8.0,2520.0,30.28328,12.017174603174604,inf
+175,10725,NY,GEN3,Natural Gas Fired Combined Cycle,IPP CHP,2020,0.0,0.0,3717.0,0.0,8.0,8.0,3717.0,30.28328,8.147237019101427,inf
+176,10725,NY,GEN4,Natural Gas Fired Combined Cycle,IPP CHP,2020,0.0,0.0,2898.0,0.0,8.0,8.0,2898.0,30.28328,10.449717046238787,inf
+177,10725,NY,GEN5,Natural Gas Fired Combined Cycle,IPP CHP,2020,2220.0,0.0,0.0,0.0,4.0,4.0,2220.0,15.14164,6.8205585585585595,inf
+178,50707,CO,STA,Natural Gas Fired Combined Cycle,Electric Utility,2020,3865.0,0.0,0.0,4.0,15.0,15.0,3865.0,56.781150000000004,14.69111254851229,48436.30829025
+179,54081,VA,GEN3,Natural Gas Steam Turbine,IPP CHP,2020,3104.0,0.0,0.0,0.0,60.0,34.0,3104.0,128.70394000000002,41.4638981958763,inf
+180,54627,FL,GEN1,Other Waste Biomass,IPP CHP,2020,3897.0,0.0,0.0,0.0,60.0,18.0,3897.0,68.13738000000001,17.4845727482679,inf
+181,54627,FL,GEN2,Other Waste Biomass,IPP CHP,2020,1926.0,0.0,0.0,0.0,45.0,15.0,1926.0,56.781150000000004,29.48138629283489,inf
+182,54805,MA,ST-1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,939.0,0.0,0.0,0.0,0.0,0.0,939.0,0.0,0.0,
+183,54817,TX,GT-1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,12.0,0.0,0.0,0.0,12.0,0.0,0.0,
+184,54817,TX,ST-1,Natural Gas Fired Combined Cycle,Electric Utility,2020,10.0,0.0,0.0,0.0,0.0,0.0,10.0,0.0,0.0,
+185,55040,GA,CT1,Natural Gas Fired Combined Cycle,IPP CHP,2020,0.0,0.0,2048.0,0.0,4.0,4.0,2048.0,15.14164,7.393378906250001,inf
+186,55040,GA,CT2,Natural Gas Fired Combined Cycle,IPP CHP,2020,0.0,0.0,334.0,0.0,4.0,4.0,334.0,15.14164,45.334251497005994,inf
+187,55041,MA,GEN2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,922.0,0.0,0.0,3.0,1.0,922.0,3.78541,4.105650759219089,inf
+188,55047,TX,CTG2,Natural Gas Fired Combined Cycle,IPP CHP,2020,0.0,0.0,1180.0,0.0,0.0,0.0,1180.0,0.0,0.0,
+189,55047,TX,STG2,Natural Gas Fired Combined Cycle,IPP CHP,2020,202.0,0.0,0.0,0.0,0.0,0.0,202.0,0.0,0.0,
+190,55063,MS,STG3,Natural Gas Fired Combined Cycle,Electric Utility,2020,674.0,0.0,0.0,95.0,0.0,0.0,674.0,0.0,0.0,0.0
+191,55068,ME,GEN1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,2904.0,0.0,20.0,16.0,2904.0,60.56656,20.85625344352617,inf
+192,55076,MS,RHGF,Conventional Steam Coal,IPP Non-CHP,2020,1072.0,0.0,0.0,0.0,0.0,0.0,1072.0,0.0,0.0,
+193,55124,AZ,CTG1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,432.0,0.0,4.0,4.0,432.0,15.14164,35.0500925925926,inf
+194,55124,AZ,CTG2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,444.0,0.0,4.0,4.0,444.0,15.14164,34.1027927927928,inf
+195,55124,AZ,STG,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,530.0,0.0,0.0,0.0,4.0,4.0,530.0,15.14164,28.5691320754717,inf
+196,55129,AZ,CTG1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1468.0,0.0,14.0,14.0,1468.0,52.995740000000005,36.10064032697548,inf
+197,55146,OK,CTG3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,275.0,0.0,0.0,0.0,275.0,0.0,0.0,
+198,55146,OK,STG3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,169.0,0.0,0.0,0.0,0.0,0.0,169.0,0.0,0.0,
+199,55151,CA,GEN4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,1.0,0.0,11.0,0.0,0.0,1.0,0.0,0.0,0.0
+200,55177,AZ,A,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1514.0,0.0,4.0,4.0,1514.0,15.14164,10.00108322324967,inf
+201,55197,MS,STG2,Natural Gas Fired Combined Cycle,Electric Utility,2020,644.0,0.0,0.0,0.0,20.0,15.0,644.0,56.781150000000004,88.16948757763976,inf
+202,55221,AR,G1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,5173.0,0.0,21.0,21.0,5173.0,79.49361,15.36702300405954,inf
+203,55221,AR,G2,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,5159.0,0.0,21.0,21.0,5159.0,79.49361,15.408724559023067,inf
+204,55221,AR,G3,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,5348.0,0.0,21.0,21.0,5348.0,79.49361,14.864175392670157,inf
+205,55221,AR,G4,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,11004.0,0.0,147.0,140.0,11004.0,529.9574,48.16043256997456,inf
+206,55221,AR,G5,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,10857.0,0.0,147.0,140.0,10857.0,529.9574,48.81250805931657,inf
+207,55221,AR,G6,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,11277.0,0.0,147.0,140.0,11277.0,529.9574,46.99453755431409,inf
+208,55221,AR,G8,Natural Gas Fired Combined Cycle,Electric Utility,2020,9667.0,0.0,0.0,0.0,546.0,497.0,9667.0,1881.34877,194.61557566980449,inf
+209,55221,AR,G9,Natural Gas Fired Combined Cycle,Electric Utility,2020,12425.0,0.0,0.0,0.0,42.0,42.0,12425.0,158.98722,12.795752112676057,inf
+210,55270,MI,7EA,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,385.0,0.0,35.0,35.0,385.0,132.48935,344.1281818181818,inf
+211,55270,MI,ST1,Natural Gas Fired Combined Cycle,Electric Utility,2020,707.0,0.0,0.0,124.0,35.0,35.0,707.0,132.48935,187.39653465346535,3645.7436347499997
+212,55270,MI,ST2,Natural Gas Fired Combined Cycle,Electric Utility,2020,6573.0,0.0,0.0,124.0,35.0,35.0,6573.0,132.48935,20.156602768903088,3645.7436347499997
+213,55282,AZ,CTG1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,310.0,0.0,2.0,2.0,310.0,7.57082,24.422,inf
+214,55282,AZ,CTG2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,304.0,0.0,2.0,2.0,304.0,7.57082,24.904013157894738,inf
+215,55282,AZ,STG1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,368.0,0.0,0.0,30.0,2.0,2.0,368.0,7.57082,20.57288043478261,861.0899251599999
+216,55297,MI,1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,274.0,0.0,88.0,77.0,274.0,291.47657000000004,1063.7831021897812,inf
+217,55297,MI,1A,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,117.0,0.0,0.0,0.0,88.0,77.0,117.0,291.47657000000004,2491.252735042736,inf
+218,55320,TX,ST1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,200.0,0.0,0.0,0.0,18.0,18.0,200.0,68.13738000000001,340.68690000000004,inf
+219,55333,CA,CTG3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,105.0,1359.0,9.0,0.0,105.0,0.0,0.0,0.0
+220,55333,CA,STG1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,63.0,0.0,0.0,0.0,9.0,0.0,63.0,0.0,0.0,
+221,55337,PA,CT1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,194.0,0.0,18.0,18.0,194.0,68.13738000000001,351.2236082474227,inf
+222,55340,AR,CTG1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,12.0,188.0,26.0,12.0,12.0,45.42492,3785.41,824.4478006851064
+223,55340,AR,STG,Natural Gas Fired Combined Cycle,Electric Utility,2020,1552.0,0.0,0.0,0.0,26.0,12.0,1552.0,45.42492,29.268634020618556,inf
+224,55380,AR,CTG5,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,1920.0,0.0,0.0,0.0,1920.0,0.0,0.0,
+225,55382,GA,2GT1,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,942.0,0.0,128.0,110.0,942.0,416.3951,442.0330148619958,inf
+226,55382,GA,2STG,Natural Gas Fired Combined Cycle,Electric Utility,2020,840.0,0.0,0.0,0.0,128.0,110.0,840.0,416.3951,495.7084523809524,inf
+227,55439,VA,CTG2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1377.0,0.0,93.0,15.0,1377.0,56.781150000000004,41.235403050108935,inf
+228,55620,LA,CT-2,Natural Gas Fired Combined Cycle,Electric Utility,2020,0.0,0.0,428.0,0.0,0.0,0.0,428.0,0.0,0.0,
+229,55748,CA,CAG5,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,5008.0,0.0,0.0,1501.0,12.0,8.0,5008.0,30.28328,6.046980830670927,68.84129981292472
+230,55748,CA,CTG1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,6304.0,1776.0,44.0,32.0,6304.0,121.13312,19.21527918781726,232.72700679999997
+231,55748,CA,CTG2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,3808.0,0.0,4.0,4.0,3808.0,15.14164,3.9762710084033617,inf
+232,55748,CA,CTG3,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,5156.0,0.0,4.0,4.0,5156.0,15.14164,2.9367028704422036,inf
+233,55748,CA,CTG4,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,6048.0,0.0,12.0,8.0,6048.0,30.28328,5.007156084656085,inf
+234,55749,MT,UNT1,Conventional Steam Coal,IPP Non-CHP,2020,724.0,0.0,0.0,0.0,0.0,0.0,724.0,0.0,0.0,
+235,55818,WA,FIST,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,846.0,0.0,0.0,85.0,2.0,1.0,846.0,3.78541,4.474479905437352,151.95704561647057
+236,55965,GA,CT7B,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,32.0,0.0,138.0,96.0,32.0,363.39936,11356.23,inf
+237,56349,TX,CT1A,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,2906.0,0.0,48.0,36.0,2906.0,136.27476000000001,46.89427391603579,inf
+238,56349,TX,ST1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,2022.0,0.0,0.0,0.0,84.0,62.0,2022.0,234.69542,116.07092977250248,inf
+239,56350,TX,CT2A,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1812.0,0.0,34.0,26.0,1812.0,98.42066,54.31603752759382,inf
+240,56350,TX,CT2B,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1814.0,0.0,34.0,26.0,1814.0,98.42066,54.256152149944874,inf
+241,56798,CT,ST,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,1234.0,0.0,0.0,0.0,10.0,4.0,1234.0,15.14164,12.270372771474879,inf
+242,56798,CT,U1,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1614.0,0.0,10.0,4.0,1614.0,15.14164,9.381437422552665,inf
+243,56798,CT,U2,Natural Gas Fired Combined Cycle,IPP Non-CHP,2020,0.0,0.0,1488.0,0.0,10.0,4.0,1488.0,15.14164,10.175833333333333,inf
