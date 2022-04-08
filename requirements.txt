@@ -11,3 +11,5 @@ matplotlib
 pvlib
 nrel-pysam
 Bottleneck
+ypstruct
+iawps
