@@ -868,7 +868,7 @@ class City(Location):
         if metadata is None:
             metadata = pd.read_csv(r'data\Tmy3_files\TMY3Metadata.csv', index_col=0)
             metadata = metadata.transpose()
-            self.metadata = metadata[self.name]
+            self.metadata = metadata[self.name]        
 
     def _get_data(self, tmy3_file, how='processed'):
 
@@ -886,6 +886,7 @@ class City(Location):
 
             Location.__init__(self, latitude, longitude,
                               timezone, altitude, self.name)
+            self.metadata = metadata
         elif how == 'tmy_read':
             try:
                 self.tmy_data, self.metadata = tmy_read(self.tmy3_file)
@@ -898,6 +899,21 @@ class City(Location):
                 print("Skipped {} \n".format(self.tmy3_file))
                 pass
         self.HDD, self.CDD, self.avg_RHum = self._calc_degreedays()
+
+
+    def _infer_tmy_data(self):
+        self.tmy3_file = processed_tmy3_dictionary[self.name]
+        self.tmy_data = pd.read_csv(self.tmy3_file, index_col='datetime')
+        self.metadata = pd.read_csv(
+                'data\\Tmy3_files\\TMY3Metadata.csv', index_col='city')
+        latitude = float(self.metadata.loc[self.name]['latitude'])
+        longitude = float(self.metadata.loc[self.name]['longitude'])
+        timezone = float(self.metadata.loc[self.name]['TZ'])
+        altitude = float(self.metadata.loc[self.name]['altitude'])
+        USAF = int(self.metadata.loc[self.name]['USAF'])
+
+        Location.__init__(self, latitude, longitude,
+                            timezone, altitude, self.name)
 
     def _calc_degreedays(self):
         df = self.tmy_data

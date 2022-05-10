@@ -1,0 +1,10 @@
+,water_consumption_intensity_L_per_kWh,water_consumption_intensity_L_per_kWh,water_consumption_intensity_L_per_kWh
+,std,mean,count
+generator_type,,,
+Conventional Steam Coal,441.9527335244347,111.0357607067162,32
+Natural Gas Fired Combined Cycle,1280.0656783857858,324.9807573296223,130
+Natural Gas Steam Turbine,173.7002532020443,55.46968958900647,75
+Nuclear,,120.31865525672372,1
+Other Waste Biomass,8.483028209993941,23.482979520551396,2
+Petroleum Coke,0.0,0.0,2
+Petroleum Liquids,10.907453466060998,7.712734311328443,2
