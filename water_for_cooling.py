@@ -36,10 +36,11 @@ from sysClasses import *
 # TO DO
 #   Function to create databases with Q_e, relative humidity, drybulb temperature, and pressure
 def generate_EES_inputs():
-    for city in ['atlanta']:
-        for building in ['medium_office']:
-            building_datapath = city_building_dictionary[city][building]
-            climate_datapath = processed_tmy3_dictionary[city]
+    save_path = r'model_outputs\AbsorptionChillers\cooling_demand'
+    for city in city_list:
+        for building in building_type_list:
+            # building_datapath = city_building_dictionary[city][building]
+            # climate_datapath = processed_tmy3_dictionary[city]
             City_ = City(city)
             City_._infer_tmy_data()
 
@@ -52,9 +53,9 @@ def generate_EES_inputs():
             cols = ['hour', 'CoolingDemand_kW', 'DryBulb_C', 'Pressure_kPa', 'RHum']
             ees_df = ees_df[cols]
 
-            print(ees_df)
-            
-
+            save_file = F'{save_path}\{city}_{building}_CoolDem.csv'
+            ees_df.to_csv(save_file)
+            print(F'Saved {city} {building}')
 
 def organize_EES_inputs(building_cooling_demand, climate_data):
     ees_df = climate_data[['DryBulb','RHum','Pressure']].copy()

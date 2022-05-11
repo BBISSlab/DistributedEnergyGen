@@ -271,6 +271,7 @@ baltimore_building_dictionary = {'single_family_residential': 'https://openei.or
                                  'small_hotel': 'https://openei.org/datasets/files/961/pub/COMMERCIAL_LOAD_DATA_E_PLUS_OUTPUT/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3/RefBldgSmallHotelNew2004_v1.3_7.1_4A_USA_MD_BALTIMORE.csv',
                                  'small_office': 'https://openei.org/datasets/files/961/pub/COMMERCIAL_LOAD_DATA_E_PLUS_OUTPUT/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3/RefBldgSmallOfficeNew2004_v1.3_7.1_4A_USA_MD_BALTIMORE.csv',
                                  'stand_alone_retail': 'https://openei.org/datasets/files/961/pub/COMMERCIAL_LOAD_DATA_E_PLUS_OUTPUT/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3/RefBldgStand-aloneRetailNew2004_v1.3_7.1_4A_USA_MD_BALTIMORE.csv',
+                                 'strip_mall': 'https://openei.org/datasets/files/961/pub/COMMERCIAL_LOAD_DATA_E_PLUS_OUTPUT/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3/RefBldgStripMallNew2004_v1.3_7.1_4A_USA_MD_BALTIMORE.csv',
                                  'supermarket': 'https://openei.org/datasets/files/961/pub/COMMERCIAL_LOAD_DATA_E_PLUS_OUTPUT/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3/RefBldgSuperMarketNew2004_v1.3_7.1_4A_USA_MD_BALTIMORE.csv',
                                  'warehouse': 'https://openei.org/datasets/files/961/pub/COMMERCIAL_LOAD_DATA_E_PLUS_OUTPUT/USA_MD_Baltimore-Washington.Intl.AP.724060_TMY3/RefBldgWarehouseNew2004_v1.3_7.1_4A_USA_MD_BALTIMORE.csv'
                                  }
