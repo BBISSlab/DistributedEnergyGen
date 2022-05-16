@@ -73,10 +73,20 @@ def organize_EES_inputs(building_cooling_demand, climate_data):
 def organize_EES_outputs(city_name):
     filepath = r'model_outputs\AbsorptionChillers\cooling_supply'
     filename = F'{filepath}\{city_name}.csv'
+
+    building_path = r'model_outputs\AbsorptionChillers\cooling_demand'
+    building_file = F'{building_path}\{city_name}_hospital_CoolDem.csv'
+
+    building_df = pd.read_csv(building_file, index_col='datetime')
+
     cols = ['Qe', 'T_db', 'Patm', 'RH', 'Qfrac', 'Qheat_kW', 'Welec_kW', 'makeup_water_kg_per_s']
     df = pd.read_csv(filename, names=cols)
-    
-    
+
+    try:
+        df['datetime'] = building_df.index
+        df.set_index('datetime', inplace=True, drop=True)
+    except ValueError:
+        print(F'{city_name} has mismatched indices')
     return df
 
 def clean_EES_outputs():
@@ -85,17 +95,37 @@ def clean_EES_outputs():
     
     filepath = r'model_outputs\AbsorptionChillers\cooling_supply'
     
-    for city in cities:
+    for city in cities:        
         df = organize_EES_outputs(city)
         df.to_csv(F'{filepath}\{city}_supply.csv')
 
-def calculate_building_impacts(city_name, building_type):
-    # city_file 
-    
-    pass
 
-clean_EES_outputs()
+def calculate_EES_building_output(city_df, building_df):
+    city_df['datetime'] = building_df['datetime']
+    city_df.set_index('datetime', inplace=True, drop=True)
 
-def annual_building_sim(city_name, building_type):
-    pass 
+    supply_df = building_df.copy()
+    supply_df.set_index('datetime', inplace=True, drop=True)
 
+    supply_df['Qfrac'] = supply_df.CoolingDemand_kW / city_df.Qe
+    supply_df['AbsCh_HeatDemand_kW'] = city_df.Qheat_kW * supply_df.Qfrac
+    supply_df['AbsCh_ElecDemand_kW'] = city_df.Welec_kW * supply_df.Qfrac
+    supply_df['MakeupWater_kph'] = city_df.makeup_water_kg_per_s * supply_df.Qfrac * 3600
+    supply_df.drop(columns=['hour'], inplace=True)
+
+    return supply_df
+
+def annual_building_sim():
+    demand_path = r'model_outputs\AbsorptionChillers\cooling_demand'
+    supply_path = r'model_outputs\AbsorptionChillers\cooling_supply'
+
+    cities = city_list
+    cities.remove('fairbanks')
+        
+    for city in cities:
+        for building in building_type_list:
+            city_df = pd.read_csv(F'{supply_path}\{city}_supply.csv')
+            demand_df = pd.read_csv(F'{demand_path}\{city}_{building}_CoolDem.csv')
+            supply_df = calculate_EES_building_output(city_df, demand_df)
+
+            #supply_df.to_feather()
