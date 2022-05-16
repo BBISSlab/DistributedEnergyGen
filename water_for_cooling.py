@@ -118,14 +118,19 @@ def calculate_EES_building_output(city_df, building_df):
 def annual_building_sim():
     demand_path = r'model_outputs\AbsorptionChillers\cooling_demand'
     supply_path = r'model_outputs\AbsorptionChillers\cooling_supply'
+    save_path = r'model_outputs\AbsorptionChillers\building_supply_sim'
 
     cities = city_list
     cities.remove('fairbanks')
         
     for city in cities:
         for building in building_type_list:
+            print('City: {} | Building: {} Time: {}'.format(
+                            city, building, time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())), end='\r')
+
             city_df = pd.read_csv(F'{supply_path}\{city}_supply.csv')
             demand_df = pd.read_csv(F'{demand_path}\{city}_{building}_CoolDem.csv')
             supply_df = calculate_EES_building_output(city_df, demand_df)
-
-            #supply_df.to_feather()
+            supply_df['building_type'] = building
+            supply_df.reset_index(inplace=True, drop=False)
+            supply_df.to_feather(F'{save_path}\{city}_{building}_AbsCh_sim.feather')
