@@ -316,7 +316,7 @@ class Water:
 
 class Air:
     
-    def __init__(self, temperature=None, pressure=None, state=None,
+    def __init__(self, temperature=20, pressure=101.325, state=None,
                  specific_enthalpy=None):
         r'''
             t:  solution temperature, deg C
@@ -351,7 +351,7 @@ class Air:
         elif (relative_humidity < 0):
             raise ValueError('Relative Humidity < 0')
         else:
-            P_sat = calculate_P_sat(temperature, 'C')
+            P_sat = Water().Psat_T(temperature, 'C')
             humidity_ratio = (0.622 * relative_humidity * P_sat) / (P_atm - P_sat)
             return humidity_ratio
 
@@ -377,13 +377,13 @@ class Air:
 
         '''
         # Calculate the  humidity ratio
-        HR = humidity_ratio(temperature=temperature,
+        HR = self.humidity_ratio(temperature=temperature,
                             P_atm=pressure,
                             relative_humidity=relative_humidity)
 
         if method == 'iawps':
             # Calcualte the mass fraction of water in humid air
-            W = mass_fraction_of_water_in_humid_air(HR)
+            W = self.mass_fraction_of_water_in_humid_air(HR)
 
             # Convert pressure from kPa to MPA
             P_MPa = pressure / 1000
@@ -1494,6 +1494,57 @@ class Evaporator(HeatExhanger):
         cp_l = Ref_out.isobaric_heat_capacity_L
 
         return (m_r * (h_fg + cp_l * (T_out - T_in)))
+
+
+#################
+# Cooling Tower #
+#################
+# Make a function that calculates design NTU
+# The summation of points between the range
+
+class CoolingTower:
+    pass
+
+def design_NTU(cold_water_temperature, hot_water_temperature, 
+                wet_bulb_temperature, LG_ratio):
+    cooling_range = hot_water_temperature - cold_water_temperature
+
+    bulk_water_enthalpy = []
+    wet_bulb_enthalpy = []
+
+    enthalpy_diff = []
+    NTU_n = []
+
+    h_wb =  Air().humid_air_specific_enthalpy(temperature = wet_bulb_temperature, pressure=101.325, relative_humidity=1)
+
+    N = [0.1, 0.4, 0.6, 0.9]
+
+    for n in N:
+        tw_n = cold_water_temperature + n * cooling_range
+        hw_n = Water().saturated_liquid_specific_enthalpy(temperature = tw_n)
+
+        bulk_water_enthalpy.append(hw_n)
+
+        ha_n = h_wb + n * LG_ratio * cooling_range
+        wet_bulb_enthalpy.append(ha_n)
+        
+        h_diff = hw_n - ha_n
+        enthalpy_diff.append(h_diff)
+
+        NTU_n.append(1 / h_diff)
+
+
+    print(enthalpy_diff)
+    print(NTU_n)
+
+    NTU = (sum(NTU_n)/4 * cooling_range)
+
+    print(NTU)
+
+
+design_NTU(39.67, 40, 26, 1.6492)
+
+
 
 # Testing
 def testing_absorber():

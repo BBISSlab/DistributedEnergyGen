@@ -274,6 +274,19 @@ def calculate_EIA_emission_factors():
     print('Completed EIA Emission Factor Calculations')    
     
 
+
+# WATER SYSTEMS
+
+# To Do:
+# recode the cooling system type
+# Create a Fuel-PrimeMover-CoolingSystem code for each generator per Peer
+# Create a dataframe from the Peer PoG assumptions
+# Calculate the total water consumption based on the Gross power generation
+# Aggregate the values by year
+# Use the eGRID data to assign an eGRID subregion
+# Aggregate water consumption values per subregion based on the fuel type
+
+
 def read_eia_cooling_detail(data_file):
     r'''
     Read EIA Cooling Detail Data
@@ -284,18 +297,18 @@ def read_eia_cooling_detail(data_file):
     columns_to_import = [
         #'\n \n \n \n \n \nUtility ID', 
         'State', 
-        'Plant Code', #'Plant Name', 
-        'Year', #'Month',
+        'Plant Code', 'Plant Name', 
+        'Year', 'Month',
         'Generator ID',
         'Generator Primary Technology',
         # 'Summer Capacity of Steam Turbines (MW)',
-        # 'Gross Generation from Steam Turbines (MWh)',
+        'Gross Generation from Steam Turbines (MWh)',
         'Net Generation from Steam Turbines (MWh)',
         # 'Summer Capacity Associated with Single Shaft Combined Cycle Units (MW)',
-        # 'Gross Generation Associated with Single Shaft Combined Cycle Units (MWh)',
+        'Gross Generation Associated with Single Shaft Combined Cycle Units (MWh)',
         'Net Generation Associated with Single Shaft Combined Cycle Units (MWh)',
         # 'Summer Capacity Associated with Combined Cycle Gas Turbines (MW)',
-        # 'Gross Generation Associated with Combined Cycle Gas Turbines (MWh)',
+        'Gross Generation Associated with Combined Cycle Gas Turbines (MWh)',
         'Net Generation Associated with Combined Cycle Gas Turbines (MWh)',
         'Fuel Consumption from All Fuel Types (MMBTU)',
         # 'Fuel Consumption from Steam Turbines (MMBTU)',
@@ -308,7 +321,10 @@ def read_eia_cooling_detail(data_file):
         # 'Other Gas Consumption (MMBTU)', 
         # 'Other Fuel Consumption (MMBTU)',
         'Water Withdrawal Volume (Million Gallons)',
-        'Water Consumption Volume (Million Gallons)', 'Sector']
+        'Water Consumption Volume (Million Gallons)', 'Sector',
+        'Generator Primary Energy Source Code',
+        'Generator Prime Mover Code',
+        '860 Cooling Type 1']
 
 
     df = pd.read_csv(data_file, header=2, usecols=columns_to_import)

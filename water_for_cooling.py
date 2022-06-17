@@ -80,7 +80,7 @@ def organize_EES_outputs(city_name):
 
     building_df = pd.read_csv(building_file, index_col='datetime')
 
-    cols = ['Qe', 'T_db', 'Patm', 'RH', 'Qfrac', 'Qheat_kW', 'Welec_kW', 'makeup_water_kg_per_s']
+    cols = ['Qe', 'T_db', 'Patm', 'RH', 'Qfrac', 'Qheat_kW', 'Welec_kW', 'makeup_water_kg_per_s', 'percent_makeup']
     df = pd.read_csv(filename, names=cols)
 
     try:
@@ -138,6 +138,7 @@ def annual_building_sim(district_cooling_loss=0):
             supply_df.reset_index(inplace=True, drop=False)
             supply_df.to_feather(F'{save_path}\{city}_{building}_AbsCh_sim.feather')
 
+# clean_EES_outputs()
 # annual_building_sim(district_cooling_loss=0.1)
 
 
@@ -170,14 +171,69 @@ def plot_electricity(data):
 filename = r'model_outputs\AbsorptionChillers\building_supply_sim\atlanta_medium_office_AbsCh_sim.feather'
 # plot_electricity(filename)
 
-def plot_water_cons():
-    dataframes = []
+# Grubert 2018 PoG water consumption by fuel type (L / kWh)
+water_intensity_fueltype = {'US Overall':0.268,
+                           'Conventional Oil':0.050,
+                           'Unconventional Oil':0.050,
+                           'Ethanol':0.428,
+                           'Biodiesel':0.025,
+                           'Subbituminous Coal':1.543,
+                           'Bituminous Coal':0.685,
+                           'Lignite Coal':1.490,
+                           'Natural Gas':0.149,
+                           'Uranium':2.156,
+                           'Solid Biomass and RDF':0.290,
+                           'Biogas':0.166,
+                           'Geothermal':1.210,
+                           'Solar Thermal':3.476}
 
+# Peer 2019 PoG water consumption by region (L / kWh)
+water_intensity_eGRID = {'US Overall':11.63, 
+                         'AKGD':3.92, 
+                         'AKMS':0.00,                        
+                         'AZNM':11.68,
+                         'CAMX':11.55,
+                         'ERCT':5.86,
+                         'FRCC':10.81,
+                         'HIMS':6.40,
+                         'HIOA':5.80,
+                         'MROE':4.93,
+                         'MROW':6.48,
+                         'NEWE':8.08,
+                         'NWPP':11.15,
+                         'NYCW':5.78,
+                         'NYLI':4.37,
+                         'NYUP':7.41,
+                         'RFCE':7.42,
+                         'RFCM':6.58,
+                         'RFCW':6.55,
+                         'RMPA':4.69,
+                         'SPNO':7.66,
+                         'SPSO':4.27,
+                         'SRMV':6.41,
+                         'SRMW':7.87,
+                         'SRSO':7.12,
+                         'SRTV':5.86,
+                         'SRVC':6.67
+                        }
+
+
+def aggregate_cooling_simulation():
+    pass
+
+def calculate_water_consumption():
     cities = city_list
     cities.remove('fairbanks')
 
+    city_dataframes = []
     for city in city_list:
+        eGRID_subregion = nerc_region_dictionary[city]
+        climate_zone = climate_zone_dictionary[city]
+
+        building_dataframes = []
         for building in building_type_list:
+            floor_area = floor_area_dictionary[building]
+            
             filepath = r'model_outputs\AbsorptionChillers\building_supply_sim'
             filename = F'{city}_{building}_AbsCh_sim.feather'
             
@@ -197,32 +253,101 @@ def plot_water_cons():
 
             agg_df.columns = agg_df.columns.map('_'.join)
             # agg_df.columns = agg_df.columns.droplevel(1)
-            agg_df.rename(columns={'CoolingDemand_kW_sum': 'CoolingDemand_kW',
-                                'AbsCh_HeatDemand_kW_sum': 'AbsCh_HeatDemand_kW',
-                                'AbsCh_ElecDemand_kW_sum': 'AbsCh_ElecDemand_kW',
+            agg_df.rename(columns={'CoolingDemand_kW_sum': 'CoolingDemand_kWh',
+                                'AbsCh_HeatDemand_kW_sum': 'AbsCh_HeatDemand_kWh',
+                                'AbsCh_ElecDemand_kW_sum': 'AbsCh_ElecDemand_kWh',
                                 'MakeupWater_kph_sum': 'MakeupWater_kg'}, inplace=True)
+
+            agg_df['floor_area_m^2'] = floor_area
 
             agg_df.reset_index(inplace=True)
             agg_df.drop(columns=['datetime'], inplace=True)
+
+            building_dataframes.append(agg_df)
+
+        city_df = pd.concat(building_dataframes, axis=0).reset_index(drop=True)
+        city_df['climate_zone'] = climate_zone
+        city_df['eGRID_subregion'] = eGRID_subregion
+        city_df['w4e_factor'] = water_intensity_eGRID[eGRID_subregion]
+
+        city_dataframes.append(city_df)
+
+    annual_df = pd.concat(dataframes, axis=0).reset_index(drop=True)
+
+    annual_df['ACRC_ElecDemand_kW'] = annual_df.CoolingDemand_kW / 3.4
+
+    w4e_factor = water_intensity_eGRID[eGRID_subregion]
+    annual_df['ABC_water_cons_L'] = annual_df.MakeupWater_kg \
+                                    + annual_df.AbsCh_ElecDemand_kW * w4e_factor # 1 kg = 1 L 
+    annual_df['AC_water_cons_L'] = annual_df.ACRC_ElecDemand_kW * w4e_factor
+
+
+def plot_water_cons():
+    dataframes = []
+
+    cities = city_list
+    cities.remove('fairbanks')
+
+    for city in city_list:
+        eGRID_subregion = nerc_region_dictionary[city]
+        climate_zone = climate_zone_dictionary[city]
+        for building in building_type_list:
+            floor_area = floor_area_dictionary[building]
+            
+            filepath = r'model_outputs\AbsorptionChillers\building_supply_sim'
+            filename = F'{city}_{building}_AbsCh_sim.feather'
+            
+            df = pd.read_feather(F'{filepath}\{filename}')
+            df.set_index('datetime', inplace=True, drop=True)
+            df.index = pd.to_datetime(df.index)
+
+            df['city'] = city
+            df['eGRID_subregion'] = eGRID_subregion
+            df['climate_zone'] = climate_zone
+            df['building'] = building
+
+            agg_df = df.groupby(['city', 'eGRID_subregion', 'climate_zone', 'building']).resample('A').agg({
+                    'CoolingDemand_kW':['sum'],
+                    'AbsCh_HeatDemand_kW':['sum'],
+                    'AbsCh_ElecDemand_kW':['sum'],
+                    'MakeupWater_kph':['sum']})
+
+            agg_df.columns = agg_df.columns.map('_'.join)
+            # agg_df.columns = agg_df.columns.droplevel(1)
+            agg_df.rename(columns={'CoolingDemand_kW_sum': 'CoolingDemand_kWh',
+                                'AbsCh_HeatDemand_kW_sum': 'AbsCh_HeatDemand_kWh',
+                                'AbsCh_ElecDemand_kW_sum': 'AbsCh_ElecDemand_kWh',
+                                'MakeupWater_kph_sum': 'MakeupWater_kg'}, inplace=True)
+
+            agg_df['CoolingDemand_kWh/m^2'] = agg_df['CoolingDemand_kWh'] / floor_area
+
+            agg_df.reset_index(inplace=True)
+            agg_df.drop(columns=['datetime'], inplace=True) 
 
             dataframes.append(agg_df)
 
 
     annual_df = pd.concat(dataframes, axis=0).reset_index(drop=True)
 
-    annual_df['ACRC_ElecDemand_kW'] = annual_df.CoolingDemand_kW / 3.4
+    annual_df['ACRC_ElecDemand_kWh'] = annual_df.CoolingDemand_kWh / 3.4
 
-    cons_factor = 4.15 * 10**-2 # m^3 / GJ
-    annual_df['ABC_water_cons_L'] = annual_df.MakeupWater_kg * 1000 # annual_df.AbsCh_ElecDemand_kW * cons_factor # + 
-    annual_df['AC_water_cons_L'] = annual_df.ACRC_ElecDemand_kW * cons_factor
+    w4e_factor = water_intensity_eGRID[eGRID_subregion]
+    annual_df['ABC_water_cons_L'] = annual_df.MakeupWater_kg \
+                                    + annual_df.AbsCh_ElecDemand_kWh * w4e_factor # 1 kg = 1 L 
+    annual_df['AC_water_cons_L'] = annual_df.ACRC_ElecDemand_kWh * w4e_factor
 
-    sns.scatterplot(x=annual_df.CoolingDemand_kW, y=annual_df.ABC_water_cons_L, alpha=0.5)
-    # sns.scatterplot(x=annual_df.CoolingDemand_kW, y=annual_df.AC_water_cons_L, alpha=0.5)
+    annual_df['ABC_L/kWh Cooling'] = annual_df['ABC_water_cons_L'] / annual_df.CoolingDemand_kWh
+    annual_df['AC_L/kWh Cooling'] = annual_df['AC_water_cons_L'] / annual_df.CoolingDemand_kWh
+
+    annual_df['Perc_diff'] = ((annual_df['ABC_L/kWh Cooling'] - annual_df['AC_L/kWh Cooling']) / annual_df['AC_L/kWh Cooling']) * 100
+
+    sns.scatterplot(x=annual_df['CoolingDemand_kWh/m^2'], y=annual_df['Perc_diff'], alpha=0.5) #, hue=annual_df['eGRID_subregion'])
+    # sns.scatterplot(x=annual_df['CoolingDemand_kWh/m^2'], y=annual_df['AC_L/kWh Cooling'], alpha=0.5) #, hue=annual_df['eGRID_subregion'])
 
     # plt.legend(['Absorption Chiller', 'Air Cooled Chiller'])
 
-    plt.xlabel('Cooling Demand kWh')
-    plt.ylabel('Annual Water Consumption, L')
+    plt.xlabel('Annual Cooling Demand, $kWh/m^2$')
+    plt.ylabel('Difference in Annual Water Consumption, %')
     '''file_path = r'model_outputs\AbsorptionChillers\Figures'
     file_name = r'annual_W_cons_elec.png'
     plt.savefig(F'{file_path}\{file_name}')'''

@@ -33,9 +33,9 @@ def lin_reg_airflow(data, fit_intercept=True):
     X = x.values.reshape(len(x.index), 1)
 
     # Perform regression for each impact
-    y = data['airflow_cfm']
+    y = data['airflow_kg_per_hour'] # data['airflow_cfm']
     # Convert airflow from cfm to m^3 / s
-    y = y * airflow_conversion_factor
+    y = y / 3600 # y * airflow_conversion_factor
     Y = y.values.reshape(len(y.index), 1)
 
     model.fit(X, Y)
@@ -114,6 +114,43 @@ def get_regression_results(fit_intercept=True):
 
 # get_regression_results(fit_intercept=False, type='MT')
 
+def LG_distribution():
+    fans = [1, 2, 3, 4, 6, 8]
+    
+    data = pd.read_csv(r'data\Tech_specs\CoolingTower_specs.csv')
+    data = data[data['capacity_kW'] <= 3500]
+
+    # sns.boxplot(x=data.LG_ratio)
+    X = data['waterflow_kg_per_hour'] / 3600
+    Y = data['airflow_kg_per_hour'] / 3600
+
+    sns.scatterplot(x=X, y=Y)
+    
+    plt.show()
+
+    '''for fan in fans:
+        plt.close()
+        subset = data[data['num_fan'] == fan]
+        sns.displot(x=subset.LG_ratio)
+
+        # sns.scatterplot(x=data.capacity_kW, y=data.LG_ratio, hue = data.num_fan)
+        plt.show()'''
+
+LG_distribution()
+
+
+def NTU_design_cond():
+    pass
+
+def LG_capacity():
+    data = pd.read_csv(r'data\Tech_specs\CoolingTower_specs.csv')
+    T_w_in = 35
+    T_w_out = 29
+    T_wb = 26
+    T_range = 6
+    T_approach = T_w_out - T_wb
+    pass
+
 
 def plot_airflow_regression(fit_intercept=False):
     
@@ -141,7 +178,7 @@ def plot_airflow_regression(fit_intercept=False):
     ax = plt.subplot(1, 1, 1)
 
     sns.scatterplot(x=data['waterflow_kg_per_hour']/3600,
-                    y=data['airflow_cfm'] * airflow_conversion_factor,
+                    y=data['airflow_kg_per_hour']/3600,  # data['airflow_cfm'] * airflow_conversion_factor,
                     alpha=0.4,
                     s=80,
                     color='cornflowerblue')
@@ -243,6 +280,6 @@ def plot_fanpower_regression(fit_intercept=False):
     
     plt.show()
 
-plot_fanpower_regression(fit_intercept=True)
+# plot_fanpower_regression(fit_intercept=True)
 
-#plot_airflow_regression(fit_intercept=True)   
+# plot_airflow_regression(fit_intercept=True)   
