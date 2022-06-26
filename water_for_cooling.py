@@ -71,17 +71,30 @@ def organize_EES_inputs(building_cooling_demand, climate_data):
     return ees_df
 
 
-def organize_EES_outputs(city_name):
-    filepath = r'model_outputs\AbsorptionChillers\cooling_supply'
-    filename = F'{filepath}\{city_name}.csv'
+def organize_EES_outputs(city_name, chiller_type='AbsorptionChiller'):
 
-    building_path = r'model_outputs\AbsorptionChillers\cooling_demand'
-    building_file = F'{building_path}\{city_name}_hospital_CoolDem.csv'
+    if chiller_type == 'AbsorptionChiller':
+        filepath = r'model_outputs\AbsorptionChillers\cooling_supply\AbsorptionChiller'
+        filename = F'{filepath}\{city_name}.csv'
 
-    building_df = pd.read_csv(building_file, index_col='datetime')
+        building_path = r'model_outputs\AbsorptionChillers\cooling_demand'
+        building_file = F'{building_path}\{city_name}_hospital_CoolDem.csv'
 
-    cols = ['Qe', 'T_db', 'Patm', 'RH', 'Qfrac', 'Qheat_kW', 'Welec_kW', 'makeup_water_kg_per_s', 'percent_makeup']
-    df = pd.read_csv(filename, names=cols)
+        building_df = pd.read_csv(building_file, index_col='datetime')
+
+        cols = ['Qe_nom', 'T_db', 'Patm', 'RH', 'Qheat_kW', 'Welec_kW', 'makeup_water_kg_per_s', 'percent_makeup']
+        df = pd.read_csv(filename, names=cols)
+    elif chiller_type == 'WaterCooledChiller':
+        filepath = r'model_outputs\AbsorptionChillers\cooling_supply\WaterCooled_Chiller'
+        filename = F'{filepath}\{city_name}.csv'
+
+        building_path = r'model_outputs\AbsorptionChillers\cooling_demand'
+        building_file = F'{building_path}\{city_name}_hospital_CoolDem.csv'
+
+        building_df = pd.read_csv(building_file, index_col='datetime')
+
+        cols = ['Qe_nom', 'T_db', 'Patm', 'RH', 'Wcomp_kW', 'Wct_kW', 'Welec_kW', 'makeup_water_kg_per_s', 'percent_makeup']
+        df = pd.read_csv(filename, names=cols)
 
     try:
         df['datetime'] = building_df.index
@@ -90,15 +103,25 @@ def organize_EES_outputs(city_name):
         print(F'{city_name} has mismatched indices')
     return df
 
-def clean_EES_outputs():
+def clean_EES_outputs(chiller_type = 'AbsorptionChiller'):
     cities = city_list
-    cities.remove('fairbanks')
+
+    try:
+        cities.remove('fairbanks')
+    except ValueError:
+        pass
     
-    filepath = r'model_outputs\AbsorptionChillers\cooling_supply'
-    
+    if chiller_type == 'AbsorptionChiller':
+        savepath = r'model_outputs\AbsorptionChillers\cooling_supply\AbsorptionChiller'
+    elif chiller_type == 'WaterCooledChiller':
+        savepath = r'model_outputs\AbsorptionChillers\cooling_supply\WaterCooled_Chiller'
+        
     for city in cities:        
-        df = organize_EES_outputs(city)
-        df.to_csv(F'{filepath}\{city}_supply.csv')
+        # Reads the dataframe for each city
+        print(chiller_type, city)
+        df = organize_EES_outputs(city, chiller_type)
+        df.to_csv(F'{savepath}\{city}_supply.csv')
+
 
 
 def calculate_EES_building_output(city_df, building_df, district_cooling_loss=0.1):
@@ -120,7 +143,7 @@ def calculate_EES_building_output(city_df, building_df, district_cooling_loss=0.
 
 def annual_building_sim(district_cooling_loss=0):
     demand_path = r'model_outputs\AbsorptionChillers\cooling_demand'
-    supply_path = r'model_outputs\AbsorptionChillers\cooling_supply'
+    supply_path = r'model_outputs\AbsorptionChillers\cooling_supply\AbsorptionChiller'
     save_path = r'model_outputs\AbsorptionChillers\building_supply_sim'
 
     cities = city_list
@@ -137,9 +160,6 @@ def annual_building_sim(district_cooling_loss=0):
             supply_df['building_type'] = building
             supply_df.reset_index(inplace=True, drop=False)
             supply_df.to_feather(F'{save_path}\{city}_{building}_AbsCh_sim.feather')
-
-# clean_EES_outputs()
-# annual_building_sim(district_cooling_loss=0.1)
 
 
 electric_chiller_COP = {'rooftop_air_conditioner': 3.4,
@@ -272,15 +292,24 @@ def calculate_water_consumption():
 
         city_dataframes.append(city_df)
 
-    annual_df = pd.concat(dataframes, axis=0).reset_index(drop=True)
+    annual_df = pd.concat(city_dataframes, axis=0).reset_index(drop=True)
 
-    annual_df['ACRC_ElecDemand_kW'] = annual_df.CoolingDemand_kW / 3.4
+    annual_df['ACRC_ElecDemand_kWh'] = annual_df.CoolingDemand_kWh / 3.4
 
     w4e_factor = water_intensity_eGRID[eGRID_subregion]
     annual_df['ABC_water_cons_L'] = annual_df.MakeupWater_kg \
-                                    + annual_df.AbsCh_ElecDemand_kW * w4e_factor # 1 kg = 1 L 
-    annual_df['AC_water_cons_L'] = annual_df.ACRC_ElecDemand_kW * w4e_factor
+                                    + annual_df.AbsCh_ElecDemand_kWh * w4e_factor # 1 kg = 1 L 
+    annual_df['AC_water_cons_L'] = annual_df.ACRC_ElecDemand_kWh * w4e_factor
+    
+    annual_df['CoolingDemand_intensity_kWh/sqm'] = annual_df['CoolingDemand_kWh'] / floor_area
+    annual_df['ABC_watercons_int_L/kWh'] = annual_df['ABC_water_cons_L'] / annual_df['CoolingDemand_kWh']
+    annual_df['AC_watercons_int_L/kWh'] = annual_df['AC_water_cons_L'] / annual_df['CoolingDemand_kWh']
 
+    file_path = r'model_outputs\AbsorptionChillers\water_consumption'
+    file_name = r'water_for_cooling_NERC.csv'
+    annual_df.to_csv(F'{file_path}\{file_name}')
+
+# calculate_water_consumption()
 
 def plot_water_cons():
     dataframes = []
@@ -341,8 +370,8 @@ def plot_water_cons():
 
     annual_df['Perc_diff'] = ((annual_df['ABC_L/kWh Cooling'] - annual_df['AC_L/kWh Cooling']) / annual_df['AC_L/kWh Cooling']) * 100
 
-    sns.scatterplot(x=annual_df['CoolingDemand_kWh/m^2'], y=annual_df['Perc_diff'], alpha=0.5) #, hue=annual_df['eGRID_subregion'])
-    # sns.scatterplot(x=annual_df['CoolingDemand_kWh/m^2'], y=annual_df['AC_L/kWh Cooling'], alpha=0.5) #, hue=annual_df['eGRID_subregion'])
+    sns.scatterplot(x=annual_df['CoolingDemand_kWh/m^2'], y=annual_df['ABC_L/kWh Cooling'], alpha=0.5) #, hue=annual_df['eGRID_subregion'])
+    sns.scatterplot(x=annual_df['CoolingDemand_kWh/m^2'], y=annual_df['AC_L/kWh Cooling'], alpha=0.5) #, hue=annual_df['eGRID_subregion'])
 
     # plt.legend(['Absorption Chiller', 'Air Cooled Chiller'])
 
@@ -354,5 +383,17 @@ def plot_water_cons():
     plt.show()
   
 
-    
-plot_water_cons()
+
+###################
+# DATA PROCESSING #
+###################
+
+# 1. Clean the EES outputs, label columns for each chiller
+# clean_EES_outputs('WaterCooledChiller')
+# clean_EES_outputs('AbsorptionChiller')
+
+# 2. Calculate the cooling, electricity for cooling, and makeup water per building
+# annual_building_sim(district_cooling_loss=0.1)
+
+
+# plot_water_cons()
