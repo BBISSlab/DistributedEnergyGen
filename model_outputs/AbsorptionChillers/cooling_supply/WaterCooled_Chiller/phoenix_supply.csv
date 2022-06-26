@@ -1,4 +1,4 @@
-datetime,Qe,T_db,Patm,RH,Wcomp_kW,Wct_kW,Welec_kW,makeup_water_kg_per_s,percent_makeup
+datetime,Qe_nom,T_db,Patm,RH,Wcomp_kW,Wct_kW,Welec_kW,makeup_water_kg_per_s,percent_makeup
 2020-01-01 00:30:00-07:00,500,10.0,97.7,0.74,83.05,3.284,86.34,0.1645,0.003761
 2020-01-01 01:30:00-07:00,500,8.9,97.7,0.8,83.05,3.284,86.34,0.1552,0.00355
 2020-01-01 02:30:00-07:00,500,8.9,97.7,0.8,83.05,3.284,86.34,0.1552,0.00355

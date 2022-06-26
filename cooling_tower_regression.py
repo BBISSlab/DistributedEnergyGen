@@ -59,9 +59,8 @@ def lin_reg_fanpower(data, fit_intercept=True):
 
     # Linear Regression
     model = LinearRegression(fit_intercept=fit_intercept)
-    x = data.waterflow_kg_per_hour
+    x = data.capacity_kW
     # Convert to kg/s
-    x = x / 3600
     X = x.values.reshape(len(x.index), 1)
 
     # Perform regression for each impact
@@ -136,7 +135,7 @@ def LG_distribution():
         # sns.scatterplot(x=data.capacity_kW, y=data.LG_ratio, hue = data.num_fan)
         plt.show()'''
 
-LG_distribution()
+# LG_distribution()
 
 
 def NTU_design_cond():
@@ -234,14 +233,14 @@ def plot_fanpower_regression(fit_intercept=False):
 
 
     fig, axn = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(9, 7))
-    y_ticks = np.arange(0, 400, 50)
-    x_ticks = np.arange(0, 25, 5)
+    x_ticks = np.arange(0, 30000, 5000)
+    y_ticks = np.arange(0, 450, 50)
     ##########################
     # TOP SUBPLOT - PLR Fuel #
     ##########################
     ax = plt.subplot(1, 1, 1)
 
-    sns.scatterplot(x=data['waterflow_kg_per_hour']/3600,
+    sns.scatterplot(x=data['capacity_kW'],
                     y=data['total_fan_kW'],
                     alpha=0.8,
                     s=80,
@@ -250,7 +249,7 @@ def plot_fanpower_regression(fit_intercept=False):
     # Plot Trendline
     regression_dict = lin_reg_fanpower(data, fit_intercept)
     
-    X = np.arange(0, 25, 5)
+    X = np.arange(0, 30000, 1000)
     slope = regression_dict['coef']
     intercept = regression_dict['intercept']
     score = regression_dict['score']
@@ -262,14 +261,14 @@ def plot_fanpower_regression(fit_intercept=False):
     ax.set_yticks(y_ticks)
     ax.set_yticklabels(y_ticks)    
     ax.set_ylim(np.min(y_ticks), np.max(y_ticks))
-    ax.yaxis.set_minor_locator(MultipleLocator(10))
+    ax.yaxis.set_minor_locator(MultipleLocator(100))
     ax.set_ylabel('Total Fan Power, $kW$')
 
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(x_ticks)
     ax.set_xlim(np.min(x_ticks), np.max(x_ticks))
-    ax.xaxis.set_minor_locator(MultipleLocator(1))
-    ax.set_xlabel('Water Mass Flowrate, $kg / s$')
+    ax.xaxis.set_minor_locator(MultipleLocator(1000))
+    ax.set_xlabel('Cooling Tower Capacity, $kW$')
 
     # ax.get_legend().remove()
     sns.despine()
@@ -280,6 +279,6 @@ def plot_fanpower_regression(fit_intercept=False):
     
     plt.show()
 
-# plot_fanpower_regression(fit_intercept=True)
+plot_fanpower_regression(fit_intercept=True)
 
 # plot_airflow_regression(fit_intercept=True)   
