@@ -156,7 +156,7 @@ climate_zone_dictionary = {'albuquerque': '4B',
                            'san_francisco': '3C',
                            'seattle': '4C'}
 nerc_region_dictionary = {'albuquerque': 'AZNM',
-                          'atlanta': 'SRSE',
+                          'atlanta': 'SRSO',
                           'baltimore': 'RFCE',
                           'chicago': 'RFCW',
                           'denver': 'RMPA',
