@@ -19,6 +19,7 @@ from pyarrow import feather  # To install: pip install pyarrow
 import matplotlib.ticker as mtick
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, Normalize
+from matplotlib import rcParams
 import seaborn as sns  # To install: pip install seaborn
 
 from sysClasses import *
@@ -30,6 +31,10 @@ PLOTTING FUNCTIONS
 ==================
 
 """
+# TODO
+# 
+
+
 save_path = r'model_outputs\AbsorptionChillers\Figures'
 
 
@@ -77,25 +82,36 @@ def coolingdemand_heatmap():
         pivot_df.index, categories=custom_order)
     pivot_df.sort_index(level=0, inplace=True)
 
-    # grid_kws = {'height_ratios':(0.9,0.05), 'hspace': 0.3}
-    grid_kws = {'width_ratios': (0.95, 0.05), 'wspace': 0.001}
-    f, (ax, cbar_ax) = plt.subplots(
-        1, 2, gridspec_kw=grid_kws, figsize=(13, 10))
+    grid_kws = {'height_ratios':(0.03,0.95), 'hspace': 0.05}
+    # grid_kws = {'width_ratios': (0.95, 0.05), 'wspace': 0.001}
+    f, (cbar_ax, ax) = plt.subplots(
+        2, 1, gridspec_kw=grid_kws, figsize=(13, 10))
 
     ax = sns.heatmap(pivot_df,
-                     vmin=0, vmax=4000,  
-                     ax=ax, cbar_ax=cbar_ax,
-                     cbar_kws={'orientation': 'vertical'},
-                     cmap='mako',
+                     vmin=0, vmax=1000,  
+                     ax=ax,
+                     cbar_ax=cbar_ax,
+                     cbar_kws= {'orientation': 'horizontal',
+                               'ticks':mtick.LogLocator(),
+                               'extend':'max'
+                               },
+                     cmap='coolwarm_r',
                      square=True,
                      norm=LogNorm(),
                      )
 
-    cbar_ax.yaxis.set_tick_params(which='both', width=1.5, labelsize=12)
+    cbar_ax.xaxis.set_tick_params(which='both', width=1.5, labelsize=14, 
+                    bottom=False, labelbottom=False, 
+                    top=True, labeltop=True)
 
-    ax.set_xlabel('ASHRAE Climate Zone', fontsize=16)
-    ax.set_ylabel('Building', fontsize=16)
-    ax.tick_params(axis='both', width=1.5, labelsize=12)
+    cbar_ax.set_title('Cooling Demand Intensity, $kWh/m^2$', fontsize=16)
+
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=30, fontsize=14)
+    ax.set_xlabel('IECC Climate Zone', fontsize=18)
+
+    ax.set_yticklabels(ax.get_yticklabels(), fontsize=14)
+    ax.set_ylabel('Building', fontsize=18)
+    ax.tick_params(axis='both', width=1.5, labelsize=14)
 
     sns.set_context('paper')
 
@@ -105,69 +121,754 @@ def coolingdemand_heatmap():
     plt.show()
 
 
-def water_consumption_intensity(how='NERC'):
-    ABC_file_path = r'model_outputs\AbsorptionChillers\water_consumption\AbsorptionChiller'
-    WCC_file_path = r'model_outputs\AbsorptionChillers\water_consumption\WaterCooledChiller'
-    ACC_file_path = r'model_outputs\AbsorptionChillers\water_consumption'
+def concatenate_dataframes(how='NERC', scope=2):
+    '''
+    Inputs:
+        how: "NERC" or "fuel_type"
+        scope: 2 or 3
+    '''
     
-    ABC_df = pd.read_csv(F'{ABC_file_path}\water_for_cooling_{how}.csv')
-    WCC_df = pd.read_csv(F'{WCC_file_path}\water_for_cooling_{how}.csv')
-    ACC_df = pd.read_csv(F'{ACC_file_path}\water_for_cooling_baseline_{how}.csv')
-
-    dataframes = [ABC_df, WCC_df, ACC_df]
-    for df in dataframes:
-        try:
-            df.drop(columns=['Unnamed: 0'], inplace=True)
-        except KeyError:
-            pass
-        df.set_index(['city', 'building'], drop=True, inplace=True)
-
-    data = pd.concat(dataframes, axis=0)
-    data.reset_index(inplace=True)
+    # Read simulation files
+    ACC_filepath = r'model_outputs\AbsorptionChillers\water_consumption'
+    WCC_filepath = r'model_outputs\AbsorptionChillers\water_consumption\WaterCooledChiller'
+    ABC_filepath = r'model_outputs\AbsorptionChillers\water_consumption\AbsorptionChiller'
     
+    if scope == 2:
+        prefix = 'PoG'
+    elif scope == 3:
+        prefix = 'LC'
+
+    baseline_filename = F'{prefix}_water_for_cooling_baseline_{how}.csv'
+    chiller_filename = F'{prefix}_water_for_cooling_{how}.csv'
+
+    ACC_df = pd.read_csv(F'{ACC_filepath}\{baseline_filename}', index_col=0)
+    WCC_df = pd.read_csv(F'{WCC_filepath}\{chiller_filename}', index_col=0)
+    ABC_df = pd.read_csv(F'{ABC_filepath}\{chiller_filename}', index_col=0)
+
+    # Concatenate data
+    df = pd.concat([ACC_df, WCC_df, ABC_df], axis=0)
+    df.reset_index(inplace=True, drop=True)
+    df.fillna(0, inplace=True)
+
+    return df
+
+
+def concatenate_all_data(how='NERC'):
+    
+    df_S2 = concatenate_dataframes(how, scope=2)
+    df_S3 = concatenate_dataframes(how, scope=3)
+
+    df_S2['scope'] = 'PoG'
+    df_S3['scope'] = 'LC'
+
+    # Rename columns
+    df_S2.rename(columns={'PoG_w4e_intensity_factor_(L/kWh)':'w4e_int_factor_(L/kWhe)',	
+                        'PoG_annual_water_consumption_L':'annual_water_consumption_L',		
+                        'PoG_WaterConsumption_intensity_L/kWh':'WaterConsumption_int_(L/kWhr)',	
+                        'PoG_WaterConsumption_intensity_L/kWh_sqm':'WaterConsumption_int_(L/kWhr_sqm)'},
+                        inplace=True)
+
+    
+    df_S3.rename(columns={'Total_w4e_intensity_factor_(L/kWh)':'w4e_int_factor_(L/kWhe)',	
+                        'Total_annual_water_consumption_L':'annual_water_consumption_L',		
+                        'Total_WaterConsumption_intensity_L/kWh':'WaterConsumption_int_(L/kWhr)',	
+                        'Total_WaterConsumption_intensity_L/kWh_sqm':'WaterConsumption_int_(L/kWhr_sqm)'},
+                        inplace=True)
+
+    
+    df = pd.concat([df_S2, df_S3], axis=0).reset_index(drop=True)
+
+    # Rename chillers
+
+
+    return df
+
+
+def calculate_percent_difference(how='NERC', scope=2):
+    # Read simulation files
+    ACC_filepath = r'model_outputs\AbsorptionChillers\water_consumption'
+    WCC_filepath = r'model_outputs\AbsorptionChillers\water_consumption\WaterCooledChiller'
+    ABC_filepath = r'model_outputs\AbsorptionChillers\water_consumption\AbsorptionChiller'
+    
+    if scope == 2:
+        prefix = 'PoG'
+        column_prefix=prefix
+    elif scope == 3:
+        prefix = 'LC'
+        column_prefix = 'Total'
+
     if how == 'NERC':
-        sns.boxplot(x=data['WaterConsumption_intensity L_per_kWh_sqm'],
-                    y=data['chiller_type'],
-                    hue=data['climate_zone'])
+        X = 'eGRID_subregion'
+        m_indeces = ['city', 'building', 'eGRID_subregion']
+        abc_indeces = m_indeces
+    elif how == 'fuel_type':
+        X = 'fuel_type'
+        m_indeces = ['city', 'building', 'eGRID_subregion', 'fuel_type']
+        abc_indeces = m_indeces # .append('chp_id')
+
+    baseline_filename = F'{prefix}_water_for_cooling_baseline_{how}.csv'
+    chiller_filename = F'{prefix}_water_for_cooling_{how}.csv'
+
+    ACC_data = pd.read_csv(F'{ACC_filepath}\{baseline_filename}', index_col=0)
+    ACC_data.set_index(m_indeces, inplace=True, drop=True)
+
+    WCC_data = pd.read_csv(F'{WCC_filepath}\{chiller_filename}', index_col=0)
+    WCC_data.set_index(m_indeces, inplace=True, drop=True)
+
+    ABC_data = pd.read_csv(F'{ABC_filepath}\{chiller_filename}', index_col=0)    
+    ABC_data.set_index(abc_indeces, inplace=True, drop=True)
+
+    # ACC_water_consumption = ACC_df[F'{column_prefix}_annual_water_consumption_L']
+    # ACC_water_intensity_ref = ACC_df[F'{column_prefix}_WaterConsumption_intensity_L/kWh']
+    # ACC_water_consumption_building = ACC_df[F'{column_prefix}_WaterConsumption_intensity L_per_kWh_sqm']
+
+
+    comparison_metric = F'{column_prefix}_WaterConsumption_intensity_L/kWh'
+    ACC_df = ACC_data[comparison_metric]
+    WCC_df = WCC_data[comparison_metric]
+    ABC_df = ABC_data[comparison_metric]
+
+    df = pd.merge(ABC_df, ACC_df, 
+                  left_index=True, right_index=True,
+                  suffixes=('_ABC', '_ACC'))
+
+    ACC_df = df[F'{comparison_metric}_ACC']
+    ABC_df = df[F'{comparison_metric}_ABC']
+    df['Percent Difference'] = (ABC_df - ACC_df) / ACC_df * 100
+
+    df.reset_index(inplace=True)
+    ordered_fuel = ['United States Overall',
+                        'Ethanol', 
+                        'Conventional Oil', 'Unconventional Oil', 
+                        'Subbituminous Coal', 'Bituminous Coal', 'Lignite Coal',
+                        'Conventional Natural Gas', 'Unconventional Natural Gas', 
+                        'Uranium', 
+                        'Biodiesel', 'Biogas', 'Solid Biomass and RDF', 
+                        'Geothermal', 'Hydropower', 'Solar Photovoltaic', 'Solar Thermal', 'Wind'
+                        ]
+        
+    df['fuel_type'] = pd.Categorical(df['fuel_type'], categories=ordered_fuel, ordered=True)
+    df.sort_values(by='fuel_type')
+
+    df.to_csv(r'model_outputs\AbsorptionChillers\water_consumption\test.csv')
+    X = df['fuel_type']
+
+    x_label = 'Fuel type'
+    xtick_labels = ['US', # '\n\n' 
+                    'E', #'\n\nFossil Fuels',
+                    'CO', 'UO', 'SC', 'BC', 'LC', 'CNG', 'UNG', 
+                    'U', #'\n\n'
+                    'BD', #'\n\nRenewables', 
+                    'BG', 'BioM', 
+                    'GeoTh','Hydro', 'S.PV', 'S.Th', 'Wind'
+                    ]
+
+    # ABC_difference = (ABC_df - ACC_df) / ACC_df * 100
+    # WCC_difference = (WCC_df - ACC_df) / ACC_df * 100
+
+    # ABC_df = ABC_difference.reset_index().copy()
+    # ABC_df['chiller_type'] = 'ABC'
+
+    # WCC_df = WCC_difference.reset_index().copy()
+    # WCC_df['chiller_type'] = 'WCC'
+
+    # df = pd.concat([ABC_df, WCC_df], axis=0).reset_index(drop=True)
+
+    # df.rename(columns={comparison_metric:'Percent Difference'}, inplace=True)
+
+    
+    plt.close()
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+
+    sns.barplot(x=X, y='Percent Difference', data=df)
+    
+    ax.set_xticklabels(xtick_labels)
+    plt.show()
+    
+
+def water_consumption_intensity_version2(how='NERC'):
+
+    df = concatenate_all_data(how)
+
+    if how == 'NERC':
+        ordered_NERC = ['AZNM', 'CAMX', 'ERCT', 'FRCC', 'MROW', 
+                        'NWPP', 'RFCE', 'RFCW', 'RMPA', 'SRSO']
+
+        df['eGRID_subregion'] = pd.Categorical(df['eGRID_subregion'], categories=ordered_NERC, ordered=True)
+        df.sort_values(by='eGRID_subregion')
+
+        X = df['eGRID_subregion']
+
+        x_label = 'eGRID subregion'
+        xtick_labels = ordered_NERC
+
+        y_ticks = np.arange(0, 9, 1)
+
+    elif how == 'climate_zone':
+        ordered_CZ = ['1A', '2A', '2B',
+                    '3A', '3B', '3B-CA', '3C',
+                    '4A', '4B', '4C',
+                    '5A', '5B', '6A', '6B', '7']
+
+        df['climate_zone'] = pd.Categorical(df['climate_zone'], categories=ordered_CZ, ordered=True)
+        df.sort_values(by='climate_zone')
+
+        X = df['climate_zone']
+
+        x_label = 'Climate zone'
+        xtick_labels = ordered_CZ
+
+        y_ticks = np.arange(0, 9, 1)
 
     elif how == 'fuel_type':
-        sns.violinplot(x=data['WaterConsumption_intensity L_per_kWh_sqm'],
-                    y=data['chiller_type'],
-                    hue=data['fuel_type'])
+        ordered_fuel = ['United States Overall',
+                        'Ethanol', 
+                        'Conventional Oil', 'Unconventional Oil', 
+                        'Subbituminous Coal', 'Bituminous Coal', 'Lignite Coal',
+                        'Conventional Natural Gas', 'Unconventional Natural Gas', 
+                        'Uranium', 
+                        'Biodiesel', 'Biogas', 'Solid Biomass and RDF', 
+                        'Geothermal', 'Hydropower', 'Solar Photovoltaic', 'Solar Thermal', 'Wind'
+                        ]
+        
+        df['fuel_type'] = pd.Categorical(df['fuel_type'], categories=ordered_fuel, ordered=True)
+        df.sort_values(by='fuel_type')
+
+        X = df['fuel_type']
+
+        x_label = 'Fuel type'
+        xtick_labels = ['US', # '\n\n' 
+                        'E', #'\n\nFossil Fuels',
+                        'CO', 'UO', 'SC', 'BC', 'LC', 'CNG', 'UNG', 
+                        'U', #'\n\n'
+                        'BD', #'\n\nRenewables', 
+                        'BG', 'BioM', 
+                        'GeoTh','Hydro', 'S.PV', 'S.Th', 'Wind'
+                        ]
+
+        y_ticks = np.arange(0, 5, 1)
+    
+    
+    df['simulation'] = df[['chiller_type', 'scope']].apply(' - '.join, axis=1)
+
+    Y = 'WaterConsumption_int_(L/MWhr_sqm)' 
+    df[Y] = df['WaterConsumption_int_(L/kWhr_sqm)'] * 1000
+    y_label = "Water Consumption Intensity, $L / (MWh_r \cdot m^2)$"
+
+    # Close any previous plots
+    plt.close()
+
+    fig = plt.figure(figsize=(13,8))
+    ax = fig.add_subplot(111)
+
+    # Format fonts and style
+    sns.set_style('ticks', {'axes.facecolor': '1'})
+    sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
+    rcParams['font.family'] = 'Helvetica'
+    plt.rc('font', family='sans-serif')
+
+    from numpy import median
+    colors = ['white', 'deepskyblue', 'salmon', 'white', 'deepskyblue', 'salmon']
+    
+    sns.barplot(x=X, 
+                y=Y, hue='simulation', 
+                data=df,
+                # estimator=median,
+                ci=95,
+                palette=colors, 
+                edgecolor='0.1',
+                linewidth=1.5,
+                capsize=0.05,
+                )
+
+    hatches = ['', '', '','////', '////', '////']
+    
+    for bars, hatch in zip(ax.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+    
+    ##############
+    # Formatting #
+    ############## 
+    # X-axis
+    ax.set_xlabel(x_label, fontsize=18)
+    ax.set_xticklabels(xtick_labels, ha='center', fontsize=14)
+    ax.tick_params(axis='x', which='both', length=0)
+
+    # Y-axis
+    ax.set_ylabel(y_label, fontsize=18)
+    ax.set_yticks(y_ticks)
+    ax.set_ylim(np.min(y_ticks), np.max(y_ticks))
+    ax.set_yticklabels(y_ticks,fontsize=14)
+    ax.yaxis.set_minor_locator(mtick.MultipleLocator(0.1))
+
+
+    ax.legend(title='Chiller - Scope',
+              loc='upper center', 
+              ncol=3,
+              bbox_to_anchor=(0.5, 1.5),
+              frameon=False)
+
+    sns.despine()
+
+    plt.savefig(F'{save_path}\water4cooling_{how}.png', dpi=300)
+
+    plt.show()
+
+
+def water_consumption_intensity_fuel_type():
+    df = concatenate_all_data("fuel_type")
+
+    # Separate dataframes for subplots
+    first_set = ['United States Overall',
+                    'Ethanol', 
+                    'Conventional Oil', 'Unconventional Oil', 
+                    'Subbituminous Coal', 'Bituminous Coal', 'Lignite Coal',
+                    'Conventional Natural Gas', 'Unconventional Natural Gas', 
+                    ]
+
+    second_set = ['Uranium', 
+                'Biodiesel', 'Biogas', 'Solid Biomass and RDF', 
+                'Geothermal', 'Hydropower', 
+                'Solar Photovoltaic', 'Solar Thermal', 'Wind']
+
+    df_1 = df[df['fuel_type'].isin(first_set)].copy()
+    df_2 = df[df['fuel_type'].isin(second_set)].copy()
+
+    ordered_fuel = ['United States Overall',
+                    'Ethanol', 
+                    'Conventional Oil', 'Unconventional Oil', 
+                    'Subbituminous Coal', 'Bituminous Coal', 'Lignite Coal',
+                    'Conventional Natural Gas', 'Unconventional Natural Gas', 
+                    'Uranium', 
+                    'Biodiesel', 'Biogas', 'Solid Biomass and RDF', 
+                    'Geothermal', 'Hydropower', 'Solar Photovoltaic', 'Solar Thermal', 'Wind'
+                    ]
+    
+    for df in [df_1, df_2]:
+        df['fuel_type'] = pd.Categorical(df['fuel_type'], categories=ordered_fuel, ordered=True)
+        df.sort_values(by='fuel_type')
+
+        df['simulation'] = df[['chiller_type', 'scope']].apply(' - '.join, axis=1)
+
+        # Adjust consumption values        
+        Y = 'WaterConsumption_int_(L/MWhr_sqm)' 
+
+        df[Y] = df['WaterConsumption_int_(L/kWhr_sqm)'] * 1000
+
+    X_1 = df_1['fuel_type']
+    X_2 = df_2['fuel_type']
+
+    x_label = 'Fuel type'
+    x_1_labels = ['US', # '\n\n' 
+                    'E', #'\n\nFossil Fuels',
+                    'CO', 'UO', 'SC', 'BC', 'LC', 'CNG', 'UNG']
+    x_2_labels = ['U', #'\n\n'
+                    'BD', #'\n\nRenewables', 
+                    'BG', 'BM', 
+                    'GT','H', 'SPV', 'STh', 'W'
+                    ]
+
+    # Close any previous plots
+    plt.close()
+
+    fig, ax = plt.subplots(2, 1,figsize=(10,4), sharex=False)
+    plt.subplots_adjust(hspace=0.15)
+    
+    # Format fonts and style
+    sns.set_style('ticks', {'axes.facecolor': '1'})
+    sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
+    rcParams['font.family'] = 'Helvetica'
+    plt.rc('font', family='sans-serif')
+
+    from numpy import median
+    colors = ['white', 'deepskyblue', 'salmon', 'white', 'deepskyblue', 'salmon']
+    
+    y_ticks = np.arange(0, 5, 1)
+
+    ###################################
+    # First Plot, US and fossil fuels #
+    ###################################
+    plt.subplot(211)
+    # ax_1 = fig.add_subplot(211)
+
+    ax_1 = sns.barplot(x=X_1, 
+                y=Y, hue='simulation', 
+                data=df_1,
+                # estimator=median,
+                ci=95,
+                palette=colors, 
+                edgecolor='0.1',
+                linewidth=1.5,
+                capsize=0.05,
+                )
+
+    hatches = ['', '', '','////', '////', '////']
+    
+    for bars, hatch in zip(ax_1.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+    
+    ##############
+    # Formatting #
+    ############## 
+    # X-axis
+    ax_1.set_xlabel('')
+    ax_1.set_xticks(np.arange(0,9,1))
+    ax_1.set_xlim(-0.5, 8.5)
+    ax_1.set_xticklabels(x_1_labels, ha='center', fontsize=14)
+    ax_1.tick_params(axis='x', which='both', length=0)
+
+    # Y-axis
+    ax_1.set_ylabel('')
+    ax_1.set_yticks(y_ticks)
+    ax_1.set_ylim(np.min(y_ticks), np.max(y_ticks))
+    ax_1.set_yticklabels(y_ticks,fontsize=14)
+    ax_1.yaxis.set_minor_locator(mtick.MultipleLocator(0.2))
+
+
+    # ax_1.legend(title='Chiller - Scope',
+    #           loc='upper center', 
+    #           ncol=3,
+    #           bbox_to_anchor=(0.5, 1.5),
+    #           frameon=False)
+
+    ax_1.get_legend().remove()
+
+    ####################################
+    # Second Plot, US and fossil fuels #
+    ####################################
+    # ax_2 = fig.add_subplot(212)
+    plt.subplot(212)
+
+    ax_2 = sns.barplot(x=X_2, 
+                y=Y, hue='simulation', 
+                data=df_2,
+                # estimator=median,
+                ci=95,
+                palette=colors, 
+                edgecolor='0.1',
+                linewidth=1.5,
+                capsize=0.05,
+                )
+    
+    for bars, hatch in zip(ax_2.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+    
+    ##############
+    # Formatting #
+    ############## 
+    # X-axis
+    ax_2.set_xticks(np.arange(9,18,1))
+    ax_2.set_xlim(8.5, 17.5)
+    ax_2.set_xlabel('')
+    ax_2.set_xticklabels(x_2_labels, ha='center', fontsize=14)
+    ax_2.tick_params(axis='x', which='both', length=0)
+
+    # Y-axis
+    ax_2.set_ylabel('')
+    ax_2.set_yticks(y_ticks)
+    ax_2.set_ylim(np.min(y_ticks), np.max(y_ticks))
+    ax_2.set_yticklabels(y_ticks,fontsize=14)
+    ax_2.yaxis.set_minor_locator(mtick.MultipleLocator(0.2))
+
+
+    ax_2.get_legend().remove()
+    sns.despine()
+
+
+    y_label = "Water Consumption Intensity,\n           $L / (MWh_r \cdot m^2)$"
+    fig.text(0.5, 0.01, x_label, ha='center', fontsize=18)
+    fig.text(0.03, 0.5, y_label, va='center', rotation='vertical', fontsize=18)
+
+    plt.savefig(F'{save_path}\water4cooling_fuel_type.png', dpi=300)
+
+    plt.show()
+    
+# water_consumption_intensity_fuel_type()
+
+
+def water_consumption_intensity(how='NERC', scope=2):
+    '''
+    Inputs:
+        how: "NERC" or "fuel_type"
+        scope: 2 or 3
+    '''
+    try:
+        df = concatenate_dataframes(how, scope)
+    except FileNotFoundError:
+        df = concatenate_dataframes('NERC', scope)
+
+    if how == 'NERC':
+        ordered_NERC = ['AZNM', 'CAMX', 'ERCT', 'FRCC', 'MROW', 
+                        'NWPP', 'RFCE', 'RFCW', 'RMPA', 'SRSO']
+
+        df['eGRID_subregion'] = pd.Categorical(df['eGRID_subregion'], categories=ordered_NERC, ordered=True)
+        df.sort_values(by='eGRID_subregion')
+
+        X = df['eGRID_subregion']
+
+        x_label = 'eGRID subregion'
+        xtick_labels = ordered_NERC
+
+        y_ticks = np.arange(0, 9, 1)
+
+    elif how == 'climate_zone':
+        ordered_CZ = ['1A', '2A', '2B',
+                    '3A', '3B', '3B-CA', '3C',
+                    '4A', '4B', '4C',
+                    '5A', '5B', '6A', '6B', '7']
+
+        df['climate_zone'] = pd.Categorical(df['climate_zone'], categories=ordered_CZ, ordered=True)
+        df.sort_values(by='climate_zone')
+
+        X = df['climate_zone']
+
+        x_label = 'Climate zone'
+        xtick_labels = ordered_CZ
+
+        y_ticks = np.arange(0, 9, 1)
+
+    elif how == 'fuel_type':
+        ordered_fuel = ['United States Overall',
+                        'Ethanol', 
+                        'Conventional Oil', 'Unconventional Oil', 
+                        'Subbituminous Coal', 'Bituminous Coal', 'Lignite Coal',
+                        'Conventional Natural Gas', 'Unconventional Natural Gas', 
+                        'Uranium', 
+                        'Biodiesel', 'Biogas', 'Solid Biomass and RDF', 
+                        'Geothermal', 'Hydropower', 'Solar Photovoltaic', 'Solar Thermal', 'Wind'
+                        ]
+        
+        df['fuel_type'] = pd.Categorical(df['fuel_type'], categories=ordered_fuel, ordered=True)
+        df.sort_values(by='fuel_type')
+
+        X = df['fuel_type']
+
+        x_label = 'Fuel type'
+        xtick_labels = ['US', # '\n\n' 
+                        'E', #'\n\nFossil Fuels',
+                        'CO', 'UO', 'SC', 'BC', 'LC', 'CNG', 'UNG', 
+                        'U', #'\n\n'
+                        'BD', #'\n\nRenewables', 
+                        'BG', 'BioM', 
+                        'GeoTh','Hydro', 'S.PV', 'S.Th', 'Wind'
+                        ]
+
+        y_ticks = np.arange(0, 5, 1)
+    
+    if scope == 2:
+        Y = 'PoG_WaterConsumption_intensity_L_per_kWh_sqm'
+        df[Y] = df[Y] * 10**3
+        y_label = "PoG Water Consumption Intensity, $L / (MWh_r*m^2)$"
+        
+    elif scope == 3:
+        Y = 'Total_WaterConsumption_intensity_L_per_kWh_sqm'
+        df[Y] = df[Y] * 10**3
+        y_label = "Total Water Consumption Intensity, $L / (MWh_r*m^2)$"
+    
+
+    # Close any previous plots
+    plt.close()
+
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+
+    # Format fonts and style
+    sns.set_style('ticks', {'axes.facecolor': '1'})
+    sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
+    rcParams['font.family'] = 'Helvetica'
+    plt.rc('font', family='sans-serif')
+
+    from numpy import median
+    colors = ['white', 'skyblue', 'salmon']
+    
+    sns.barplot(x=X, 
+                y=Y, hue='chiller_type', 
+                data=df,
+                # estimator=median,
+                ci=95,
+                palette=colors, 
+                edgecolor='0.2',
+                linewidth=1,
+                capsize=0.2,
+                )
+
+    hatches = ['////', '', '....']
+    
+    for bars, hatch in zip(ax.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+    
+    ##############
+    # Formatting #
+    ############## 
+    # X-axis
+    ax.set_xlabel(x_label, fontsize=18)
+    ax.set_xticklabels(xtick_labels, ha='center', fontsize=14)
+    ax.tick_params(axis='x', which='both', length=0)
+
+    # Y-axis
+    ax.set_ylabel(y_label, fontsize=18)
+    ax.set_yticks(y_ticks)
+    ax.set_ylim(np.min(y_ticks), np.max(y_ticks))
+    ax.set_yticklabels(y_ticks,fontsize=14)
+    ax.yaxis.set_minor_locator(mtick.MultipleLocator(0.1))
+
+
+    # ax.legend(title='Chiller',
+    #           loc='upper center', 
+    #           ncol=3,
+    #           bbox_to_anchor=(0.5, 1.1),
+    #           frameon=False)
+
+    ax.get_legend().remove()
+
+    sns.despine()
+
+    plt.show()
+
+
+def peak_electricity_reduction():
+    data = concatenate_all_data()
+
+    subset = data[data['scope'] == 'PoG']
+    
+    print(subset['chiller_type'])
+    
+peak_electricity_reduction()
+
+def stacked_bar_evaporation_percent(how='NERC', scope=2):
+    import matplotlib.patches as mpatches
+
+    df = concatenate_dataframes(how, scope)
+    df = df[(df['chiller_type'] == 'AbsorptionChiller') | (df['chiller_type'] == 'WaterCooledChiller')]
+    
+    if scope == 2:
+        df['Total_L/MWh_sqm'] = df['PoG_WaterConsumption_intensity_L/kWh_sqm'] * 1000
+    elif scope == 3:
+        df['Total_L/MWh_sqm'] = df['Total_WaterConsumption_intensity_L_per_kWh_sqm'] * 1000
+    df['Evaporation_L/MWh_sqm'] = df['percent_evaporation'] * df['Total_L/MWh_sqm']
+    df['Power_Generation_L/MWh_sqm'] =  df['Total_L/MWh_sqm'] - df['Evaporation_L/MWh_sqm'] *1000
+
+    df = df[['city', 'building', 'eGRID_subregion', 'chiller_type', 'climate_zone', 'Total_L/MWh_sqm', 'Evaporation_L/MWh_sqm', 'Power_Generation_L/MWh_sqm']].copy()
+
+    ordered_NERC = ['AZNM', 'CAMX', 'ERCT', 'FRCC', 'MROW', 
+                        'NWPP', 'RFCE', 'RFCW', 'RMPA', 'SRSO']
+
+    df['eGRID_subregion'] = pd.Categorical(df['eGRID_subregion'], categories=ordered_NERC, ordered=True)
+    df.sort_values(by='eGRID_subregion')
+
+    ############
+    # Plotting #
+    ############
+    colors = ['skyblue', 'salmon']
+
+    sns.set_style('ticks', {'axes.facecolor': '1'})
+    sns.set_context('paper', rc={"lines.linewidth": 1.2}, font_scale=1.3)
+    rcParams['font.family'] = 'Helvetica'
+    plt.rc('font', family='sans-serif')
+
+    fig = plt.figure(figsize=(11,8))
+    ax = fig.add_subplot(111)
+
+    # Bar Chart 1 -> Evaporation from electricity
+    bar1 = sns.barplot(x='eGRID_subregion', 
+                       y='Total_L/MWh_sqm', 
+                       data=df, 
+                       hue='chiller_type',
+                       edgecolor='0.2', 
+                       linewidth=1, 
+                       capsize=0.2,)
+
+    bar2 = sns.barplot(x='eGRID_subregion', 
+                       y='Evaporation_L/MWh_sqm', 
+                       data=df, 
+                       hue='chiller_type',
+                       edgecolor='0.2', 
+                       ci=None)
+    
+    hatches = ['', '', '//', '//']
+
+    for bars, hatch in zip(ax.containers, hatches):
+        for bar in bars:
+            bar.set_hatch(hatch)
+
+    ax.legend(labels=['WCC', 'ABC', 'WCC - Evaporation', 'ABC - Evaporation'],
+              loc='upper center', 
+              ncol=4,
+              bbox_to_anchor=(0.5, 1.1),
+              frameon=False)
+
+    plt.show()
+    
+
+# stacked_bar_evaporation_percent(scope=3)
+
+# water_consumption_intensity(how ='NERC', scope=3)
+
+####################
+# INCOMPLETE PLOTS #
+####################
+
+def test_plots(how='NERC', scope=3):
+    data = concatenate_dataframes(how, scope)
+    
+    sns.scatterplot(x=data['CoolingDemand_kWh'],
+                    y=(data['Total_WaterConsumption_intensity_L_per_kWh_sqm']),
+                    hue =data['chiller_type'],
+                    # style=data['fuel_type'],
+                    # markers=
+                    )
+    
+    # if how == 'NERC':
+    #     sns.boxplot(x=data['Total_WaterConsumption_intensity_L_per_kWh_sqm'],
+    #                 y=data['chiller_type'],
+    #                 hue=data['climate_zone'])
+
+    # elif how == 'fuel_type':
+    #     sns.violinplot(x=data['PoG_WaterConsumption_intensity_L_per_kWh_sqm'],
+    #                 y=data['chiller_type'],
+    #                 hue=data['fuel_type'])
     
     plt.show()
 
-water_consumption_intensity(how='fuel_type')
 
 def plot_water_cons_v_energy_dem():
 
     ABC_df = pd.read_csv(
-        r'model_outputs\AbsorptionChillers\water_consumption\AbsorptionChiller\water_for_cooling_NERC.csv')
+        r'model_outputs\AbsorptionChillers\water_consumption\AbsorptionChiller\PoG_water_for_cooling_NERC.csv')
     WCC_df = pd.read_csv(
-        r'model_outputs\AbsorptionChillers\water_consumption\WaterCooledChiller\water_for_cooling_NERC.csv')
+        r'model_outputs\AbsorptionChillers\water_consumption\WaterCooledChiller\PoG_water_for_cooling_NERC.csv')
     ACC_df = pd.read_csv(
-        r'model_outputs\AbsorptionChillers\water_consumption\water_for_cooling_baseline_NERC.csv')
+        r'model_outputs\AbsorptionChillers\water_consumption\PoG_water_for_cooling_baseline_NERC.csv')
 
     # print(df)
     # Absorption Chiller
     sns.scatterplot(
         x=ABC_df['CoolingDemand_intensity_kWh/sqm'],
-        y=ABC_df['WaterConsumption_intensity_L/kWh'])
+        y=ABC_df['PoG_WaterConsumption_intensity_L/kWh'])
 
     # Water Cooled Chiller
     sns.scatterplot(
         x=WCC_df['CoolingDemand_intensity_kWh/sqm'],
-        y=WCC_df['WaterConsumption_intensity_L/kWh'])
+        y=WCC_df['PoG_WaterConsumption_intensity_L/kWh'])
 
     # Air Cooled Chiller
     sns.scatterplot(
         x=ACC_df['CoolingDemand_intensity_kWh/sqm'],
-        y=ACC_df['WaterConsumption_intensity_L/kWh'])
+        y=ACC_df['PoG_WaterConsumption_intensity_L/kWh'])
 
     plt.legend(['Absorption Chiller',
                 'Water Cooled Chiller',
                 'Air Cooled Chiller'])
     plt.show()
+
+# plot_water_cons_v_energy_dem()
 
 
 def plot_percent_change():
@@ -305,4 +1006,26 @@ def plot_percentages():
     plt.ylabel('Difference in Annual Water Consumption, %')
 
     # plt.legend(['Absorption Chiller', 'Water Cooled Chiller'])
+    plt.show()
+
+
+
+def plot_electricity(data):
+    df = pd.read_feather(data)
+    df.set_index('datetime', inplace=True, drop=True)
+    df.index = pd.to_datetime(df.index)
+
+    df['ACRC_ElecDemand_kW'] = df.CoolingDemand_kW / 3.4
+    # print(df.head())
+
+    sns.lineplot(x=df.index, y=df.AbsCh_ElecDemand_kW, alpha=0.5)
+    sns.lineplot(x=df.index, y=df.ACRC_ElecDemand_kW, alpha=0.5)
+
+    plt.legend(['Absorption Chiller', 'Air Cooled Chiller'])
+
+    plt.xlabel('Time')
+    plt.ylabel('Electricity Demand, kW')
+    file_path = r'model_outputs\AbsorptionChillers\Figures'
+    file_name = r'hourly_E_demand.png'
+    plt.savefig(F'{file_path}\{file_name}')
     plt.show()

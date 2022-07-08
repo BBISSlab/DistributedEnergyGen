@@ -303,7 +303,7 @@ def calculate_PoG_water_consumption( chiller_type='AbsorptionChiller', how='NERC
     annual_df = pd.concat(city_dataframes, axis=0).reset_index(drop=True)
     annual_df['chiller_type'] = chiller_type
 
-    annual_df['CoolingDemand_intensity_kWh/sqm'] = annual_df['CoolingDemand_kWh'] / floor_area
+    annual_df['CoolingDemand_intensity_kWh/sqm'] = annual_df['CoolingDemand_kWh'] / annual_df['floor_area_m^2']
 
     water_consumption_intensity = retrieve_water_consumption_intensities(how)
     PoG_water_consumption = water_consumption_intensity['PoG']
@@ -317,14 +317,17 @@ def calculate_PoG_water_consumption( chiller_type='AbsorptionChiller', how='NERC
 
         df = annual_df.copy()
 
-        df['PoG_w4e_intensity (L/kWh)'] = w4e_factor
+        df['PoG_w4e_intensity_factor_(L/kWh)'] = w4e_factor
 
         # PoG
-        df['annual_water_consumption_L'] = df.MakeupWater_kg + df.Cooling_ElecDemand_kWh * w4e_factor  # 1 kg = 1 L
+        df['PoG_annual_water_consumption_L'] = df.MakeupWater_kg + df.Cooling_ElecDemand_kWh * w4e_factor  # 1 kg = 1 L
+        df['percent_evaporation'] = df.MakeupWater_kg / df['PoG_annual_water_consumption_L']
 
-        df['WaterConsumption_intensity_L/kWh'] = df['annual_water_consumption_L'] / \
+        df['PoG_WaterConsumption_intensity_L/kWh'] = df['PoG_annual_water_consumption_L'] / \
             df['CoolingDemand_kWh']
-        df['WaterConsumption_intensity L_per_kWh_sqm'] = df['WaterConsumption_intensity_L/kWh'] / floor_area
+        df['PoG_WaterConsumption_intensity_L/kWh_sqm'] = df['PoG_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
+
+
 
         w4e_df = df.copy()
 
@@ -337,15 +340,16 @@ def calculate_PoG_water_consumption( chiller_type='AbsorptionChiller', how='NERC
             df['fuel_type'] = fuel
 
             w4e_factor = PoG_water_consumption[fuel]
-            df['PoG_w4e_intensity (L/kWh)'] = w4e_factor
+            df['PoG_w4e_intensity_factor_(L/kWh)'] = w4e_factor
 
             # PoG
-            df['annual_water_consumption_L'] = df.MakeupWater_kg \
+            df['PoG_annual_water_consumption_L'] = df.MakeupWater_kg \
                 + df.Cooling_ElecDemand_kWh * w4e_factor  # 1 kg = 1 L
+            df['percent_evaporation'] = df.MakeupWater_kg / df['PoG_annual_water_consumption_L']
 
-            df['WaterConsumption_intensity_L/kWh'] = df['annual_water_consumption_L'] / \
+            df['PoG_WaterConsumption_intensity_L/kWh'] = df['PoG_annual_water_consumption_L'] / \
                 df['CoolingDemand_kWh']
-            df['WaterConsumption_intensity L_per_kWh_sqm'] = df['WaterConsumption_intensity_L/kWh'] / floor_area
+            df['PoG_WaterConsumption_intensity_L/kWh_sqm'] = df['PoG_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
 
             fuel_dataframes.append(df)
 
@@ -363,13 +367,13 @@ def baseline_PoG_water_consumption(how='NERC'):
     if how == 'NERC':
         df = df[['city', 'building', 'CoolingDemand_kWh',
                  'floor_area_m^2', 'climate_zone', 'eGRID_subregion',
-                 'PoG_w4e_intensity (L/kWh)', 'Total_w4e_intensity (L/kWh)',
+                 'PoG_w4e_intensity_factor_(L/kWh)',
                  'CoolingDemand_intensity_kWh/sqm']].copy()
 
     if how == 'fuel_type':
         df = df[['city', 'building', 'CoolingDemand_kWh',
                  'floor_area_m^2', 'climate_zone', 'eGRID_subregion', 'fuel_type',
-                 'PoG_w4e_intensity (L/kWh)',
+                 'PoG_w4e_intensity_factor_(L/kWh)',
                  'CoolingDemand_intensity_kWh/sqm']].copy()
 
     df['chiller_type'] = 'AirCooledChiller'
@@ -380,10 +384,10 @@ def baseline_PoG_water_consumption(how='NERC'):
 
     # Conversion Stage
     df['PoG_annual_water_consumption_L'] = df['Cooling_ElecDemand_kWh'] * \
-        df['PoG_w4e_intensity (L/kWh)']
+        df['PoG_w4e_intensity_factor_(L/kWh)']
     df['PoG_WaterConsumption_intensity_L/kWh'] = df['PoG_annual_water_consumption_L'] / \
         df['CoolingDemand_kWh']
-    df['PoG_WaterConsumption_intensity L_per_kWh_sqm'] = df['PoG_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
+    df['PoG_WaterConsumption_intensity_L/kWh_sqm'] = df['PoG_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
 
     file_path = r'model_outputs\AbsorptionChillers\water_consumption'
     file_name = F'\\PoG_water_for_cooling_baseline_{how}.csv'
@@ -456,17 +460,17 @@ def calculate_LC_water_consumption(
     annual_df = pd.concat(city_dataframes, axis=0).reset_index(drop=True)
     annual_df['chiller_type'] = chiller_type
 
-    annual_df['CoolingDemand_intensity_kWh/sqm'] = annual_df['CoolingDemand_kWh'] / floor_area
+    annual_df['CoolingDemand_intensity_kWh/sqm'] = annual_df['CoolingDemand_kWh'] / annual_df['floor_area_m^2']
 
     water_consumption_intensity = retrieve_water_consumption_intensities(how)
     LC_water_consumption = water_consumption_intensity['total']
 
     if how == 'NERC':
-        df = annual_df.copy()
+        df1 = annual_df.copy()
         
         if chiller_type == 'AbsorptionChiller':
             w4e_factor_LC = 0.0279 # L/kWh of NG for conventional natural gas, 0.0727 for unconventional NG
-            df['Total_w4e_intensity (L/kWh)'] = w4e_factor_LC
+            df1['Total_w4e_intensity_factor_(L/kWh)'] = w4e_factor_LC
             
             chp_df = retrieve_PrimeMover_specs()
             chp_df.drop(columns=['ST1', 'ST2', 'ST3'], inplace=True)
@@ -474,17 +478,22 @@ def calculate_LC_water_consumption(
             chp_sim_dataframes = []
 
             for CHP in chp_df.columns.unique():
-                df = annual_df.copy()
+                df = df1.copy()
                 df['chp_id'] = CHP
                 chp = chp_df[CHP]
-                eta_CHP = chp['chp_EFF_LHV'] # CHP efficiency at lower heating value
+
+                eta_CHP = max(chp['chp_EFF_LHV'], chp['chp_EFF_HHV']) # CHP efficiency at lower heating value
                 hpr_CHP = 1 / chp['phr']    # Heat to power ratio of the CHP
                 
                 chp_heat_demand = df['Cooling_HeatDemand_kWh']
+
+
                 chp_fuel_demand = (chp_heat_demand * (1 + 1/hpr_CHP)) / eta_CHP
 
                 df['Total_annual_water_consumption_L'] = df.MakeupWater_kg \
                     + chp_fuel_demand * w4e_factor_LC  # 1 kg = 1 L
+
+                df['percent_evaporation'] = df.MakeupWater_kg / df['Total_annual_water_consumption_L']
                 
                 chp_sim_dataframes.append(df)
             
@@ -495,14 +504,16 @@ def calculate_LC_water_consumption(
             w4e_factor_LC = LC_water_consumption[eGRID_subregion]
             df['Total_annual_water_consumption_L'] = df.MakeupWater_kg \
                 + df.Cooling_ElecDemand_kWh * w4e_factor_LC  # 1 kg = 1 L
+
+            df['percent_evaporation'] = df.MakeupWater_kg / df['Total_annual_water_consumption_L']
         
 
-        df['Total_w4e_intensity (L/kWh)'] = w4e_factor_LC
+        df['Total_w4e_intensity_factor_(L/kWh)'] = w4e_factor_LC
 
         # Total Lifecycle
         df['Total_WaterConsumption_intensity_L/kWh'] = df['Total_annual_water_consumption_L'] / \
             df['CoolingDemand_kWh']
-        df['Total_WaterConsumption_intensity L_per_kWh_sqm'] = df['Total_WaterConsumption_intensity_L/kWh'] / floor_area
+        df['Total_WaterConsumption_intensity_L/kWh_sqm'] = df['Total_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
 
         w4e_df = df.copy()
 
@@ -510,20 +521,57 @@ def calculate_LC_water_consumption(
         fuel_dataframes = []
 
         for fuel in LC_water_consumption.index:
-            df = annual_df.copy()
+            df1 = annual_df.copy()
+            df1['fuel_type'] = fuel
 
-            df['fuel_type'] = fuel
+            if chiller_type == 'AbsorptionChiller':
+                w4e_factor_LC = 0.0279 # L/kWh of NG for conventional natural gas, 0.0727 for unconventional NG
+                
+                
+                df1['Total_w4e_intensity_factor_(L/kWh)'] = w4e_factor_LC
+                
+                chp_df = retrieve_PrimeMover_specs()
+                chp_df.drop(columns=['ST1', 'ST2', 'ST3'], inplace=True)
 
-            w4e_factor_LC = LC_water_consumption[fuel]
-            df['Total_w4e_intensity (L/kWh)'] = w4e_factor_LC
+                chp_sim_dataframes = []
 
-            # Total Lifecycle
-            df['Total_annual_water_consumption_L'] = df.MakeupWater_kg \
-                + df.Cooling_ElecDemand_kWh * w4e_factor_LC  # 1 kg = 1 L
+                for CHP in chp_df.columns.unique():
+                    df = df1.copy()
+                    df['chp_id'] = CHP
+                    chp = chp_df[CHP]
+                    eta_CHP = max(chp['chp_EFF_LHV'], chp['chp_EFF_HHV']) # CHP efficiency at lower heating value
+                    hpr_CHP = 1 / chp['phr']    # Heat to power ratio of the CHP
+                    
+                    chp_heat_demand = df['Cooling_HeatDemand_kWh']
+
+                    
+                    chp_fuel_demand = (chp_heat_demand * (1 + 1/hpr_CHP)) / eta_CHP
+
+                    df['Total_annual_water_consumption_L'] = df.MakeupWater_kg \
+                        + chp_fuel_demand * w4e_factor_LC  # 1 kg = 1 L
+
+                    df['percent_evaporation'] = df.MakeupWater_kg / df['Total_annual_water_consumption_L']
+
+                    chp_sim_dataframes.append(df)
+                
+                df = pd.concat(chp_sim_dataframes, axis=0).reset_index(drop=True)
+                
+            else: 
+                df = annual_df.copy()
+                df['fuel_type'] = fuel
+
+                w4e_factor_LC = LC_water_consumption[fuel]
+                df['Total_w4e_intensity_factor_(L/kWh)'] = w4e_factor_LC
+
+                # Total Lifecycle
+                df['Total_annual_water_consumption_L'] = df.MakeupWater_kg \
+                    + df.Cooling_ElecDemand_kWh * w4e_factor_LC  # 1 kg = 1 L
+
+                df['percent_evaporation'] = df.MakeupWater_kg / df['Total_annual_water_consumption_L']
 
             df['Total_WaterConsumption_intensity_L/kWh'] = df['Total_annual_water_consumption_L'] / \
                 df['CoolingDemand_kWh']
-            df['Total_WaterConsumption_intensity L_per_kWh_sqm'] = df['Total_WaterConsumption_intensity_L/kWh'] / floor_area
+            df['Total_WaterConsumption_intensity_L/kWh_sqm'] = df['Total_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
 
             fuel_dataframes.append(df)
 
@@ -542,13 +590,13 @@ def baseline_LC_water_consumption(how='NERC'):
     if how == 'NERC':
         df = df[['city', 'building', 'CoolingDemand_kWh',
                  'floor_area_m^2', 'climate_zone', 'eGRID_subregion',
-                 'Total_w4e_intensity (L/kWh)',
+                 'Total_w4e_intensity_factor_(L/kWh)',
                  'CoolingDemand_intensity_kWh/sqm']].copy()
 
     if how == 'fuel_type':
         df = df[['city', 'building', 'CoolingDemand_kWh',
                  'floor_area_m^2', 'climate_zone', 'eGRID_subregion', 'fuel_type',
-                 'Total_w4e_intensity (L/kWh)',
+                 'Total_w4e_intensity_factor_(L/kWh)',
                  'CoolingDemand_intensity_kWh/sqm']].copy()
 
     df['chiller_type'] = 'AirCooledChiller'
@@ -559,10 +607,10 @@ def baseline_LC_water_consumption(how='NERC'):
 
     # Lifecycle Stage
     df['Total_annual_water_consumption_L'] = df['Cooling_ElecDemand_kWh'] * \
-        df['Total_w4e_intensity (L/kWh)']
+        df['Total_w4e_intensity_factor_(L/kWh)']
     df['Total_WaterConsumption_intensity_L/kWh'] = df['Total_annual_water_consumption_L'] / \
         df['CoolingDemand_kWh']
-    df['Total_WaterConsumption_intensity L_per_kWh_sqm'] = df['Total_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
+    df['Total_WaterConsumption_intensity_L/kWh_sqm'] = df['Total_WaterConsumption_intensity_L/kWh'] / df['floor_area_m^2']
 
     file_path = r'model_outputs\AbsorptionChillers\water_consumption'
     file_name = F'\\LC_water_for_cooling_baseline_{how}.csv'
@@ -582,24 +630,24 @@ def baseline_LC_water_consumption(how='NERC'):
 # annual_building_sim(chiller_type='WaterCooledChiller', district_cooling_loss=0.1)
 
 # 3. Calculate the water-for-cooling consumption
-# print('PoG Impacts:')
-# print('Calculating "NERC" water consumption')
-# calculate_PoG_water_consumption(chiller_type='AbsorptionChiller', how='NERC')
-# calculate_PoG_water_consumption(chiller_type='WaterCooledChiller', how='NERC')
-# baseline_PoG_water_consumption(how='NERC')
+print('PoG Impacts:')
+print('Calculating "NERC" water consumption')
+calculate_PoG_water_consumption(chiller_type='AbsorptionChiller', how='NERC')
+calculate_PoG_water_consumption(chiller_type='WaterCooledChiller', how='NERC')
+baseline_PoG_water_consumption(how='NERC')
 
-# print('Calculating "fuel type" water consumption')
-# calculate_PoG_water_consumption(chiller_type='AbsorptionChiller', how='fuel_type')
-# calculate_PoG_water_consumption(chiller_type='WaterCooledChiller', how='fuel_type')
-# baseline_PoG_water_consumption(how='fuel_type')
+print('Calculating "fuel type" water consumption')
+calculate_PoG_water_consumption(chiller_type='AbsorptionChiller', how='fuel_type')
+calculate_PoG_water_consumption(chiller_type='WaterCooledChiller', how='fuel_type')
+baseline_PoG_water_consumption(how='fuel_type')
 
-# print('LC Impacts:')
-# print('Calculating "NERC" water consumption')
-# calculate_LC_water_consumption(chiller_type='AbsorptionChiller', how='NERC')
-# calculate_LC_water_consumption(chiller_type='WaterCooledChiller', how='NERC')
-# baseline_LC_water_consumption(how='NERC')
+print('LC Impacts:')
+print('Calculating "NERC" water consumption')
+calculate_LC_water_consumption(chiller_type='AbsorptionChiller', how='NERC')
+calculate_LC_water_consumption(chiller_type='WaterCooledChiller', how='NERC')
+baseline_LC_water_consumption(how='NERC')
 
-# print('Calculating "fuel type" water consumption')
-# calculate_LC_water_consumption(chiller_type='AbsorptionChiller', how='fuel_type')
-# calculate_LC_water_consumption(chiller_type='WaterCooledChiller', how='fuel_type')
-# baseline_LC_water_consumption(how='fuel_type')
+print('Calculating "fuel type" water consumption')
+calculate_LC_water_consumption(chiller_type='AbsorptionChiller', how='fuel_type')
+calculate_LC_water_consumption(chiller_type='WaterCooledChiller', how='fuel_type')
+baseline_LC_water_consumption(how='fuel_type')
