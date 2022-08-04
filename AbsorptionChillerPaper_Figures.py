@@ -34,7 +34,9 @@ PLOTTING FUNCTIONS
 
 """
 # TODO
-# 
+# You Lost a lot of the plotting functions you had made.
+# Lost the totals map, Lost the heat maps
+# You will have to make these again... after you defend.
 
 
 save_path = r'model_outputs\AbsorptionChillers\Figures'

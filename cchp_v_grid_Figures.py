@@ -56,7 +56,12 @@ def get_peak_demands():
 
     df = pd.concat(dfs, axis=0)
 
+    df['floor_area_m^2'] = df['Building'].apply(lambda x: floor_area_dictionary[x]) 
+
     df.reset_index(inplace=True, drop=True)
+
+    df['peak_electricity_demand_W/m^2'] = (df['peak_electricity_demand_kW'] / df['floor_area_m^2']) * 1000
+    df['peak_heat_demand_W/m^2'] = (df['peak_heat_demand_kW'] / df['floor_area_m^2']) * 1000
 
     return df
 
@@ -70,49 +75,73 @@ def pivot_peaks(df, energy='electricity', chiller='ac'):
     if energy == 'electricity':
         pivot_df = df.pivot(index='Building',
                             columns= 'climate_zone',
-                            values = 'peak_electricity_demand_kW')
+                            values = 'peak_electricity_demand_W/m^2')
     else:
         pivot_df = df.pivot(index='Building',
                             columns= 'climate_zone',
-                            values = 'peak_heat_demand_kW')
-    
+                            values = 'peak_heat_demand_W/m^2')
+
+    custom_order = ['P. School', 'S. School',
+                    'Hospital', 'O. Healthcare',
+                    'L. Hotel', 'S. Hotel',
+                    'Warehouse',
+                    'Midrise Apt',
+                    'L. Office', 'M. Office', 'S. Office',
+                    'F. Restaurant', 'Q. Restaurant',
+                    'S. Retail', 'S. Mall', 'Supermarket']
+
+    pivot_df.index = pd.CategoricalIndex(
+        pivot_df.index, categories=custom_order)
+    pivot_df.sort_index(level=0, inplace=True)
+
     return pivot_df
 
 def peak_demand_heatmap():
     '''
     This function generates a heat map of each building's cooling demand for each climate zone
     '''
+    plt.close()
+
     df = get_peak_demands()
 
     df['climate_zone'] = df['City'].apply(lambda x: climate_zone_dictionary[x])
 
-    building_rename = {'primary_school': 'Primary School',
-                       'secondary_school': 'Secondary School',
+    # building_rename = {'primary_school': 'Primary School',
+    #                    'secondary_school': 'Secondary School',
+    #                    'hospital': 'Hospital',
+    #                    'outpatient_healthcare': 'Outpatient Healthcare',
+    #                    'large_hotel': 'Large Hotel',
+    #                    'small_hotel': 'Small Hotel',
+    #                    'warehouse': 'Warehouse',
+    #                    'midrise_apartment': 'Midrise Apartment',
+    #                    'large_office': 'Large Office',
+    #                    'medium_office': 'Medium Office',
+    #                    'small_office': 'Small Office',
+    #                    'full_service_restaurant': 'Full Service Restaurant',
+    #                    'quick_service_restaurant': 'Quick Serice Restaurant',
+    #                    'stand_alone_retail': 'Stand-alone Retail',
+    #                    'strip_mall': 'Strip Mall',
+    #                    'supermarket': 'Supermarket'}
+    
+    building_rename = {'primary_school': 'P. School',
+                       'secondary_school': 'S. School',
                        'hospital': 'Hospital',
-                       'outpatient_healthcare': 'Outpatient Healthcare',
-                       'large_hotel': 'Large Hotel',
-                       'small_hotel': 'Small Hotel',
+                       'outpatient_healthcare': 'O. Healthcare',
+                       'large_hotel': 'L. Hotel',
+                       'small_hotel': 'S. Hotel',
                        'warehouse': 'Warehouse',
-                       'midrise_apartment': 'Midrise Apartment',
-                       'large_office': 'Large Office',
-                       'medium_office': 'Medium Office',
-                       'small_office': 'Small Office',
-                       'full_service_restaurant': 'Full Service Restaurant',
-                       'quick_service_restaurant': 'Quick Serice Restaurant',
-                       'stand_alone_retail': 'Stand-alone Retail',
-                       'strip_mall': 'Strip Mall',
+                       'midrise_apartment': 'Midrise Apt',
+                       'large_office': 'L. Office',
+                       'medium_office': 'M. Office',
+                       'small_office': 'S. Office',
+                       'full_service_restaurant': 'F. Restaurant',
+                       'quick_service_restaurant': 'Q. Restaurant',
+                       'stand_alone_retail': 'S. Retail',
+                       'strip_mall': 'S. Mall',
                        'supermarket': 'Supermarket'}
 
-    df['Building'] = df['Building'].apply(lambda x: building_rename[x])
 
-    custom_order = ['Primary School', 'Secondary School',
-                    'Hospital', 'Outpatient Healthcare',
-                    'Large Hotel', 'Small Hotel',
-                    'Warehouse',
-                    'Midrise Apartment',
-                    'Large Office', 'Medium Office', 'Small Office',
-                    'Full Service Restaurant', 'Quick Serice Restaurant',
-                    'Stand-alone Retail', 'Strip Mall', 'Supermarket']
+    df['Building'] = df['Building'].apply(lambda x: building_rename[x])
 
     # Electricity Pivots
     ac_E_pivot = pivot_peaks(df, 'electricity', 'ac')
@@ -122,54 +151,109 @@ def peak_demand_heatmap():
     ac_H_pivot = pivot_peaks(df, 'heat', 'ac')
     abc_H_pivot = pivot_peaks(df, 'heat', 'abc')
 
-    print(abc_H_pivot)
 
-    # pivot_df = df.pivot(index='building',
-    #                     columns='climate_zone',
-    #                     values='CoolingDemand_intensity_kWh/sqm')
+    grid_kws = {'height_ratios':(0.5, 0.5, 0.01), 'hspace': 0.3, 'wspace':0.1}
 
-    # pivot_df.index = pd.CategoricalIndex(
-    #     pivot_df.index, categories=custom_order)
-    # pivot_df.sort_index(level=0, inplace=True)
+    fig, ([ace_ax, ach_ax], [abce_ax, abch_ax], [cbar_e_ax, cbar_h_ax]) = plt.subplots(
+            3, 2, gridspec_kw=grid_kws, figsize=(11, 10))
 
-    # grid_kws = {'height_ratios':(0.03,0.95), 'hspace': 0.05}
-    # # grid_kws = {'width_ratios': (0.95, 0.05), 'wspace': 0.001}
-    # f, (cbar_ax, ax) = plt.subplots(
-    #     2, 1, gridspec_kw=grid_kws, figsize=(13, 10))
+    e_vmin = 0
+    e_vmax = 200
+    h_vmin = 0
+    h_vmax = 700
 
-    # ax = sns.heatmap(pivot_df,
-    #                  vmin=0, vmax=1000,  
-    #                  ax=ax,
-    #                  cbar_ax=cbar_ax,
-    #                  cbar_kws= {'orientation': 'horizontal',
-    #                            'ticks':mtick.LogLocator(),
-    #                            'extend':'max'
-    #                            },
-    #                  cmap='coolwarm_r',
-    #                  square=True,
-    #                  norm=LogNorm(),
-    #                  )
+    # Electricity Heatmaps
+    # AC
+    sns.heatmap(ac_E_pivot, 
+                vmin=e_vmin, vmax=e_vmax,
+                ax=ace_ax,
+                cbar_ax=cbar_e_ax,
+                cbar_kws= {'orientation': 'horizontal',
+                           'ticks':np.arange(0,300,100),
+                        #    'label':'Electricity Demand Intensity $W_e / m^2$'
+                          },
+                square=True,
+                cmap='YlGnBu')
+    # ABC
+    sns.heatmap(abc_E_pivot, 
+                vmin=e_vmin, vmax=e_vmax,
+                ax=abce_ax,
+                cbar=False,
+                square=True,
+                cmap='YlGnBu')
 
-    # cbar_ax.xaxis.set_tick_params(which='both', width=1.5, labelsize=14, 
-    #                 bottom=False, labelbottom=False, 
-    #                 top=True, labeltop=True)
+    # Heat Heatmaps
+    # AC
+    sns.heatmap(ac_H_pivot, 
+                vmin=h_vmin, vmax=h_vmax,
+                ax=ach_ax,
+                cbar_ax=cbar_h_ax,
+                cbar_kws= {'orientation': 'horizontal',
+                           'ticks': np.arange(0, 800, 100),
+                        #    'label':'Heat Demand Intensity $W_h / m^2$'
+                          },
+                square=True,
+                cmap='YlOrRd')
+    
+    # ABC
+    sns.heatmap(abc_H_pivot, 
+                vmin=h_vmin, vmax=h_vmax,
+                ax=abch_ax,
+                cbar=False,
+                square=True,
+                cmap='YlOrRd')
 
-    # cbar_ax.set_title('Cooling Demand Intensity, $kWh/m^2$', fontsize=16)
+    for ax in [ace_ax, ach_ax, abce_ax, abch_ax]:
+        ax.set_facecolor('black')
 
-    # ax.set_xticklabels(ax.get_xticklabels(), rotation=30, fontsize=14)
-    # ax.set_xlabel('IECC Climate Zone', fontsize=18)
+    for cbar_ax in [cbar_e_ax, cbar_h_ax]:
+        cbar_ax.xaxis.set_tick_params(which='both', width=1.5, labelsize=14, 
+                        bottom=True, labelbottom=True, 
+                        top=False, labeltop=False)
+        cbar_ax.xaxis.set_tick_params(which='major', length=7)
+        cbar_ax.xaxis.set_tick_params(which='minor', length=4)
 
-    # ax.set_yticklabels(ax.get_yticklabels(), fontsize=14)
-    # ax.set_ylabel('Building', fontsize=18)
-    # ax.tick_params(axis='both', width=1.5, labelsize=14)
+    cbar_e_ax.set_xticklabels(cbar_e_ax.get_xticks(), fontsize=14)
+    cbar_h_ax.set_xticklabels(cbar_h_ax.get_xticks(), fontsize=14)
+    
+    cbar_e_ax.xaxis.set_minor_locator(mtick.MultipleLocator(10))
+    cbar_h_ax.xaxis.set_minor_locator(mtick.MultipleLocator(20))
 
-    # sns.set_context('paper')
+    # cbar_e_ax.label.set_size(14)
+    # cbar_h_ax.label.set_size(14)
 
-    # filename = r'CoolingDemand_HeatMap.png'
-    # plt.savefig(F'{save_path}\\{filename}', dpi=300)
+    for ax in [ace_ax, ach_ax, abce_ax, abch_ax]:
+        ax.set_xlabel('')
+        ax.set_ylabel('')
 
-    # plt.show()
+    for ax in [ach_ax, abch_ax]:
+        ax.set_yticklabels('')
+    
+    for ax in [ace_ax, ach_ax]:
+        ax.set_xticklabels('')
 
-    pass
+    for ax in [ace_ax, abce_ax]:
+        ax.set_yticklabels(ax.get_yticklabels(), fontsize=12)
+
+    for ax in [abce_ax, abch_ax]:
+        ax.set_xticklabels(ax.get_xticklabels(), fontsize=12, rotation=90)
+
+    ace_ax.set_title('(a)', loc='left', fontsize=18)
+    ach_ax.set_title('(b)', loc='left', fontsize=18)
+    abce_ax.set_title('(c)', loc='left', fontsize=18)
+    abch_ax.set_title('(d)', loc='left', fontsize=18)
+
+    # ace_ax.text(0.5, 1.1, 'Electricity Demand Intensity')
+    # ach_ax.text(0.5, 1.1, 'Heat Demand Intensity')
+
+    # ace_ax.text(-0.1, 0.5, 'Air-Cooled Chiller', rotation = 90)
+    # abce_ax.text(-0.1,  0.5, 'Absorption Chiller', rotation=90)
+    
+    sns.set_context('paper')
+
+    filename = r'Electicity and Heat Demands.png'
+    plt.savefig(F'{save_path}\\{filename}', dpi=300)
+
+    plt.show()
 
 peak_demand_heatmap()
