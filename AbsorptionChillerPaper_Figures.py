@@ -519,9 +519,6 @@ def Fig4_water_consumption_intensity_NERC():
     plt.show()
 
 
-def Fig4_alt_map():
-    pass
-
 def Fig5_water_consumption_intensity_fuel_type():
     df = concatenate_all_data("fuel_type")
 
