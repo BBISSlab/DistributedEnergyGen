@@ -1,0 +1,7 @@
+chiller_type,scope,WC_mean,WC_std,%_evap_mean,%_evap_std,"Water Consumption, $L/MWh_C m^2$",Percent Evaporation
+AirCooledChiller,PoG,1.63,2.86,0.0,0.0,1.63 +/- 2.86,0.0 +/- 0.0
+AirCooledChiller,LC,6.23,16.0,0.0,0.0,6.23 +/- 16.0,0.0 +/- 0.0
+WaterCooledChiller,PoG,2.59,4.47,56.9,28.9,2.59 +/- 4.47,56.9 +/- 28.9
+WaterCooledChiller,LC,5.67,12.7,33.8,25.9,5.67 +/- 12.7,33.8 +/- 25.9
+AbsorptionChiller,PoG,2.66,4.55,100.0,0.0,2.66 +/- 4.55,100.0 +/- 0.0
+AbsorptionChiller,LC,2.73,4.54,97.1,7.63,2.73 +/- 4.54,97.1 +/- 7.63
